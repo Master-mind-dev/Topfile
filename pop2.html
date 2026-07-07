@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal Space</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #F8F6FC;
+  --surface: #FFFFFF;
+  --ink: #1B1730;
+  --muted: #847F9C;
+  --border: #ECE9F9;
+  --accent: #DC2626;
+  --accent2: #7C6BFF;
+  --radius: 16px;
+  --shadow: 0 8px 32px rgba(27,23,48,0.08);
+  --c-memory: #8B5CF6;
+  --c-note: #F59E0B;
+  --c-image: #3B82F6;
+  --c-scan: #10B981;
+  --c-link: #EC4899;
+  --c-file: #6B7280;
+}
+
+body.dark {
+  --bg: #1A1A2E;
+  --surface: #16213E;
+  --ink: #E2E8F0;
+  --muted: #94A3B8;
+  --border: #2D3748;
+  --shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  transition: .2s;
+  min-height: 100vh;
+}
+
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Sora', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--accent);
+  padding: 0 10px 20px;
+}
+
+.logo .mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transform: rotate(-4deg);
+  flex-shrink: 0;
+  color: white;
+}
+
+#tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: .15s;
+  color: var(--muted);
+}
+
+.nav-item:hover { background: var(--bg); color: var(--ink); }
+.nav-item.active { background: var(--accent); color: white; }
+.nav-item .label { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; }
+.nav-item .label .swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.nav-item .count { font-size: 12px; opacity: .7; font-weight: 600; }
+.nav-item.active .count { opacity: 1; }
+
+.sidebar-foot {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+#userInfo {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 8px 0;
+}
+
+#userInfo strong { color: var(--ink); }
+#userInfo button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* Main */
+.main {
+  flex: 1;
+  padding: 24px 32px;
+  min-height: 100vh;
+}
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.top-bar h1 {
+  font-family: 'Sora', sans-serif;
+  font-size: 28px;
+}
+
+.top-bar .actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.top-bar .actions .btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: .15s;
+  color: var(--ink);
+}
+
+.top-bar .actions .btn:hover { background: var(--bg); border-color: var(--accent); }
+.top-bar .actions .btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.top-bar .actions .btn.primary:hover { opacity: .9; }
+
+#searchBox {
+  padding: 8px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13px;
+  min-width: 180px;
+  transition: .15s;
+}
+
+#searchBox:focus { border-color: var(--accent); outline: none; }
+
+#themeToggle {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.storage-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.storage-box .bar {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 4px;
+  min-width: 80px;
+}
+
+.storage-box .bar .fill {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: .3s;
+}
+
+.storage-box .figure {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+#viewContainer { min-height: 200px; }
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: .2s;
+  position: relative;
+  box-shadow: var(--shadow);
+}
+
+.card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.12); }
+
+.card-top { height: 4px; background: var(--accent); }
+
+.card-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: .15s;
+}
+
+.card:hover .card-actions { opacity: 1; }
+
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: .15s;
+  color: var(--ink);
+}
+
+.icon-btn:hover { background: var(--bg); }
+.icon-btn.danger:hover { background: #FEE2E2; color: #DC2626; border-color: #DC2626; }
+
+.card-body { padding: 12px 14px 14px; }
+
+.type-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.type-chip .swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.card-thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  -o-object-fit: cover;
+  object-fit: cover;
+  border-radius: 8px;
+  margin: 6px 0 8px;
+  background: var(--bg);
+}
+
+.thumb-wrap {
+  position: relative;
+  margin: 6px 0 8px;
+}
+
+.thumb-wrap .video-thumb {
+  width: 100%;
+  aspect-ratio: 16/9;
+  -o-object-fit: cover;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.play-badge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.3);
+  border-radius: 8px;
+  transition: .2s;
+}
+
+.play-badge span {
+  width: 44px;
+  height: 44px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #000;
+}
+
+.thumb-wrap:hover .play-badge { background: rgba(0,0,0,0.15); }
+
+.card-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin: 4px 0;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+.card-preview {
+  font-size: 12px;
+  color: var(--muted);
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.link-host {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.tag-chip {
+  background: var(--bg);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Space Grid */
+.space-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.space-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: .15s;
+}
+
+.space-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+
+.space-tile .icon-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin: 0 auto 10px;
+}
+
+.space-tile .name { font-weight: 700; font-size: 14px; }
+.space-tile .num { font-size: 12px; color: var(--muted); }
+
+.recent-heading {
+  font-family: 'Sora', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  margin: 16px 0 12px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* Overlays */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.overlay.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  position: relative;
+}
+
+.modal h2 {
+  font-family: 'Sora', sans-serif;
+  font-size: 22px;
+  margin-bottom: 16px;
+}
+
+.modal label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin: 12px 0 4px;
+}
+
+.modal input,
+.modal textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  transition: .15s;
+  font-family: 'Inter', sans-serif;
+}
+
+.modal textarea { min-height: 100px; resize: vertical; }
+
+.modal input:focus,
+.modal textarea:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.modal .btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: .15s;
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--border);
+}
+
+.modal .btn:hover { opacity: .9; transform: translateY(-1px); }
+.modal .btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.modal .btn.ghost { background: transparent; border: 1px solid var(--border); }
+.modal .btn.ghost:hover { background: var(--bg); }
+
+.modal .btn-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.modal-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Detail View */
+.full-img {
+  width: 100%;
+  max-height: 60vh;
+  -o-object-fit: contain;
+  object-fit: contain;
+  border-radius: 10px;
+  background: var(--bg);
+  margin: 8px 0;
+}
+
+.viewer-frame {
+  width: 100%;
+  height: 60vh;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.video-embed {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border: none;
+  border-radius: 10px;
+  background: #000;
+}
+
+.native-video {
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 10px;
+  background: #000;
+}
+
+.link-preview-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.link-preview-panel img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  -o-object-fit: cover;
+  object-fit: cover;
+  display: block;
+  background: var(--border);
+}
+
+.link-preview-body {
+  padding: 16px;
+}
+
+.link-preview-host {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 6px;
+}
+
+.viewer-note {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.viewer-note a { color: var(--accent); text-decoration: none; }
+.viewer-note a:hover { text-decoration: underline; }
+
+.link-meta-row {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--muted);
+  margin: 4px 0 8px;
+  flex-wrap: wrap;
+}
+
+.reader-modal {
+  max-width: 92vw;
+  padding: 0;
+  background: var(--surface);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.reader-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.reader-title { font-weight: 700; font-size: 16px; }
+.reader-meta { font-size: 12px; color: var(--muted); }
+.reader-body { padding: 16px; height: 70vh; }
+.reader-frame { width: 100%; height: 100%; border: none; border-radius: 8px; background: var(--bg); }
+
+.status-line { font-size: 13px; color: var(--muted); padding: 8px 0; }
+
+/* Timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tl-month {
+  font-family: 'Sora', sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  padding: 16px 0 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tl-entry {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: .15s;
+  position: relative;
+}
+
+.tl-entry:hover { box-shadow: var(--shadow); }
+
+.tl-date { text-align: center; min-width: 50px; }
+.tl-date .day { font-size: 22px; font-weight: 800; line-height: 1; }
+.tl-date .wd { font-size: 11px; color: var(--muted); font-weight: 600; }
+.tl-content { flex: 1; }
+.tl-title { font-weight: 700; font-size: 14px; }
+.tl-preview { font-size: 12px; color: var(--muted); display: -webkit-box; line-clamp: 1; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.tl-thumb { width: 56px; height: 56px; -o-object-fit: cover; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+
+.cam-preview { width: 100%; max-height: 50vh; background: #000; border-radius: 10px; margin: 8px 0; -o-object-fit: cover; object-fit: cover; }
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 12px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  
+  .sidebar .logo { padding: 0 10px 0 0; font-size: 18px; }
+  .sidebar .logo .mark { width: 30px; height: 30px; font-size: 14px; }
+  
+  #tabs {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 2px;
+    flex: 1;
+    order: 2;
+    width: 100%;
+    margin-top: 8px;
+  }
+  
+  .nav-item { padding: 6px 10px; font-size: 12px; }
+  
+  .sidebar-foot {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    order: 3;
+    width: 100%;
+  }
+  
+  .main { padding: 16px; }
+  
+  .top-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .top-bar .actions { justify-content: center; }
+  
+  .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .space-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+  .modal { padding: 20px; max-width: 100%; }
+  .reader-modal { max-width: 100%; border-radius: 0; }
+  .reader-body { height: 50vh; }
+  .tl-entry { flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+  .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card-body { padding: 10px; }
+  .card-title { font-size: 12px; }
+  .top-bar h1 { font-size: 22px; }
+  .storage-box { flex-direction: column; align-items: stretch; }
+}
+</style>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="mark">🧠</div>
+      Personal Space
+    </div>
+    
+    <div id="tabs"></div>
+    
+    <div class="sidebar-foot">
+      <div id="userInfo"></div>
+      <button id="themeToggle" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 0;">🌙</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="top-bar">
+      <h1 id="pageTitle">Your spaces</h1>
+      <div class="actions">
+        <button class="btn" id="btnMemory">📔 Memory</button>
+        <button class="btn" id="btnNote">✎ Note</button>
+        <button class="btn" id="btnUpload">📤 Upload</button>
+        <button class="btn" id="btnScan">📷 Scan</button>
+        <button class="btn primary" id="btnLink">🔗 Add Link</button>
+        <input type="text" id="searchBox" placeholder="Search..." style="display:none;">
+      </div>
+    </div>
+    
+    <div class="storage-box">
+      <div class="figure" id="storageFigure">0 items</div>
+      <div class="bar"><div class="fill" id="storageFill"></div></div>
+    </div>
+    
+    <div id="viewContainer"></div>
+  </div>
+</div>
+
+<!-- Overlays -->
+<div class="overlay" id="memoryOverlay">
+  <div class="modal">
+    <h2>📔 Add Memory</h2>
+    <label>Date</label>
+    <input type="date" id="memoryDate">
+    <label>Write something</label>
+    <textarea id="memoryText" placeholder="What happened?"></textarea>
+    <label>Add a photo (optional)</label>
+    <img id="memoryPhotoPreview" style="display:none;width:100%;border-radius:8px;margin:4px 0;max-height:200px;object-fit:cover;">
+    <div class="btn-row">
+      <button class="btn" id="memoryPhotoBtn">📷 Choose Photo</button>
+      <button class="btn" id="memoryLinkBtn">🔗 Add Link</button>
+    </div>
+    <input type="file" id="memoryPhotoInput" accept="image/*" style="display:none;">
+    <div id="memoryLinkWrap" style="display:none;margin-top:8px;">
+      <label>Link</label>
+      <input type="url" id="memoryUrl" placeholder="https://example.com">
+    </div>
+    <div id="memoryStatus" style="font-size:13px;color:var(--muted);margin:8px 0;"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close="memoryOverlay">Cancel</button>
+      <button class="btn primary" id="memorySave">Save Memory</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="noteOverlay">
+  <div class="modal">
+    <h2>✎ New Note</h2>
+    <label>Write your note</label>
+    <textarea id="noteText" placeholder="Start writing..."></textarea>
+    <div id="noteStatus" style="font-size:13px;color:var(--muted);margin:8px 0;"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close="noteOverlay">Cancel</button>
+      <button class="btn primary" id="noteSave">Save Note</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="linkOverlay">
+  <div class="modal">
+    <h2>🔗 Add Link</h2>
+    <label>URL</label>
+    <input type="url" id="linkUrl" placeholder="https://youtube.com/watch?v=... or any link">
+    <div id="linkStatus" style="font-size:13px;color:var(--muted);margin:8px 0;"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close="linkOverlay">Cancel</button>
+      <button class="btn primary" id="linkSave">Save Link</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="camOverlay">
+  <div class="modal">
+    <h2>📷 Scan</h2>
+    <video id="camPreview" class="cam-preview" autoplay playsinline></video>
+    <div id="camStatus" style="font-size:13px;color:var(--muted);margin:8px 0;">Starting camera...</div>
+    <div class="btn-row">
+      <button class="btn" id="camCapture">📸 Capture</button>
+      <button class="btn" id="camFlip">🔄 Flip</button>
+      <button class="btn" id="camPickFile">📁 Choose File</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close="camOverlay">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="viewOverlay">
+  <div class="modal" id="viewModalBody">
+    <h2>Loading...</h2>
+    <div class="modal-actions"><button class="btn ghost" data-close="viewOverlay">Close</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="editOverlay">
+  <div class="modal">
+    <h2>✏️ Edit</h2>
+    <label>Title</label>
+    <input type="text" id="editTitle">
+    <div id="editContentWrap" style="display:none;">
+      <label>Content</label>
+      <textarea id="editContent"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close="editOverlay">Cancel</button>
+      <button class="btn primary" id="editSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept="*/*" style="display:none;" multiple>
+<input type="file" id="scanInput" accept="image/*" style="display:none;">
+
+<script>
+// ================= CONSTANTS =================
+const CATEGORIES = [
+  { id: 'home', label: '🏠 Home', icon: '🏠', color: null },
+  { id: 'memory', label: '📔 Memories', icon: '📔', color: 'var(--c-memory)' },
+  { id: 'note', label: '✎ Notes', icon: '✎', color: 'var(--c-note)' },
+  { id: 'image', label: '🖼️ Images', icon: '🖼️', color: 'var(--c-image)' },
+  { id: 'scan', label: '📷 Scans', icon: '📷', color: 'var(--c-scan)' },
+  { id: 'link', label: '🔗 Links', icon: '🔗', color: 'var(--c-link)' },
+  { id: 'file', label: '📁 Files', icon: '📁', color: 'var(--c-file)' },
+];
+const COLOR_MAP = { memory: 'var(--c-memory)', note: 'var(--c-note)', image: 'var(--c-image)', scan: 'var(--c-scan)', link: 'var(--c-link)', file: 'var(--c-file)' };
+const API_URL = 'http://localhost:5000/api';
+
+// ================= FIREBASE =================
+const firebaseConfig = {
+  apiKey: "AIzaSyBU_vTdK1WxEfHi-MEZDfdMCR89fbVsiHg",
+  authDomain: "personal-space-7c96d.firebaseapp.com",
+  projectId: "personal-space-7c96d",
+  storageBucket: "personal-space-7c96d.firebasestorage.app",
+  messagingSenderId: "458025475917",
+  appId: "1:458025475917:web:34b47c0edd64d294c3e104"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
+
+// ================= STATE =================
+let currentTab = 'home';
+let items = [];
+let currentUser = null;
+const canvas = document.createElement('canvas');
+
+// ================= DOM HELPERS =================
+function $(id) { return document.getElementById(id); }
+function openOverlay(id) { const el = $(id); if (el) el.classList.add('open'); }
+function closeOverlay(id) { const el = $(id); if (el) el.classList.remove('open'); }
+
+document.addEventListener('click', (e) => {
+  const closeBtn = e.target.closest('[data-close]');
+  if (closeBtn) closeOverlay(closeBtn.dataset.close);
+});
+
+// ================= AUTH =================
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    currentUser = user;
+    document.getElementById("userInfo").innerHTML = `
+      Logged in as <strong>${user.email}</strong> · 
+      <button onclick="logout()">Logout</button>
+    `;
+    await loadItems();
+    render();
+  } else {
+    window.location.href = "pop.html";
+  }
+});
+
+function logout() {
+  auth.signOut().then(() => window.location.href = "pop.html");
+}
+
+// ================= STORAGE FUNCTIONS =================
+function getCollection(name) {
+  return db.collection("users").doc(currentUser.uid).collection(name);
+}
+
+async function saveItem(item) {
+  const data = { ...item };
+  delete data.id;
+  await getCollection(item.type).doc(item.id).set(data);
+}
+
+async function deleteItem(item) {
+  await getCollection(item.type).doc(item.id).delete();
+}
+
+async function loadItems() {
+  items = [];
+  const types = ['memory', 'note', 'image', 'scan', 'link', 'file'];
+  for (const type of types) {
+    try {
+      const snapshot = await getCollection(type).orderBy('createdAt', 'desc').get();
+      snapshot.forEach(doc => {
+        items.push({ id: doc.id, type: type, ...doc.data() });
+      });
+    } catch (e) {
+      console.log('Error loading', type, e);
+    }
+  }
+  items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  return items;
+}
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+function fmtBytes(b) { 
+  if (!b) return '0 B';
+  if (b < 1024) return b + ' B'; 
+  if (b < 1024*1024) return (b/1024).toFixed(0) + ' KB'; 
+  return (b/(1024*1024)).toFixed(1) + ' MB'; 
+}
+
+function timeAgo(ts) { 
+  if (!ts) return '';
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); 
+}
+
+function escapeHtml(str) { 
+  if (!str) return ''; 
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); 
+}
+
+function escapeAttr(str) {
+  return escapeHtml(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function getEmbedUrl(item) {
+  if (item.embedProvider === 'youtube' && item.embedId) return `https://www.youtube.com/embed/${encodeURIComponent(item.embedId)}`;
+  if (item.embedProvider === 'vimeo' && item.embedId) return `https://player.vimeo.com/video/${encodeURIComponent(item.embedId)}`;
+  if (item.embedProvider === 'dailymotion' && item.embedId) return `https://www.dailymotion.com/embed/video/${encodeURIComponent(item.embedId)}`;
+  return '';
+}
+
+function isPlayableLink(item) {
+  return item.type === 'link' && ['youtube', 'vimeo', 'dailymotion', 'native_video'].includes(item.embedProvider);
+}
+
+// ================= RENDERING =================
+function renderTabs() {
+  const tabsEl = document.getElementById('tabs');
+  tabsEl.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const count = cat.id === 'home' ? items.length : items.filter(i => i.type === cat.id).length;
+    const div = document.createElement('div');
+    div.className = 'nav-item' + (currentTab === cat.id ? ' active' : '');
+    const swatch = cat.color ? `<span class="swatch" style="background:${cat.color}"></span>` : `<span>${cat.icon}</span>`;
+    div.innerHTML = `<span class="label">${swatch}${cat.label}</span><span class="count">${cat.id==='home' ? '' : count}</span>`;
+    div.addEventListener('click', () => { currentTab = cat.id; document.getElementById('pageTitle').textContent = cat.label; render(); });
+    tabsEl.appendChild(div);
+  });
+}
+
+function renderStorageBox() {
+  document.getElementById('storageFigure').textContent = `${items.length} item${items.length===1?'':'s'}`;
+  document.getElementById('storageFill').style.width = Math.min(100, (items.length / 50) * 100) + '%';
+}
+
+function buildCard(item) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const color = COLOR_MAP[item.type] || 'var(--muted)';
+  let thumbHtml = '';
+  
+  if (item.type === 'link' && item.embedThumb) {
+    thumbHtml = `<div class="thumb-wrap"><img class="card-thumb video-thumb" src="${item.embedThumb}">${item.embedProvider ? '<div class="play-badge"><span>▶</span></div>' : ''}</div>`;
+  } else if (item.thumb) {
+    thumbHtml = `<img class="card-thumb" src="${item.thumb}">`;
+  }
+  
+  const tagsHtml = (item.tags||[]).slice(0,2).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join('');
+  const hostBadge = item.type === 'link' && item.linkHost ? `<span class="link-host">${escapeHtml(item.linkHost)}</span>` : '';
+  
+  card.innerHTML = `
+    <div class="card-top" style="background:${color}"></div>
+    <div class="card-actions">
+      <div class="icon-btn" title="Edit" data-action="edit">✏️</div>
+      <div class="icon-btn danger" title="Delete" data-action="delete">🗑</div>
+    </div>
+    <div class="card-body">
+      <span class="type-chip"><span class="swatch" style="background:${color}"></span>${item.type}</span>
+      ${thumbHtml}
+      <div class="card-title">${escapeHtml(item.title)}</div>
+      <div class="card-preview">${escapeHtml(item.description || item.content || item.url || '')}</div>
+      ${hostBadge}
+      <div class="card-meta"><span>${timeAgo(item.createdAt)}</span><span>${tagsHtml}</span></div>
+    </div>`;
+  
+  card.querySelector('[data-action="edit"]').addEventListener('click', (e) => { e.stopPropagation(); openEdit(item); });
+  card.querySelector('[data-action="delete"]').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (confirm(`Delete "${item.title}"?`)) { await deleteItem(item); items = items.filter(i => i.id !== item.id); render(); }
+  });
+  card.addEventListener('click', () => openDetail(item));
+  return card;
+}
+
+function buildCard(item) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const color = COLOR_MAP[item.type] || 'var(--muted)';
+  let thumbHtml = '';
+
+  if (item.type === 'link' && item.embedThumb) {
+    const playBadge = isPlayableLink(item) ? '<div class="play-badge"><span>Play</span></div>' : '';
+    thumbHtml = `<div class="thumb-wrap"><img class="card-thumb video-thumb" src="${escapeAttr(item.embedThumb)}" alt="">${playBadge}</div>`;
+  } else if (item.thumb) {
+    thumbHtml = `<img class="card-thumb" src="${escapeAttr(item.thumb)}" alt="">`;
+  }
+
+  const tagsHtml = (item.tags||[]).slice(0,2).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join('');
+  const hostBadge = item.type === 'link' && item.linkHost ? `<span class="link-host">${escapeHtml(item.linkHost)}</span>` : '';
+
+  card.innerHTML = `
+    <div class="card-top" style="background:${color}"></div>
+    <div class="card-actions">
+      <div class="icon-btn" title="Edit" data-action="edit">Edit</div>
+      <div class="icon-btn danger" title="Delete" data-action="delete">Del</div>
+    </div>
+    <div class="card-body">
+      <span class="type-chip"><span class="swatch" style="background:${color}"></span>${escapeHtml(item.type)}</span>
+      ${thumbHtml}
+      <div class="card-title">${escapeHtml(item.title)}</div>
+      <div class="card-preview">${escapeHtml(item.description || item.content || item.url || '')}</div>
+      ${hostBadge}
+      <div class="card-meta"><span>${timeAgo(item.createdAt)}</span><span>${tagsHtml}</span></div>
+    </div>`;
+
+  card.querySelector('[data-action="edit"]').addEventListener('click', (e) => { e.stopPropagation(); openEdit(item); });
+  card.querySelector('[data-action="delete"]').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (confirm(`Delete "${item.title}"?`)) {
+      await deleteItem(item);
+      items = items.filter(i => i.id !== item.id);
+      render();
+    }
+  });
+  card.addEventListener('click', () => openDetail(item));
+  return card;
+}
+
+function renderHome() {
+  const container = document.getElementById('viewContainer');
+  container.innerHTML = '';
+  const spaceGrid = document.createElement('div');
+  spaceGrid.className = 'space-grid';
+  CATEGORIES.filter(c => c.id !== 'home').forEach(cat => {
+    const count = items.filter(i => i.type === cat.id).length;
+    const tile = document.createElement('div');
+    tile.className = 'space-tile';
+    tile.innerHTML = `
+      <div class="icon-badge" style="background:${cat.color};color:#fff;">${cat.icon}</div>
+      <div class="name">${cat.label}</div>
+      <div class="num">${count} item${count===1?'':'s'}</div>`;
+    tile.addEventListener('click', () => { currentTab = cat.id; document.getElementById('pageTitle').textContent = cat.label; render(); });
+    spaceGrid.appendChild(tile);
+  });
+  container.appendChild(spaceGrid);
+  
+  if (items.length) {
+    const heading = document.createElement('div');
+    heading.className = 'recent-heading';
+    heading.textContent = 'Recently added';
+    container.appendChild(heading);
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    items.slice(0, 6).forEach(item => grid.appendChild(buildCard(item)));
+    container.appendChild(grid);
+  }
+}
+
+function renderGrid() {
+  const container = document.getElementById('viewContainer');
+  const q = document.getElementById('searchBox').value.trim().toLowerCase();
+  let list = items.filter(i => i.type === currentTab);
+  if (q) list = list.filter(i => [i.title, (i.tags||[]).join(' '), i.content||'', i.url||'', i.description||''].join(' ').toLowerCase().includes(q));
+  
+  if (currentTab === 'memory') { renderTimeline(container, list); return; }
+  
+  container.innerHTML = '<div class="grid" id="grid"></div>';
+  const grid = document.getElementById('grid');
+  if (list.length === 0) { grid.innerHTML = `<div class="empty-state">Nothing here yet.<br>Add something with the buttons above.</div>`; return; }
+  list.forEach(item => grid.appendChild(buildCard(item)));
+}
+
+function renderTimeline(container, list) {
+  container.innerHTML = '';
+  if (list.length === 0) { container.innerHTML = `<div class="empty-state">No memories yet.<br>Add one with the button above.</div>`; return; }
+  const wrap = document.createElement('div');
+  wrap.className = 'timeline';
+  let lastMonth = null;
+  list.forEach(item => {
+    const d = new Date(item.createdAt);
+    const monthLabel = d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    if (monthLabel !== lastMonth) { const h = document.createElement('div'); h.className = 'tl-month'; h.textContent = monthLabel; wrap.appendChild(h); lastMonth = monthLabel; }
+    const entry = document.createElement('div');
+    entry.className = 'tl-entry';
+    const thumbHtml = item.thumb ? `<img class="tl-thumb" src="${item.thumb}">` : '';
+    entry.innerHTML = `
+      <div class="tl-date"><div class="day">${d.getDate()}</div><div class="wd">${d.toLocaleDateString(undefined,{weekday:'short'})}</div></div>
+      <div class="tl-content"><div class="tl-title">${escapeHtml(item.title)}</div><div class="tl-preview">${escapeHtml(item.content || '')}</div></div>
+      ${thumbHtml}
+      <div class="card-actions" style="opacity:1;top:10px;"><div class="icon-btn" data-action="edit">✏️</div><div class="icon-btn danger" data-action="delete">🗑</div></div>`;
+    entry.querySelector('[data-action="edit"]').addEventListener('click', (e) => { e.stopPropagation(); openEdit(item); });
+    entry.querySelector('[data-action="delete"]').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (confirm(`Delete "${item.title}"?`)) { await deleteItem(item); items = items.filter(i => i.id !== item.id); render(); }
+    });
+    entry.addEventListener('click', () => openDetail(item));
+    wrap.appendChild(entry);
+  });
+  container.appendChild(wrap);
+}
+
+function render() {
+  renderTabs(); 
+  renderStorageBox();
+  if (currentTab === 'home') renderHome(); 
+  else renderGrid();
+}
+
+// ================= DETAIL VIEW =================
+function resetViewerLayout() {
+  const overlay = document.getElementById('viewOverlay');
+  if (overlay) overlay.classList.remove('reader-overlay');
+  const body = document.getElementById('viewModalBody');
+  if (body) body.className = 'modal wide';
+}
+
+function enterReaderMode() {
+  const overlay = document.getElementById('viewOverlay');
+  if (overlay) overlay.classList.add('reader-overlay');
+  const body = document.getElementById('viewModalBody');
+  if (body) body.className = 'modal reader-modal';
+}
+
+function openDetailOldUnused(item) {
+  const body = document.getElementById('viewModalBody');
+  if (!body) return;
+  
+  // YouTube/Vimeo videos
+  if (item.type === 'link' && item.embedProvider === 'youtube') {
+    body.innerHTML = `
+      <h2>${escapeHtml(item.title)}</h2>
+      <iframe class="video-embed" src="https://www.youtube.com/embed/${item.embedId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      ${item.embedAuthor ? `<div class="link-meta-row">${escapeHtml(item.embedAuthor)}</div>` : ''}
+      <div class="viewer-note"><a href="${item.url}" target="_blank" rel="noopener">Open original ↗</a></div>
+      <div class="modal-actions"><button class="btn ghost" data-close="viewOverlay">Close</button></div>`;
+    openOverlay('viewOverlay');
+    return;
+  }
+  
+  if (item.type === 'link' && item.embedProvider === 'vimeo') {
+    body.innerHTML = `
+      <h2>${escapeHtml(item.title)}</h2>
+      <iframe class="video-embed" src="https://player.vimeo.com/video/${item.embedId}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+      <div class="viewer-note"><a href="${item.url}" target="_blank" rel="noopener">Open original ↗</a></div>
+      <div class="modal-actions"><button class="btn ghost" data-close="viewOverlay">Close</button></div>`;
+    openOverlay('viewOverlay');
+    return;
+  }
+  
+  // Generic links - open in iframe (stays in app)
+  if (item.type === 'link') {
+    body.innerHTML = `
+      <h2>${escapeHtml(item.title)}</h2>
+      <iframe class="viewer-frame" src="${item.url}" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+      <div class="viewer-note">If nothing appears, the site may not allow embedding. <a href="${item.url}" target="_blank" rel="noopener">Open in new tab ↗</a></div>
+      <div class="modal-actions"><button class="btn ghost" data-close="viewOverlay">Close</button></div>`;
+    openOverlay('viewOverlay');
+    return;
+  }
+  
+  // Images
+  if (item.type === 'image' || item.type === 'scan') {
+    body.innerHTML = `
+      <h2>${escapeHtml(item.title)}</h2>
+      <img class="full-img" src="${item.thumb || item.url || ''}">
+      <div class="viewer-note">${escapeHtml(item.description || item.content || '')}</div>
+      <div class="modal-actions"><button class="btn ghost" data-close="viewOverlay">Close</button></div>`;
+    openOverlay('viewOverlay');
+    return;
+  }
+  
+  // Notes, Memories, Files
+  body.innerHTML = `
+    <h2>${escapeHtml(item.title)}</h2>
+    <div class="viewer-note" style="white-space:pre-wrap;">${escapeHtml(item.content || '')}</div>
+    ${item.url ? `<div class="viewer-note"><a href="${item.url}" target="_blank">${item.url}</a></div>` : ''}
+    <div class="modal-actions"><button class="btn ghost" data-close="viewOverlay">Close</button></div>`;
+  openOverlay('viewOverlay');
+}
+
+function openDetail(item) {
+  const body = document.getElementById('viewModalBody');
+  if (!body) return;
+  resetViewerLayout();
+
+  if (isPlayableLink(item) && item.embedProvider !== 'native_video') {
+    const embedUrl = getEmbedUrl(item);
+    body.innerHTML = `
+      <h2>${escapeHtml(item.title)}</h2>
+      <iframe class="video-embed" src="${escapeAttr(embedUrl)}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>
+      <div class="link-meta-row"><span>${escapeHtml(item.linkHost || item.embedProvider)}</span></div>
+      <div class="viewer-note">${escapeHtml(item.description || '')}</div>
+      <div class="modal-actions"><button class="btn ghost" data-close="viewOverlay">Close</button></div>`;
+    openOverlay('viewOverlay');
+    return;
+  }
+
+  if (item.type === 'link' && item.embedProvider === 'native_video') {
+    body.innerHTML = `
+      <h2>${escapeHtml(item.title)}</h2>
+      <video class="native-video" src="${escapeAttr(item.embedId || item.url)}" controls playsinline></video>
+      <div class="link-meta-row"><span>${escapeHtml(item.linkHost || 'Video')}</span></div>
+      <div class="viewer-note">${escapeHtml(item.description || '')}</div>
+      <div class="modal-actions"><button class="btn ghost" data-close="viewOverlay">Close</button></div>`;
+    openOverlay('viewOverlay');
+    return;
+  }
+
+  if (item.type === 'link') {
+    const thumb = item.embedThumb ? `<img src="${escapeAttr(item.embedThumb)}" alt="">` : '';
+    body.innerHTML = `
+      <h2>${escapeHtml(item.title)}</h2>
+      <div class="link-preview-panel">
+        ${thumb}
+        <div class="link-preview-body">
+          <div class="link-preview-host">${escapeHtml(item.linkHost || 'Saved link')}</div>
+          <div class="viewer-note">${escapeHtml(item.description || 'This link is saved in your space. Some websites block embedded browsing, so this app keeps a clean preview here instead of redirecting you out.')}</div>
+          <div class="viewer-note">${escapeHtml(item.url || '')}</div>
+        </div>
+      </div>
+      <div class="modal-actions"><button class="btn ghost" data-close="viewOverlay">Close</button></div>`;
+    openOverlay('viewOverlay');
+    return;
+  }
+
+  if (item.type === 'image' || item.type === 'scan') {
+    body.innerHTML = `
+      <h2>${escapeHtml(item.title)}</h2>
+      <img class="full-img" src="${escapeAttr(item.thumb || item.url || '')}" alt="">
+      <div class="viewer-note">${escapeHtml(item.description || item.content || '')}</div>
+      <div class="modal-actions"><button class="btn ghost" data-close="viewOverlay">Close</button></div>`;
+    openOverlay('viewOverlay');
+    return;
+  }
+
+  body.innerHTML = `
+    <h2>${escapeHtml(item.title)}</h2>
+    <div class="viewer-note" style="white-space:pre-wrap;">${escapeHtml(item.content || item.description || '')}</div>
+    <div class="modal-actions"><button class="btn ghost" data-close="viewOverlay">Close</button></div>`;
+  openOverlay('viewOverlay');
+}
+
+// ================= EDIT =================
+function openEdit(item) {
+  document.getElementById('editTitle').value = item.title || '';
+  const wrap = document.getElementById('editContentWrap');
+  const contentBox = document.getElementById('editContent');
+  const editableTypes = ['note', 'memory'];
+  if (editableTypes.includes(item.type)) {
+    wrap.style.display = 'block';
+    contentBox.value = item.content || '';
+  } else {
+    wrap.style.display = 'none';
+  }
+  document.getElementById('editSave').onclick = async () => {
+    item.title = document.getElementById('editTitle').value.trim() || item.title;
+    if (wrap.style.display !== 'none') item.content = contentBox.value;
+    await saveItem(item);
+    closeOverlay('editOverlay');
+    render();
+  };
+  openOverlay('editOverlay');
+}
+
+// ================= ADD: NOTE =================
+document.getElementById('btnNote').addEventListener('click', () => {
+  document.getElementById('noteText').value = '';
+  openOverlay('noteOverlay');
+});
+
+document.getElementById('noteSave').addEventListener('click', async () => {
+  const text = document.getElementById('noteText').value.trim();
+  if (!text) return;
+  const item = { id: genId(), type: 'note', title: text.slice(0, 48), content: text, createdAt: Date.now(), tags: ['note'] };
+  await saveItem(item);
+  items.unshift(item);
+  closeOverlay('noteOverlay');
+  currentTab = 'note';
+  document.getElementById('pageTitle').textContent = 'Notes';
+  render();
+});
+
+// ================= ADD: MEMORY =================
+document.getElementById('btnMemory').addEventListener('click', () => {
+  document.getElementById('memoryDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('memoryText').value = '';
+  document.getElementById('memoryUrl').value = '';
+  document.getElementById('memoryLinkWrap').style.display = 'none';
+  document.getElementById('memoryPhotoPreview').style.display = 'none';
+  openOverlay('memoryOverlay');
+});
+
+document.getElementById('memoryLinkBtn').addEventListener('click', () => {
+  const wrap = document.getElementById('memoryLinkWrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+});
+
+document.getElementById('memoryPhotoBtn').addEventListener('click', () => document.getElementById('memoryPhotoInput').click());
+
+document.getElementById('memoryPhotoInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    document.getElementById('memoryPhotoPreview').src = ev.target.result;
+    document.getElementById('memoryPhotoPreview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('memorySave').addEventListener('click', async () => {
+  const text = document.getElementById('memoryText').value.trim();
+  const url = document.getElementById('memoryUrl').value.trim();
+  const dateStr = document.getElementById('memoryDate').value;
+  if (!text && !url && !document.getElementById('memoryPhotoPreview').src) {
+    alert('Please add some content, a link, or a photo.');
+    return;
+  }
+  
+  const item = { 
+    id: genId(), 
+    type: 'memory', 
+    title: text ? text.slice(0, 40) : (url ? new URL(url).hostname.replace('www.', '') : 'A memory'),
+    content: text,
+    url: url || '',
+    createdAt: dateStr ? new Date(dateStr + 'T12:00:00').getTime() : Date.now(),
+    tags: ['memory']
+  };
+  
+  // Handle photo upload
+  const preview = document.getElementById('memoryPhotoPreview');
+  if (preview.style.display !== 'none' && preview.src) {
+    const photoData = preview.src;
+    item.thumb = photoData;
+    // Upload to Firebase Storage
+    try {
+      const path = `users/${currentUser.uid}/memories/${item.id}.jpg`;
+      const ref = storage.ref(path);
+      const blob = await fetch(photoData).then(r => r.blob());
+      await ref.put(blob);
+      item.url = await ref.getDownloadURL();
+    } catch (e) {
+      console.error('Photo upload failed:', e);
+    }
+  }
+  
+  await saveItem(item);
+  items.unshift(item);
+  closeOverlay('memoryOverlay');
+  currentTab = 'memory';
+  document.getElementById('pageTitle').textContent = 'Memories';
+  render();
+});
+
+// ================= ADD: LINK WITH BACKEND =================
+document.getElementById('btnLink').addEventListener('click', () => {
+  document.getElementById('linkUrl').value = '';
+  document.getElementById('linkStatus').textContent = '';
+  openOverlay('linkOverlay');
+});
+
+document.getElementById('linkSave').addEventListener('click', async () => {
+  let url = document.getElementById('linkUrl').value.trim();
+  if (!url) {
+    document.getElementById('linkStatus').textContent = 'Please enter a URL';
+    return;
+  }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  
+  const btn = document.getElementById('linkSave');
+  btn.disabled = true;
+  document.getElementById('linkStatus').textContent = 'Fetching link metadata...';
+  
+  try {
+    // Call backend to parse the link
+    const response = await fetch(`${API_URL}/parse-link`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    
+    if (!response.ok) {
+      throw new Error('Backend not responding. Make sure the server is running on port 5000');
+    }
+    
+    const data = await response.json();
+    
+    const item = {
+      id: genId(),
+      type: 'link',
+      url: url,
+      title: data.title || url,
+      description: data.description || '',
+      embedThumb: data.embedThumb || '',
+      linkHost: data.linkHost || new URL(url).hostname.replace('www.', ''),
+      embedProvider: data.embedProvider || 'generic',
+      embedId: data.embedId || '',
+      isPlayable: Boolean(data.isPlayable),
+      createdAt: Date.now(),
+      tags: ['link']
+    };
+    
+    await saveItem(item);
+    items.unshift(item);
+    document.getElementById('linkStatus').textContent = '✅ Link saved!';
+    btn.disabled = false;
+    setTimeout(() => {
+      closeOverlay('linkOverlay');
+      currentTab = 'link';
+      document.getElementById('pageTitle').textContent = 'Links';
+      render();
+    }, 500);
+  } catch (error) {
+    document.getElementById('linkStatus').textContent = '❌ Error: ' + error.message;
+    btn.disabled = false;
+  }
+});
+
+// ================= ADD: SCAN =================
+document.getElementById('btnScan').addEventListener('click', () => {
+  document.getElementById('scanInput').click();
+});
+
+document.getElementById('scanInput').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    const dataUrl = ev.target.result;
+    const item = {
+      id: genId(),
+      type: 'scan',
+      title: file.name,
+      thumb: dataUrl,
+      description: 'Scanned document',
+      createdAt: Date.now(),
+      tags: ['scan']
+    };
+    await saveItem(item);
+    items.unshift(item);
+    currentTab = 'scan';
+    document.getElementById('pageTitle').textContent = 'Scans';
+    render();
+  };
+  reader.readAsDataURL(file);
+});
+
+// ================= ADD: UPLOAD =================
+document.getElementById('btnUpload').addEventListener('click', () => document.getElementById('fileInput').click());
+
+document.getElementById('fileInput').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  for (const file of files) {
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const dataUrl = ev.target.result;
+      const isImage = file.type.startsWith('image/');
+      const item = {
+        id: genId(),
+        type: isImage ? 'image' : 'file',
+        title: file.name,
+        thumb: isImage ? dataUrl : null,
+        content: isImage ? '' : `${file.name} · ${fmtBytes(file.size)}`,
+        createdAt: Date.now(),
+        tags: [isImage ? 'image' : 'file']
+      };
+      await saveItem(item);
+      items.unshift(item);
+      render();
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+// ================= SEARCH =================
+document.getElementById('searchBox').addEventListener('input', () => {
+  if (currentTab !== 'home') renderGrid();
+});
+
+// ================= THEME =================
+document.getElementById('themeToggle').addEventListener('click', () => {
+  document.body.classList.toggle('dark');
+});
+
+// Initial render
+render();
+</script>
+</body>
+</html>

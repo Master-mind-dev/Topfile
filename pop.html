@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal Space - Login</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #F8F6FC;
+  --surface: #FFFFFF;
+  --ink: #1B1730;
+  --muted: #847F9C;
+  --border: #ECE9F9;
+  --accent: #DC2626;
+  --radius: 20px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: .55;
+  z-index: 0;
+}
+
+.blob.b1 { width: 420px; height: 420px; background: #7C6BFF; top: -120px; left: -120px; }
+.blob.b2 { width: 380px; height: 380px; background: #FF6FB5; bottom: -140px; right: -100px; opacity: .4; }
+
+.container {
+  width: 100%;
+  max-width: 400px;
+  padding: 24px;
+  position: relative;
+  z-index: 1;
+}
+
+.brand {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.brand .mark {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #7C6BFF, #FF6FB5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  box-shadow: 0 12px 28px -8px rgba(124,107,255,.55);
+  transform: rotate(-4deg);
+}
+
+.brand h1 {
+  font-family: 'Sora', sans-serif;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.card {
+  background: var(--surface);
+  padding: 34px 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: 0 30px 60px -25px rgba(76,58,150,.28);
+}
+
+h2 {
+  font-family: 'Sora', sans-serif;
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  margin-bottom: 6px;
+}
+
+.sub {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 26px;
+}
+
+label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  margin: 14px 0 6px;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+label:first-of-type { margin-top: 0; }
+
+input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14.5px;
+  background: #FBFAFD;
+  outline: none;
+  transition: .15s;
+}
+
+input:focus {
+  border-color: #7C6BFF;
+  background: var(--surface);
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 24px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  transition: .15s;
+}
+
+button:active { transform: scale(.97); }
+
+.primary {
+  background: linear-gradient(135deg, #7C6BFF, #FF6FB5);
+  color: white;
+  box-shadow: 0 14px 30px -10px rgba(124,107,255,.6);
+}
+
+.primary:hover { opacity: .93; }
+
+.link {
+  color: #7C6BFF;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.link:hover { text-decoration: underline; }
+
+.foot {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.forgot {
+  text-align: right;
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+#signup { display: none; }
+
+#loginStatus {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 13px;
+  min-height: 20px;
+}
+</style>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+
+<div class="container">
+  <div class="brand">
+    <div class="mark">🧠</div>
+    <h1>Personal Space</h1>
+  </div>
+
+  <div id="login" class="card">
+    <h2>Welcome back</h2>
+    <p class="sub">Log in to get to your notes, files and links.</p>
+
+    <label for="loginEmail">Email</label>
+    <input type="email" id="loginEmail" placeholder="you@example.com">
+
+    <label for="loginPassword">Password</label>
+    <input type="password" id="loginPassword" placeholder="••••••••">
+
+    <div class="forgot">
+      <span class="link" onclick="resetPassword()">Forgot password?</span>
+    </div>
+
+    <div id="loginStatus"></div>
+    <button class="primary" onclick="login()">Log in</button>
+
+    <p class="foot">
+      No account? <span class="link" onclick="showSignup()">Sign up</span>
+    </p>
+  </div>
+
+  <div id="signup" class="card">
+    <h2>Create your space</h2>
+    <p class="sub">One place for everything you want to keep.</p>
+
+    <label for="name">Full name</label>
+    <input type="text" id="name" placeholder="Jane Doe">
+
+    <label for="signupEmail">Email</label>
+    <input type="email" id="signupEmail" placeholder="you@example.com">
+
+    <label for="signupPassword">Password</label>
+    <input type="password" id="signupPassword" placeholder="At least 6 characters">
+
+    <button class="primary" onclick="signup()">Create account</button>
+
+    <p class="foot">
+      Already have an account? <span class="link" onclick="showLogin()">Log in</span>
+    </p>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBU_vTdK1WxEfHi-MEZDfdMCR89fbVsiHg",
+  authDomain: "personal-space-7c96d.firebaseapp.com",
+  projectId: "personal-space-7c96d",
+  storageBucket: "personal-space-7c96d.firebasestorage.app",
+  messagingSenderId: "458025475917",
+  appId: "1:458025475917:web:34b47c0edd64d294c3e104"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+function showSignup() {
+  document.getElementById("login").style.display = "none";
+  document.getElementById("signup").style.display = "block";
+}
+
+function showLogin() {
+  document.getElementById("signup").style.display = "none";
+  document.getElementById("login").style.display = "block";
+}
+
+function setLoginStatus(msg, isError = true) {
+  const status = document.getElementById("loginStatus");
+  status.textContent = msg;
+  status.style.color = isError ? '#DC2626' : '#10B981';
+}
+
+async function signup() {
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("signupEmail").value.trim();
+  const password = document.getElementById("signupPassword").value;
+
+  if (!name || !email || !password) {
+    setLoginStatus("Fill all fields");
+    return;
+  }
+
+  try {
+    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+    const user = userCredential.user;
+
+    await db.collection("users").doc(user.uid).set({
+      name: name,
+      email: email,
+      createdAt: new Date()
+    });
+
+    window.location.href = "pop2.html";
+  } catch (error) {
+    setLoginStatus(error.message);
+  }
+}
+
+async function login() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value;
+
+  if (!email || !password) {
+    setLoginStatus("Fill all fields");
+    return;
+  }
+
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+    window.location.href = "pop2.html";
+  } catch (error) {
+    setLoginStatus(error.message);
+  }
+}
+
+function resetPassword() {
+  const email = document.getElementById("loginEmail").value.trim();
+  if (!email) {
+    setLoginStatus("Enter your email first");
+    return;
+  }
+  auth.sendPasswordResetEmail(email)
+    .then(() => setLoginStatus("Password reset link sent. Check your email.", false))
+    .catch((error) => setLoginStatus(error.message));
+}
+
+auth.onAuthStateChanged((user) => {
+  if (user) window.location.href = "pop2.html";
+});
+</script>
+</body>
+</html>
