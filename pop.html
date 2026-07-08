@@ -27,11 +27,20 @@ body {
   background: var(--bg);
   color: var(--ink);
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
   position: relative;
+  padding: 16px;
+}
+
+@media (max-width: 480px) {
+  input { font-size: 16px; }
+  .card { padding: 26px 22px; }
+  .brand h1 { font-size: 19px; }
+  h2 { font-size: 20px; }
 }
 
 .blob {
