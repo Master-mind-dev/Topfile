@@ -920,7 +920,7 @@ const CATEGORIES = [
   { id: 'file', label: '📁 Files', icon: '📁', color: 'var(--c-file)' },
 ];
 const COLOR_MAP = { memory: 'var(--c-memory)', note: 'var(--c-note)', image: 'var(--c-image)', scan: 'var(--c-scan)', link: 'var(--c-link)', file: 'var(--c-file)' };
-const API_URL = 'http://localhost:5000/api';
+const API_URL = `${window.location.origin}/api`;
 
 // ================= FIREBASE =================
 const firebaseConfig = {
