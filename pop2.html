@@ -98,23 +98,79 @@ body {
   flex: 1;
 }
 
+/* Samsung structural comfort + Premium iOS physics transition */
 .nav-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: 12px 16px;
+  border-radius: 14px; /* Softer, premium squircle style rounded edge */
   cursor: pointer;
-  transition: .15s;
   color: var(--muted);
+  position: relative;
+  overflow: hidden;
+  
+  /* Super fluid sliding physics curve */
+  transition: background-color 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+              color 0.3s cubic-bezier(0.25, 1, 0.5, 1),
+              transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 
-.nav-item:hover { background: var(--bg); color: var(--ink); }
-.nav-item.active { background: var(--accent); color: white; }
-.nav-item .label { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; }
-.nav-item .label .swatch { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-.nav-item .count { font-size: 12px; opacity: .7; font-weight: 600; }
-.nav-item.active .count { opacity: 1; }
+/* Softer ambient fade on hover */
+.nav-item:hover {
+  background: rgba(124, 107, 255, 0.08); /* Light tint matching your secondary accent */
+  color: var(--ink);
+  transform: translateX(4px); /* Gentle iOS-style slide focus hint */
+}
+
+/* Premium active state layout with depth */
+.nav-item.active {
+  background: var(--accent);
+  color: white;
+}
+
+.nav-item.active:hover {
+  transform: scale(1.02); /* Clean spring push forward when hovering active tab */
+}
+
+.nav-item .label { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  font-weight: 600; 
+  font-size: 14px; 
+}
+
+.nav-item .label .swatch { 
+  width: 10px; 
+  height: 10px; 
+  border-radius: 50%; 
+  display: inline-block; 
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Make dot indicators subtly pop out when active or hovered */
+.nav-item:hover .label .swatch,
+.nav-item.active .label .swatch {
+  transform: scale(1.2);
+}
+
+.nav-item .count { 
+  font-size: 12px; 
+  opacity: .7; 
+  font-weight: 600; 
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px 8px;
+  border-radius: 20px;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Brighten badge counts on active selection */
+.nav-item.active .count { 
+  opacity: 1; 
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
 
 .sidebar-foot {
   margin-top: auto;
@@ -267,18 +323,35 @@ body {
 }
 
 /* Cards */
+/* Samsung structural elegance + Apple high-velocity motion ease */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 20px; /* Softer, beautiful premium round corners */
   overflow: hidden;
   cursor: pointer;
-  transition: .2s;
   position: relative;
   box-shadow: var(--shadow);
+  
+  /* Extremely smooth spring-like translation duration */
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+              box-shadow 0.4s cubic-bezier(0.25, 1, 0.5, 1),
+              border-color 0.25s ease;
 }
 
-.card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.12); }
+/* Fluid lift up with deep floating ambient drop shadow on hover */
+.card:hover { 
+  transform: translateY(-6px) scale(1.015); 
+  border-color: var(--accent2); /* Subtle highlight focus border */
+  box-shadow: 0 20px 38px rgba(27, 23, 48, 0.07), 
+              0 8px 16px rgba(27, 23, 48, 0.03); 
+}
+
+/* Slightly shrink when tapped/clicked to give physical feel */
+.card:active {
+  transform: translateY(-2px) scale(0.98);
+  box-shadow: 0 8px 24px rgba(27, 23, 48, 0.05);
+}
 
 .card-top { height: 4px; background: var(--accent); }
 
@@ -428,11 +501,18 @@ body {
 }
 
 /* Space Grid */
+/* Samsung clean architecture fluid grid container */
 .space-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px;
+  width: 100%;
+  padding: 4px 0;
   margin-bottom: 24px;
+
+  /* Apple performance hardware acceleration setup */
+  will-change: transform;
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .space-tile {
@@ -765,6 +845,86 @@ body {
   transform: scale(0.93) translateY(0);
 }
 
+/* === VISUAL CUSTOMIZER EDITOR PANEL === */
+.customizer-drawer {
+  position: fixed;
+  top: 0;
+  right: -340px;
+  width: 320px;
+  height: 100vh;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  z-index: 1100;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: right 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  overflow-y: auto;
+}
+
+.customizer-drawer.open {
+  right: 0;
+}
+
+.customizer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+
+.customizer-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.customizer-group label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+
+/* Drag and Drop Visual Handles */
+.draggable-section {
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.edit-mode .draggable-section {
+  border: 2px dashed var(--accent2) !important;
+  border-radius: var(--radius);
+  padding: 8px;
+  margin-bottom: 8px;
+  cursor: grab;
+}
+
+.edit-mode .draggable-section.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+  transform: scale(0.98);
+  box-shadow: var(--shadow);
+}
+
+/* Control Badges for Delete and Edit */
+.section-controls {
+  display: none;
+  position: absolute;
+  top: -12px;
+  right: 12px;
+  gap: 6px;
+  z-index: 10;
+}
+
+.edit-mode .draggable-section:hover .section-controls {
+  display: flex;
+}
+
 /* ================= RESPONSIVE DESIGN ================= */
 @media (max-width: 768px) {
   .app {
@@ -926,13 +1086,14 @@ body {
     <div class="top-bar">
       <h1 id="pageTitle">Your spaces</h1>
       <div class="actions">
-        <button class="btn" id="btnMemory">📔 Memory</button>
-        <button class="btn" id="btnNote">✎ Note</button>
-        <button class="btn" id="btnUpload">📤 Upload</button>
-        <button class="btn" id="btnScan">📷 Scan</button>
-        <button class="btn primary" id="btnLink">🔗 Add Link</button>
-        <input type="text" id="searchBox" placeholder="Search..." style="display:none;">
-      </div>
+         <button class="btn" id="btnMemory">📔 Memory</button>
+         <button class="btn" id="btnNote">✎ Note</button>
+         <button class="btn" id="btnUpload">📤 Upload</button>
+         <button class="btn" id="btnScan">📷 Scan</button>
+         <button class="btn primary" id="btnLink">🔗 Add Link</button>
+         <button class="btn ghost" id="layoutCustomizerLauncher" onclick="toggleCustomizerDrawer()" style="border-color: var(--accent2); color: var(--accent2);">⚙️ Settings</button>
+         <input type="text" id="searchBox" placeholder="Search..." style="display:none;">
+</div>
     </div>
     
     <div class="storage-box">
@@ -945,7 +1106,40 @@ body {
 </div>
 
 <!-- Overlays -->
+ </div>
+
+<div class="customizer-drawer" id="customizerDrawer">
+  <div class="customizer-header">
+    <h3 style="font-family:'Sora',sans-serif; font-size:16px;">🎨 Visual Studio Panel</h3>
+    <button class="icon-btn" onclick="toggleCustomizerDrawer()">✕</button>
+  </div>
+  
+  <div class="customizer-group" style="margin-top:12px;">
+    <button class="btn primary" id="editModeToggle" onclick="toggleEditMode()" style="width:100%; text-align:center;">🛠️ Toggle Drag & Drop</button>
+  </div>
+  
+  <div class="customizer-group">
+    <label>Global Highlight Accent</label>
+    <input type="color" id="accentColorPicker" oninput="updateAccentColor(this.value)" value="#DC2626" style="width:100%; height:40px; border-radius:8px; cursor:pointer; padding:0;">
+  </div>
+
+  <div class="customizer-group">
+    <label id="textSizeLabel">Global Text Scale: 14px</label>
+    <input type="range" min="12" max="22" value="14" oninput="updateTextSize(this.value)" style="width:100%;">
+  </div>
+
+  <div class="customizer-group">
+    <label id="iconSizeLabel">Icon Frame Dimensions: 32px</label>
+    <input type="range" min="24" max="52" value="32" oninput="updateIconSize(this.value)" style="width:100%;">
+  </div>
+  
+  <div class="customizer-group" style="margin-top:auto; padding-top:16px; border-top:1px solid var(--border);">
+    <button class="btn ghost" onclick="resetLayout()" style="width:100%; text-align:center;">🔄 Reset Layout Architecture</button>
+  </div>
+</div>
+
 <div class="overlay" id="memoryOverlay">
+
   <div class="modal">
     <h2>📔 Add Memory</h2>
     <label>Date</label>
@@ -1040,6 +1234,129 @@ body {
 <input type="file" id="scanInput" accept="image/*" style="display:none;">
 
 <script>
+// === LIVE CUSTOMIZER MECHANICS (SAMSUNG ONE UI + APPLE ANIMATIONS) ===
+let editModeActive = false;
+
+function toggleCustomizerDrawer() {
+  const drawer = document.getElementById('customizerDrawer');
+  drawer.classList.toggle('open');
+}
+
+function updateAccentColor(val) {
+  document.documentElement.style.setProperty('--accent', val);
+}
+
+function updateTextSize(val) {
+  document.getElementById('textSizeLabel').innerText = `Global Text Scale: ${val}px`;
+  document.documentElement.style.setProperty('--main-text-size', `${val}px`);
+  // Dynamically injecting custom typography override rules
+  let styleOverride = document.getElementById('custom-text-override');
+  if (!styleOverride) {
+    styleOverride = document.createElement('style');
+    styleOverride.id = 'custom-text-override';
+    document.head.appendChild(styleOverride);
+  }
+  styleOverride.innerHTML = `body, .card-title, .modal input, .modal textarea { font-size: ${val}px !important; }`;
+}
+
+function updateIconSize(val) {
+  document.getElementById('iconSizeLabel').innerText = `Icon Frame Dimensions: ${val}px`;
+  let styleOverride = document.getElementById('custom-icon-override');
+  if (!styleOverride) {
+    styleOverride = document.createElement('style');
+    styleOverride.id = 'custom-icon-override';
+    document.head.appendChild(styleOverride);
+  }
+  styleOverride.innerHTML = `.icon-btn, .space-tile .icon-badge { width: ${val}px !important; height: ${val}px !important; }`;
+}
+
+function toggleEditMode() {
+  editModeActive = !editModeActive;
+  const mainApp = document.querySelector('.app');
+  const toggleBtn = document.getElementById('editModeToggle');
+  
+  if (editModeActive) {
+    mainApp.classList.add('edit-mode');
+    toggleBtn.innerText = '💾 Save Layout Settings';
+    toggleBtn.style.background = 'var(--c-scan)';
+    enableDragAndDropMechanics();
+  } else {
+    mainApp.classList.remove('edit-mode');
+    toggleBtn.innerText = '🛠️ Toggle Drag & Drop';
+    toggleBtn.style.background = 'var(--accent)';
+    disableDragAndDropMechanics();
+  }
+}
+
+function enableDragAndDropMechanics() {
+  // Turn view widgets, storage box, or navigation bars into layout draggables
+  const targets = document.querySelectorAll('.storage-box, #viewContainer, #tabs, .top-bar');
+  targets.forEach(target => {
+    target.classList.add('draggable-section');
+    target.setAttribute('draggable', 'true');
+    
+    // Add deletion overlay option controls if they don't exist
+    if (!target.querySelector('.section-controls')) {
+      const controls = document.createElement('div');
+      controls.className = 'section-controls';
+      controls.innerHTML = `<button class="icon-btn danger" onclick="this.closest('.draggable-section').style.display='none'; event.stopPropagation();">✕ Remove</button>`;
+      target.appendChild(controls);
+    }
+
+    target.addEventListener('dragstart', handleDragStart);
+    target.addEventListener('dragover', handleDragOver);
+    target.addEventListener('drop', handleDrop);
+    target.addEventListener('dragend', handleDragEnd);
+  });
+}
+
+function disableDragAndDropMechanics() {
+  const targets = document.querySelectorAll('.draggable-section');
+  targets.forEach(target => {
+    target.setAttribute('draggable', 'false');
+    target.classList.remove('dragging');
+  });
+}
+
+let dragSrcEl = null;
+
+function handleDragStart(e) {
+  this.classList.add('dragging');
+  dragSrcEl = this;
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragOver(e) {
+  if (e.preventDefault) e.preventDefault();
+  return false;
+}
+
+function handleDrop(e) {
+  if (e.stopPropagation) e.stopPropagation();
+  if (dragSrcEl !== this) {
+    // Elegant apple structure node position swapping mechanics
+    const parent = this.parentNode;
+    const allNodes = Array.from(parent.children);
+    const srcIndex = allNodes.indexOf(dragSrcEl);
+    const targetIndex = allNodes.indexOf(this);
+    
+    if (srcIndex < targetIndex) {
+      parent.insertBefore(dragSrcEl, this.nextSibling);
+    } else {
+      parent.insertBefore(dragSrcEl, this);
+    }
+  }
+  return false;
+}
+
+function handleDragEnd() {
+  this.classList.remove('dragging');
+}
+
+function resetLayout() {
+  localStorage.clear();
+  window.location.reload();
+}
 // ================= CONSTANTS =================
 const CATEGORIES = [
   { id: 'home', label: '🏠 Home', icon: '🏠', color: null },
@@ -1188,45 +1505,6 @@ function renderTabs() {
 function renderStorageBox() {
   document.getElementById('storageFigure').textContent = `${items.length} item${items.length===1?'':'s'}`;
   document.getElementById('storageFill').style.width = Math.min(100, (items.length / 50) * 100) + '%';
-}
-
-function buildCard(item) {
-  const card = document.createElement('div');
-  card.className = 'card';
-  const color = COLOR_MAP[item.type] || 'var(--muted)';
-  let thumbHtml = '';
-  
-  if (item.type === 'link' && item.embedThumb) {
-    thumbHtml = `<div class="thumb-wrap"><img class="card-thumb video-thumb" src="${item.embedThumb}">${item.embedProvider ? '<div class="play-badge"><span>▶</span></div>' : ''}</div>`;
-  } else if (item.thumb) {
-    thumbHtml = `<img class="card-thumb" src="${item.thumb}">`;
-  }
-  
-  const tagsHtml = (item.tags||[]).slice(0,2).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join('');
-  const hostBadge = item.type === 'link' && item.linkHost ? `<span class="link-host">${escapeHtml(item.linkHost)}</span>` : '';
-  
-  card.innerHTML = `
-    <div class="card-top" style="background:${color}"></div>
-    <div class="card-actions">
-      <div class="icon-btn" title="Edit" data-action="edit">✏️</div>
-      <div class="icon-btn danger" title="Delete" data-action="delete">🗑</div>
-    </div>
-    <div class="card-body">
-      <span class="type-chip"><span class="swatch" style="background:${color}"></span>${item.type}</span>
-      ${thumbHtml}
-      <div class="card-title">${escapeHtml(item.title)}</div>
-      <div class="card-preview">${escapeHtml(item.description || item.content || item.url || '')}</div>
-      ${hostBadge}
-      <div class="card-meta"><span>${timeAgo(item.createdAt)}</span><span>${tagsHtml}</span></div>
-    </div>`;
-  
-  card.querySelector('[data-action="edit"]').addEventListener('click', (e) => { e.stopPropagation(); openEdit(item); });
-  card.querySelector('[data-action="delete"]').addEventListener('click', async (e) => {
-    e.stopPropagation();
-    if (confirm(`Delete "${item.title}"?`)) { await deleteItem(item); items = items.filter(i => i.id !== item.id); render(); }
-  });
-  card.addEventListener('click', () => openDetail(item));
-  return card;
 }
 
 function buildCard(item) {
