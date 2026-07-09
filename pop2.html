@@ -50,21 +50,20 @@ body {
 .app {
   display: flex;
   min-height: 100vh;
+  width: 100%;
 }
 
-/* Sidebar */
 .sidebar {
-  width: 240px;
-  flex-shrink: 0;
+  width: 280px;
   background: var(--surface);
   border-right: 1px solid var(--border);
-  padding: 20px 12px;
   display: flex;
   flex-direction: column;
+  padding: 32px 24px;
   position: sticky;
   top: 0;
   height: 100vh;
-  overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .logo {
@@ -142,8 +141,9 @@ body {
 /* Main */
 .main {
   flex: 1;
-  padding: 24px 32px;
-  min-height: 100vh;
+  padding: 40px;
+  background: var(--bg);
+  min-width: 0;
 }
 
 .top-bar {
@@ -701,70 +701,136 @@ body {
 .cam-preview { width: 100%; max-height: 50vh; background: #000; border-radius: 10px; margin: 8px 0; -o-object-fit: cover; object-fit: cover; opacity: 0; transition: opacity .2s; }
 .cam-preview.ready { opacity: 1; }
 
+/* ================= RESPONSIVE DESIGN ================= */
 @media (max-width: 768px) {
+  .app {
+    flex-direction: column;
+  }
+
   .sidebar {
     width: 100%;
     height: auto;
     position: relative;
     border-right: none;
     border-bottom: 1px solid var(--border);
-    padding: 12px;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  
-  .sidebar .logo { padding: 0 10px 0 0; font-size: 18px; }
-  .sidebar .logo .mark { width: 30px; height: 30px; font-size: 14px; }
-  
-  #tabs {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 2px;
-    flex: 1;
-    order: 2;
-    width: 100%;
-    margin-top: 8px;
-  }
-  
-  .nav-item { padding: 6px 10px; font-size: 12px; }
-  
-  .sidebar-foot {
-    margin-top: 0;
-    padding-top: 0;
-    border-top: none;
+    padding: 16px;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    order: 3;
-    width: 100%;
-  }
-  
-  .main { padding: 16px; }
-  
-  .top-bar {
     flex-direction: column;
     align-items: stretch;
   }
-  
-  .top-bar .actions { justify-content: center; }
-  
-  .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
-  .space-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
-  .modal { padding: 20px; max-width: 100%; }
-  .reader-modal { max-width: 100%; border-radius: 0; }
-  .reader-body { height: 50vh; }
-  .tl-entry { flex-wrap: wrap; }
+
+  .sidebar .logo {
+    padding: 0 0 12px 0;
+    font-size: 18px;
+  }
+
+  .sidebar .logo .mark {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  #tabs {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+    width: 100%;
+  }
+
+  .nav-item {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .sidebar-foot {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .main {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .top-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .top-bar .actions {
+    justify-content: flex-start;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+  }
+
+  .space-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+  }
+  /* Add this right below .space-grid inside the @media (max-width: 768px) block */
+  .modal {
+    padding: 20px 16px;
+    max-height: 95vh;
+  }
+
+  .modal h2 {
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+
+  .modal .btn-row,
+  .modal-actions {
+    flex-direction: column-reverse;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .modal .btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .reader-modal {
+    max-width: 100vw;
+    border-radius: 0;
+  }
+
+  .reader-body {
+    height: 60vh;
+    padding: 12px;
+  }
 }
 
 @media (max-width: 480px) {
-  .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .card-body { padding: 10px; }
-  .card-title { font-size: 12px; }
-  .top-bar h1 { font-size: 22px; }
-  .storage-box { flex-direction: column; align-items: stretch; }
+  .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .card-body {
+    padding: 10px;
+  }
+  .card-title {
+    font-size: 12px;
+  }
+  .top-bar h1 {
+    font-size: 22px;
+  }
+  .storage-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
+
 </style>
 
 <!-- Firebase -->
