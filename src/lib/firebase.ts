@@ -25,7 +25,7 @@ import {
 const metaEnv = (import.meta as any)?.env || {};
 
 const firebaseConfig = {
-  apiKey: metaEnv.VITE_FIREBASE_API_KEY || "",
+  apiKey: metaEnv.VITE_FIREBASE_API_KEY || "AIzaSyBU_vTdK1WxEfHi-MEZDfdMCR89fbVsiHg",
   authDomain: metaEnv.VITE_FIREBASE_AUTH_DOMAIN || "personal-space-7c96d.firebaseapp.com",
   projectId: metaEnv.VITE_FIREBASE_PROJECT_ID || "personal-space-7c96d",
   storageBucket: metaEnv.VITE_FIREBASE_STORAGE_BUCKET || "personal-space-7c96d.firebasestorage.app",
