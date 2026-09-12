@@ -66,10 +66,12 @@ export default function App() {
   });
 
   const [selectedNoteToEdit, setSelectedNoteToEdit] = useState<NoteItem | null>(null);
+  const [cloudReady, setCloudReady] = useState(false);
 
   // Listen to Firebase Auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      setCloudReady(false);
       if (fbUser) {
         setIsAuthenticated(true);
         setUser((prev) => ({
@@ -89,9 +91,13 @@ export default function App() {
             if (data.links) setLinks(data.links);
             if (data.profile) setUser((p) => ({ ...p, ...data.profile }));
           }
+          setCloudReady(true);
         } catch (e) {
           console.warn('Firestore load:', e);
+          setCloudReady(false);
         }
+      } else {
+        setCloudReady(false);
       }
     });
 
@@ -101,7 +107,7 @@ export default function App() {
   // Save to Firestore when authenticated
   useEffect(() => {
     const fbUser = auth.currentUser;
-    if (fbUser && isAuthenticated) {
+    if (fbUser && isAuthenticated && cloudReady) {
       const userDocRef = doc(db, 'users', fbUser.uid);
       const syncTimer = window.setTimeout(() => setDoc(userDocRef, {
         notes,
@@ -114,7 +120,7 @@ export default function App() {
       }), 600);
       return () => window.clearTimeout(syncTimer);
     }
-  }, [notes, images, links, user, isAuthenticated]);
+  }, [notes, images, links, user, isAuthenticated, cloudReady]);
 
   // Sync to local storage for instant offline resilience
   useEffect(() => {
