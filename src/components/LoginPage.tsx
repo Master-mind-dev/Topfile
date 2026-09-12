@@ -17,8 +17,8 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('rmohammed7dastagir@gmail.com');
-  const [password, setPassword] = useState('ownlyworkspace123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('Mohammed Dastagir');
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
