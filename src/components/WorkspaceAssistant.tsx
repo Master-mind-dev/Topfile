@@ -37,7 +37,9 @@ export const WorkspaceAssistant: React.FC<WorkspaceAssistantProps> = ({ notes, i
         }),
       });
       const data = await response.json();
-      setAnswer(data.answer || data.error || 'The assistant could not complete that request.');
+      setAnswer(data.answer || (response.status === 503
+        ? 'Gemini is not configured on the server. Add GEMINI_API_KEY to the Render service Environment settings, then redeploy.'
+        : data.error) || 'Gemini could not complete that request.');
     } catch {
       setAnswer('The assistant service is unavailable. Your workspace is still safe and usable.');
     } finally {

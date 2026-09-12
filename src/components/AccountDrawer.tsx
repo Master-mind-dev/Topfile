@@ -12,7 +12,9 @@ import {
   Link as LinkIcon, 
   Download, 
   Trash2,
-  Sparkles
+  Sparkles,
+  Pencil,
+  UserRound
 } from 'lucide-react';
 import { UserProfile, TabType } from '../types';
 import { OwnlyLogo } from './OwnlyLogo';
@@ -31,6 +33,7 @@ interface AccountDrawerProps {
   onNavigateTab: (tab: TabType) => void;
   onExportData: () => void;
   onResetWorkspace: () => void;
+  onUpdateProfile: (updates: Partial<UserProfile>) => void;
 }
 
 export const AccountDrawer: React.FC<AccountDrawerProps> = ({
@@ -42,7 +45,32 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
   onNavigateTab,
   onExportData,
   onResetWorkspace,
+  onUpdateProfile,
 }) => {
+  const [isEditingProfile, setIsEditingProfile] = React.useState(false);
+  const [profileName, setProfileName] = React.useState(user.name);
+  const [avatarUrl, setAvatarUrl] = React.useState(user.avatarUrl || '');
+
+  React.useEffect(() => {
+    setProfileName(user.name);
+    setAvatarUrl(user.avatarUrl || '');
+  }, [user.name, user.avatarUrl]);
+
+  const saveProfile = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!profileName.trim()) return;
+    onUpdateProfile({ name: profileName.trim(), avatarUrl: avatarUrl.trim() || undefined });
+    setIsEditingProfile(false);
+  };
+
+  const handleAvatarFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/') || file.size > 2 * 1024 * 1024) return;
+    const reader = new FileReader();
+    reader.onload = () => setAvatarUrl(String(reader.result));
+    reader.readAsDataURL(file);
+  };
   return (
     <AnimatePresence>
       {isOpen && (
@@ -113,6 +141,30 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                     </p>
                   </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsEditingProfile((editing) => !editing)}
+                  className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white/75 hover:text-white hover:border-[#ff304f]/60 transition-colors"
+                  aria-expanded={isEditingProfile}
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  {isEditingProfile ? 'Close profile editor' : 'Edit profile'}
+                </button>
+
+                {isEditingProfile && (
+                  <form onSubmit={saveProfile} className="mt-4 space-y-3 border-t border-white/10 pt-4">
+                    <label className="block text-[10px] uppercase tracking-wider text-white/50 font-bold">Display name</label>
+                    <input value={profileName} onChange={(event) => setProfileName(event.target.value)} className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2.5 text-sm text-white outline-none focus:border-[#ff304f]" required />
+                    <label className="block text-[10px] uppercase tracking-wider text-white/50 font-bold">Profile image URL</label>
+                    <input value={avatarUrl.startsWith('data:') ? '' : avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://..." className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2.5 text-sm text-white outline-none focus:border-[#ff304f]" />
+                    <label className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-2.5 text-xs font-bold text-white/65 hover:border-[#ff304f] hover:text-white cursor-pointer">
+                      <UserRound className="w-3.5 h-3.5" /> Choose profile image
+                      <input type="file" accept="image/*" onChange={handleAvatarFile} className="sr-only" />
+                    </label>
+                    <button type="submit" className="w-full rounded-xl bg-[#ff304f] py-2.5 text-xs font-bold text-white hover:bg-[#ff4f68]">Save profile</button>
+                  </form>
+                )}
 
                 {/* Storage Meter */}
                 <div className="mt-4 pt-3 border-t border-white/10">

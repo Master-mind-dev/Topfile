@@ -14,7 +14,7 @@ import {
   initialLinks 
 } from './data/mockData';
 import { AnimatePresence, motion } from 'motion/react';
-import { auth, db, onAuthStateChanged, signOut, doc, setDoc, getDoc } from './lib/firebase';
+import { auth, db, onAuthStateChanged, signOut, doc, setDoc, getDoc, updateProfile } from './lib/firebase';
 const AccountDrawer = lazy(() => import('./components/AccountDrawer').then((module) => ({ default: module.AccountDrawer })));
 const LoginPage = lazy(() => import('./components/LoginPage').then((module) => ({ default: module.LoginPage })));
 const WorkspaceAssistant = lazy(() => import('./components/WorkspaceAssistant').then((module) => ({ default: module.WorkspaceAssistant })));
@@ -155,6 +155,15 @@ export default function App() {
     }
     setIsAuthenticated(false);
     setIsAccountDrawerOpen(false);
+  };
+
+  const handleUpdateProfile = (updates: Partial<UserProfile>) => {
+    setUser((previous) => ({ ...previous, ...updates }));
+    if (auth.currentUser && updates.name) {
+      updateProfile(auth.currentUser, { displayName: updates.name }).catch((error) => {
+        console.warn('Firebase profile update:', error);
+      });
+    }
   };
 
   // Notes Handlers
@@ -347,6 +356,7 @@ export default function App() {
           }}
           onExportData={handleExportData}
           onResetWorkspace={handleResetWorkspace}
+          onUpdateProfile={handleUpdateProfile}
         />
         <WorkspaceAssistant notes={notes} images={images} links={links} activeTab={activeTab} />
       </Suspense>
