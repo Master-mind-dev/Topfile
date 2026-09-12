@@ -28,8 +28,7 @@ const LinkSection = lazy(() => import('./components/LinkSection').then((module) 
 export default function App() {
   // Persistence state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    const saved = localStorage.getItem('ownly_auth_v2');
-    return saved ? JSON.parse(saved) : false;
+    return false;
   });
 
   const [user, setUser] = useState<UserProfile>(() => {
@@ -100,6 +99,7 @@ export default function App() {
           setCloudReady(false);
         }
       } else {
+        setIsAuthenticated(false);
         setCloudReady(false);
       }
     });
@@ -125,11 +125,7 @@ export default function App() {
     }
   }, [notes, images, links, user, isAuthenticated, cloudReady]);
 
-  // Sync to local storage for instant offline resilience
-  useEffect(() => {
-    localStorage.setItem('ownly_auth_v2', JSON.stringify(isAuthenticated));
-  }, [isAuthenticated]);
-
+  // Keep profile data local for resilience, but Firebase remains the auth source of truth.
   useEffect(() => {
     localStorage.setItem('ownly_user', JSON.stringify(user));
   }, [user]);
