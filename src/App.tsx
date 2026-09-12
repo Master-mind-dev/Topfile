@@ -26,6 +26,12 @@ const CameraSection = lazy(() => import('./components/CameraSection').then((modu
 const LinkSection = lazy(() => import('./components/LinkSection').then((module) => ({ default: module.LinkSection })));
 
 export default function App() {
+  const mergeItems = <T extends { id: string }>(cloudItems: T[] | undefined, localItems: T[]) => {
+    const cloud = cloudItems || [];
+    const cloudIds = new Set(cloud.map((item) => item.id));
+    return [...cloud, ...localItems.filter((item) => !cloudIds.has(item.id))];
+  };
+
   // Persistence state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     return false;
@@ -87,9 +93,9 @@ export default function App() {
           const snap = await getDoc(userDocRef);
           if (snap.exists()) {
             const data = snap.data();
-            if (data.notes) setNotes(data.notes);
-            if (data.images) setImages(data.images);
-            if (data.links) setLinks(data.links);
+            setNotes(mergeItems(data.notes, notes));
+            setImages(mergeItems(data.images, images));
+            setLinks(mergeItems(data.links, links));
             if (data.profile) setUser((p) => ({ ...p, ...data.profile }));
           }
           setCloudReady(true);
