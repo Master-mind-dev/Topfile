@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
 import { 
   TabType, 
@@ -14,7 +14,7 @@ import {
   initialLinks 
 } from './data/mockData';
 import { AnimatePresence, motion } from 'motion/react';
-import { auth, db, onAuthStateChanged, signOut, doc, setDoc, getDoc, updateProfile } from './lib/firebase';
+import { auth, db, onAuthStateChanged, signOut, doc, setDoc, onSnapshot, updateProfile } from './lib/firebase';
 const AccountDrawer = lazy(() => import('./components/AccountDrawer').then((module) => ({ default: module.AccountDrawer })));
 const LoginPage = lazy(() => import('./components/LoginPage').then((module) => ({ default: module.LoginPage })));
 const WorkspaceAssistant = lazy(() => import('./components/WorkspaceAssistant').then((module) => ({ default: module.WorkspaceAssistant })));
@@ -73,12 +73,19 @@ export default function App() {
   const [selectedNoteToEdit, setSelectedNoteToEdit] = useState<NoteItem | null>(null);
   const [cloudReady, setCloudReady] = useState(false);
   const [cloudError, setCloudError] = useState('');
+  const [lastCloudSync, setLastCloudSync] = useState<string | null>(null);
+  const cloudDataRef = useRef({ notes, images, links });
+
+  cloudDataRef.current = { notes, images, links };
 
   // Listen to Firebase Auth state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+    let unsubscribeCloud = () => undefined;
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
       setCloudReady(false);
       setCloudError('');
+      setLastCloudSync(null);
+      unsubscribeCloud();
       if (fbUser) {
         setIsAuthenticated(true);
         setUser((prev) => ({
@@ -87,30 +94,39 @@ export default function App() {
           name: fbUser.displayName || prev.name || fbUser.email?.split('@')[0] || 'Mohammed Dastagir',
         }));
 
-        // Try load user data from Firestore
-        try {
-          const userDocRef = doc(db, 'users', fbUser.uid);
-          const snap = await getDoc(userDocRef);
-          if (snap.exists()) {
-            const data = snap.data();
-            setNotes(mergeItems(data.notes, notes));
-            setImages(mergeItems(data.images, images));
-            setLinks(mergeItems(data.links, links));
-            if (data.profile) setUser((p) => ({ ...p, ...data.profile }));
+        const userDocRef = doc(db, 'users', fbUser.uid);
+        let isFirstSnapshot = true;
+        unsubscribeCloud = onSnapshot(userDocRef, (snap) => {
+          const data = snap.data() || {};
+          if (isFirstSnapshot) {
+            setNotes(mergeItems(data.notes, cloudDataRef.current.notes));
+            setImages(mergeItems(data.images, cloudDataRef.current.images));
+            setLinks(mergeItems(data.links, cloudDataRef.current.links));
+            isFirstSnapshot = false;
+          } else {
+            if (data.notes) setNotes(data.notes);
+            if (data.images) setImages(data.images);
+            if (data.links) setLinks(data.links);
           }
+          if (data.profile) setUser((previous) => ({ ...previous, ...data.profile }));
           setCloudReady(true);
-        } catch (e) {
-          console.warn('Firestore load:', e);
-          setCloudError('Cloud sync is unavailable. Check that Firestore is enabled and its rules allow this signed-in account.');
+          setCloudError('');
+          setLastCloudSync(new Date().toLocaleTimeString());
+        }, (error) => {
+          console.warn('Firestore subscription:', error);
+          setCloudError(`Cloud sync failed: ${error.code || 'permission denied'}. Deploy Firestore rules and use the same Firebase account.`);
           setCloudReady(false);
-        }
+        });
       } else {
         setIsAuthenticated(false);
         setCloudReady(false);
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeCloud();
+      unsubscribe();
+    };
   }, []);
 
   // Save to Firestore when authenticated
@@ -126,6 +142,9 @@ export default function App() {
         updatedAt: new Date().toISOString()
       }, { merge: true }).catch((err) => {
         console.warn('Firestore sync note:', err);
+        setCloudError(`Cloud save failed: ${err.code || 'permission denied'}.`);
+      }).then(() => {
+        setLastCloudSync(new Date().toLocaleTimeString());
       }), 600);
       return () => window.clearTimeout(syncTimer);
     }
@@ -300,6 +319,10 @@ export default function App() {
 
       {/* Main Workspace Body */}
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 z-10">
+        <div className={`cloud-status ${cloudError ? 'cloud-status--error' : ''}`} role="status">
+          <span className="cloud-status__dot" />
+          {cloudError || (lastCloudSync ? `Cloud workspace synced at ${lastCloudSync}` : 'Cloud workspace connected')}
+        </div>
         <Suspense fallback={<div className="ownly-loading" role="status">Loading workspace…</div>}>
           <AnimatePresence mode="wait">
           {activeTab === 'home' && (
