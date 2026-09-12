@@ -74,6 +74,7 @@ export default function App() {
   const [cloudReady, setCloudReady] = useState(false);
   const [cloudError, setCloudError] = useState('');
   const [lastCloudSync, setLastCloudSync] = useState<string | null>(null);
+  const cloudWritePendingRef = useRef(false);
   const cloudDataRef = useRef({ notes, images, links });
 
   cloudDataRef.current = { notes, images, links };
@@ -97,6 +98,7 @@ export default function App() {
         const userDocRef = doc(db, 'users', fbUser.uid);
         let isFirstSnapshot = true;
         unsubscribeCloud = onSnapshot(userDocRef, (snap) => {
+          if (!isFirstSnapshot && cloudWritePendingRef.current) return;
           const data = snap.data() || {};
           if (isFirstSnapshot) {
             setNotes(mergeItems(data.notes, cloudDataRef.current.notes));
@@ -134,6 +136,7 @@ export default function App() {
     const fbUser = auth.currentUser;
     if (fbUser && isAuthenticated && cloudReady) {
       const userDocRef = doc(db, 'users', fbUser.uid);
+      cloudWritePendingRef.current = true;
       const syncTimer = window.setTimeout(() => setDoc(userDocRef, {
         notes,
         images,
@@ -142,8 +145,10 @@ export default function App() {
         updatedAt: new Date().toISOString()
       }, { merge: true }).catch((err) => {
         console.warn('Firestore sync note:', err);
+        cloudWritePendingRef.current = false;
         setCloudError(`Cloud save failed: ${err.code || 'permission denied'}.`);
       }).then(() => {
+        cloudWritePendingRef.current = false;
         setLastCloudSync(new Date().toLocaleTimeString());
       }), 600);
       return () => window.clearTimeout(syncTimer);
