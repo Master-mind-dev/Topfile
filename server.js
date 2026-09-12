@@ -217,10 +217,6 @@ app.post('/api/parse-link', async (req, res) => {
 // Fallback to static app if dist exists
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/')) return next();
-  res.sendFile(path.join(distPath, 'index.html'));
-});
 
 // Start the server
 const PORT = process.env.PORT || 5000;
