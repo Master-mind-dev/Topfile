@@ -1,0 +1,11 @@
+{
+  "name": "OWNLY",
+  "description": "Personal Workspace with Notes, Image Uploads, Real-time Camera capture, and Rich Link bookmarking with video embed previews.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
