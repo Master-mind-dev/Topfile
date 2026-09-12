@@ -8,6 +8,7 @@
     "dev:frontend": "vite",
     "dev:server": "node server.js",
     "build": "tsc && vite build",
+    "postinstall": "npm run build",
     "preview": "vite preview",
     "start": "node server.js"
   },
