@@ -84,7 +84,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       } else if (err.code === 'auth/invalid-email') {
         setError('Invalid email address format.');
       } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-        setError('Email or password is incorrect.');
+        setError('This Firebase account was not found or the password is incorrect. Use Sign up once, then use that same account on every device.');
       } else if (err.code === 'auth/too-many-requests') {
         setError('Too many attempts. Please wait and try again.');
       } else if (err.message?.includes('Firebase is unavailable')) {
