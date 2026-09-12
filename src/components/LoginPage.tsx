@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { OwnlyLogo } from './OwnlyLogo';
-import { Eye, EyeOff, Sparkles, ArrowRight, ShieldCheck, CheckCircle2, Lock, Mail, User as UserIcon } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2, Lock, Mail, User as UserIcon } from 'lucide-react';
 import { UserProfile } from '../types';
 import { 
   auth, 
@@ -97,32 +97,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const handleQuickDemoLogin = async () => {
-    setIsLoading(true);
-    setError('');
-    const demoEmail = 'rmohammed7dastagir@gmail.com';
-    const demoPass = 'ownlyworkspace123';
-    const demoName = 'Mohammed Dastagir';
-
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, demoEmail, demoPass);
-      onLoginSuccess({
-        email: userCredential.user.email || demoEmail,
-        name: userCredential.user.displayName || demoName,
-      });
-    } catch (demoErr: any) {
-      if (demoErr.code === 'auth/user-not-found' || demoErr.code === 'auth/invalid-credential') {
-        setError('Demo account is not set up in Firebase yet. Create it once with the demo credentials or use Sign up.');
-      } else if (demoErr.message?.includes('Firebase is unavailable')) {
-        setError('Firebase is not configured correctly. Add the valid Firebase Web API key in Render.');
-      } else {
-        setError('Demo sign-in failed. Please check Firebase Authentication settings.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSendResetEmail = async () => {
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address.');
@@ -147,14 +121,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-[0.3em] text-white/45 border-l border-[#ff304f]/35 pl-3 ml-2">PRIVATE WORKSPACE</span>
         </div>
 
-        <button
-          onClick={handleQuickDemoLogin}
-          className="ownly-login__demo inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-white bg-white/5 border border-white/15 hover:border-[#ff304f] hover:bg-[#ff304f] transition-all duration-300 cursor-pointer group"
-          id="btn-quick-demo-login"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-[#ff304f] group-hover:text-white transition-colors" />
-          <span>Instant Demo Access</span>
-        </button>
       </div>
 
       {/* Center Auth Card with Anime Starry Glow */}
