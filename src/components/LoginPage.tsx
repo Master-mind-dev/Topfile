@@ -60,12 +60,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           });
         } catch (signUpErr: any) {
           if (signUpErr.code === 'auth/email-already-in-use') {
-            // Auto sign in if existing
-            const res = await signInWithEmailAndPassword(auth, cleanEmail, cleanPass);
-            onLoginSuccess({
-              email: res.user.email || cleanEmail,
-              name: res.user.displayName || name.trim() || 'Mohammed Dastagir',
-            });
+            setError('This email already has an account. Please log in instead.');
           } else {
             throw signUpErr;
           }
@@ -79,39 +74,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             name: userCredential.user.displayName || (cleanEmail.startsWith('rmohammed') ? 'Mohammed Dastagir' : cleanEmail.split('@')[0]),
           });
         } catch (signInErr: any) {
-          // If user doesn't exist yet, automatically auto-provision account for smooth onboarding
-          if (
-            signInErr.code === 'auth/user-not-found' || 
-            signInErr.code === 'auth/invalid-credential' || 
-            signInErr.code === 'auth/invalid-login-credentials' ||
-            signInErr.message?.includes('user-not-found')
-          ) {
-            try {
-              const autoCreated = await createUserWithEmailAndPassword(auth, cleanEmail, cleanPass);
-              if (autoCreated.user) {
-                const displayName = cleanEmail.startsWith('rmohammed') ? 'Mohammed Dastagir' : cleanEmail.split('@')[0];
-                await updateProfile(autoCreated.user, { displayName });
-                onLoginSuccess({
-                  email: autoCreated.user.email || cleanEmail,
-                  name: displayName,
-                });
-                return;
-              }
-            } catch (autoErr: any) {
-              // Direct login fallback
-              onLoginSuccess({
-                email: cleanEmail,
-                name: name.trim() || cleanEmail.split('@')[0],
-              });
-              return;
-            }
-          }
-          
-          // Direct fallback for instant demo reliability
-          onLoginSuccess({
-            email: cleanEmail,
-            name: name.trim() || (cleanEmail.startsWith('rmohammed') ? 'Mohammed Dastagir' : cleanEmail.split('@')[0]),
-          });
+          throw signInErr;
         }
       }
     } catch (err: any) {
@@ -120,12 +83,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         setError('Password should be at least 6 characters.');
       } else if (err.code === 'auth/invalid-email') {
         setError('Invalid email address format.');
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        setError('Email or password is incorrect.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many attempts. Please wait and try again.');
+      } else if (err.message?.includes('Firebase is unavailable')) {
+        setError('Firebase is not configured correctly. Add the valid Firebase Web API key in Render.');
       } else {
-        // Fallback for seamless demo
-        onLoginSuccess({
-          email: cleanEmail,
-          name: name.trim() || 'Mohammed Dastagir',
-        });
+        setError('Unable to sign in right now. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -145,21 +110,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         email: userCredential.user.email || demoEmail,
         name: userCredential.user.displayName || demoName,
       });
-    } catch {
-      try {
-        const created = await createUserWithEmailAndPassword(auth, demoEmail, demoPass);
-        if (created.user) {
-          await updateProfile(created.user, { displayName: demoName });
-        }
-        onLoginSuccess({
-          email: demoEmail,
-          name: demoName,
-        });
-      } catch {
-        onLoginSuccess({
-          email: demoEmail,
-          name: demoName,
-        });
+    } catch (demoErr: any) {
+      if (demoErr.code === 'auth/user-not-found' || demoErr.code === 'auth/invalid-credential') {
+        setError('Demo account is not set up in Firebase yet. Create it once with the demo credentials or use Sign up.');
+      } else if (demoErr.message?.includes('Firebase is unavailable')) {
+        setError('Firebase is not configured correctly. Add the valid Firebase Web API key in Render.');
+      } else {
+        setError('Demo sign-in failed. Please check Firebase Authentication settings.');
       }
     } finally {
       setIsLoading(false);
@@ -175,7 +132,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       await sendPasswordResetEmail(auth, email.trim());
       setResetSent(true);
     } catch (err: any) {
-      setResetSent(true);
+      setError(err.code === 'auth/user-not-found' ? 'No account was found for this email.' : 'Could not send the reset email.');
     }
   };
 

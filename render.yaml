@@ -10,7 +10,7 @@ services:
       - key: NODE_VERSION
         value: 22
       - key: VITE_FIREBASE_API_KEY
-        sync: false
+        value: AIzaSyBU_vTdK1WxEfHi-MEZDfdMCR89fbVsiHg
       - key: VITE_FIREBASE_AUTH_DOMAIN
         value: personal-space-7c96d.firebaseapp.com
       - key: VITE_FIREBASE_PROJECT_ID

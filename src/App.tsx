@@ -28,8 +28,8 @@ const LinkSection = lazy(() => import('./components/LinkSection').then((module) 
 export default function App() {
   // Persistence state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    const saved = localStorage.getItem('ownly_auth');
-    return saved ? JSON.parse(saved) : true;
+    const saved = localStorage.getItem('ownly_auth_v2');
+    return saved ? JSON.parse(saved) : false;
   });
 
   const [user, setUser] = useState<UserProfile>(() => {
@@ -118,7 +118,7 @@ export default function App() {
 
   // Sync to local storage for instant offline resilience
   useEffect(() => {
-    localStorage.setItem('ownly_auth', JSON.stringify(isAuthenticated));
+    localStorage.setItem('ownly_auth_v2', JSON.stringify(isAuthenticated));
   }, [isAuthenticated]);
 
   useEffect(() => {
