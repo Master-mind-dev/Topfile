@@ -67,11 +67,13 @@ export default function App() {
 
   const [selectedNoteToEdit, setSelectedNoteToEdit] = useState<NoteItem | null>(null);
   const [cloudReady, setCloudReady] = useState(false);
+  const [cloudError, setCloudError] = useState('');
 
   // Listen to Firebase Auth state
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setCloudReady(false);
+      setCloudError('');
       if (fbUser) {
         setIsAuthenticated(true);
         setUser((prev) => ({
@@ -94,6 +96,7 @@ export default function App() {
           setCloudReady(true);
         } catch (e) {
           console.warn('Firestore load:', e);
+          setCloudError('Cloud sync is unavailable. Check that Firestore is enabled and its rules allow this signed-in account.');
           setCloudReady(false);
         }
       } else {
@@ -257,6 +260,18 @@ export default function App() {
 
   if (!isAuthenticated) {
     return <Suspense fallback={<div className="ownly-loading min-h-screen" role="status">Loading access…</div>}><LoginPage onLoginSuccess={handleLoginSuccess} /></Suspense>;
+  }
+
+  if (!cloudReady) {
+    return (
+      <div className="ownly-loading min-h-screen" role="status">
+        <div className="text-center px-6">
+          <div className="text-white font-bold mb-2">Connecting to your cloud workspace…</div>
+          <div className="text-white/50 text-xs max-w-sm">Your workspace will appear after Firestore loads, so another device sees the same content.</div>
+          {cloudError && <div className="mt-4 text-[#ff6a7e] text-xs max-w-md">{cloudError}</div>}
+        </div>
+      </div>
+    );
   }
 
   const stats = {
