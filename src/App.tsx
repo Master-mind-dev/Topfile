@@ -1,17 +1,5 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { Header } from './components/Header';
-import { AccountDrawer } from './components/AccountDrawer';
-import { LoginPage } from './components/LoginPage';
-import { HomeSection } from './components/HomeSection';
-import { NotesSection } from './components/NotesSection';
-import { UploadSection } from './components/UploadSection';
-import { CameraSection } from './components/CameraSection';
-import { LinkSection } from './components/LinkSection';
 import { 
   TabType, 
   UserProfile, 
@@ -25,14 +13,28 @@ import {
   initialImages, 
   initialLinks 
 } from './data/mockData';
-import { AnimatePresence } from 'motion/react';
-import { auth, db, onAuthStateChanged, signOut, doc, setDoc, getDoc } from './lib/firebase';
+import { AnimatePresence, motion } from 'motion/react';
+import { auth, db, onAuthStateChanged, signOut, doc, setDoc, onSnapshot, updateProfile } from './lib/firebase';
+const AccountDrawer = lazy(() => import('./components/AccountDrawer').then((module) => ({ default: module.AccountDrawer })));
+const LoginPage = lazy(() => import('./components/LoginPage').then((module) => ({ default: module.LoginPage })));
+const WorkspaceAssistant = lazy(() => import('./components/WorkspaceAssistant').then((module) => ({ default: module.WorkspaceAssistant })));
+
+const HomeSection = lazy(() => import('./components/HomeSection').then((module) => ({ default: module.HomeSection })));
+const NotesSection = lazy(() => import('./components/NotesSection').then((module) => ({ default: module.NotesSection })));
+const UploadSection = lazy(() => import('./components/UploadSection').then((module) => ({ default: module.UploadSection })));
+const CameraSection = lazy(() => import('./components/CameraSection').then((module) => ({ default: module.CameraSection })));
+const LinkSection = lazy(() => import('./components/LinkSection').then((module) => ({ default: module.LinkSection })));
 
 export default function App() {
+  const mergeItems = <T extends { id: string }>(cloudItems: T[] | undefined, localItems: T[]) => {
+    const cloud = cloudItems || [];
+    const cloudIds = new Set(cloud.map((item) => item.id));
+    return [...cloud, ...localItems.filter((item) => !cloudIds.has(item.id))];
+  };
+
   // Persistence state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    const saved = localStorage.getItem('ownly_auth');
-    return saved ? JSON.parse(saved) : true;
+    return false;
   });
 
   const [user, setUser] = useState<UserProfile>(() => {
@@ -55,14 +57,36 @@ export default function App() {
 
   const [links, setLinks] = useState<LinkItem[]>(() => {
     const saved = localStorage.getItem('ownly_links');
-    return saved ? JSON.parse(saved) : initialLinks;
+    if (!saved) return initialLinks;
+    return JSON.parse(saved).map((link: LinkItem) => link.embedId === 'dQw4w9WgXcQ'
+      ? {
+          ...link,
+          url: 'https://www.youtube.com/watch?v=M7lc1UVf-VE',
+          title: 'YouTube Player API Demo',
+          description: 'A stable YouTube embed demo for testing playback inside OWNLY.',
+          embedThumb: 'https://img.youtube.com/vi/M7lc1UVf-VE/hqdefault.jpg',
+          embedId: 'M7lc1UVf-VE',
+        }
+      : link);
   });
 
   const [selectedNoteToEdit, setSelectedNoteToEdit] = useState<NoteItem | null>(null);
+  const [cloudReady, setCloudReady] = useState(false);
+  const [cloudError, setCloudError] = useState('');
+  const [lastCloudSync, setLastCloudSync] = useState<string | null>(null);
+  const cloudWritePendingRef = useRef(false);
+  const cloudDataRef = useRef({ notes, images, links });
+
+  cloudDataRef.current = { notes, images, links };
 
   // Listen to Firebase Auth state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+    let unsubscribeCloud = () => undefined;
+    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
+      setCloudReady(false);
+      setCloudError('');
+      setLastCloudSync(null);
+      unsubscribeCloud();
       if (fbUser) {
         setIsAuthenticated(true);
         setUser((prev) => ({
@@ -71,48 +95,67 @@ export default function App() {
           name: fbUser.displayName || prev.name || fbUser.email?.split('@')[0] || 'Mohammed Dastagir',
         }));
 
-        // Try load user data from Firestore
-        try {
-          const userDocRef = doc(db, 'users', fbUser.uid);
-          const snap = await getDoc(userDocRef);
-          if (snap.exists()) {
-            const data = snap.data();
+        const userDocRef = doc(db, 'users', fbUser.uid);
+        let isFirstSnapshot = true;
+        unsubscribeCloud = onSnapshot(userDocRef, (snap) => {
+          if (!isFirstSnapshot && cloudWritePendingRef.current) return;
+          const data = snap.data() || {};
+          if (isFirstSnapshot) {
+            setNotes(mergeItems(data.notes, cloudDataRef.current.notes));
+            setImages(mergeItems(data.images, cloudDataRef.current.images));
+            setLinks(mergeItems(data.links, cloudDataRef.current.links));
+            isFirstSnapshot = false;
+          } else {
             if (data.notes) setNotes(data.notes);
             if (data.images) setImages(data.images);
             if (data.links) setLinks(data.links);
-            if (data.profile) setUser((p) => ({ ...p, ...data.profile }));
           }
-        } catch (e) {
-          console.warn('Firestore load:', e);
-        }
+          if (data.profile) setUser((previous) => ({ ...previous, ...data.profile }));
+          setCloudReady(true);
+          setCloudError('');
+          setLastCloudSync(new Date().toLocaleTimeString());
+        }, (error) => {
+          console.warn('Firestore subscription:', error);
+          setCloudError(`Cloud sync failed: ${error.code || 'permission denied'}. Deploy Firestore rules and use the same Firebase account.`);
+          setCloudReady(false);
+        });
+      } else {
+        setIsAuthenticated(false);
+        setCloudReady(false);
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeCloud();
+      unsubscribe();
+    };
   }, []);
 
   // Save to Firestore when authenticated
   useEffect(() => {
     const fbUser = auth.currentUser;
-    if (fbUser && isAuthenticated) {
+    if (fbUser && isAuthenticated && cloudReady) {
       const userDocRef = doc(db, 'users', fbUser.uid);
-      setDoc(userDocRef, {
+      cloudWritePendingRef.current = true;
+      const syncTimer = window.setTimeout(() => setDoc(userDocRef, {
         notes,
         images,
         links,
         profile: user,
         updatedAt: new Date().toISOString()
       }, { merge: true }).catch((err) => {
-        console.warn('Firestore save warning:', err);
-      });
+        console.warn('Firestore sync note:', err);
+        cloudWritePendingRef.current = false;
+        setCloudError(`Cloud save failed: ${err.code || 'permission denied'}.`);
+      }).then(() => {
+        cloudWritePendingRef.current = false;
+        setLastCloudSync(new Date().toLocaleTimeString());
+      }), 600);
+      return () => window.clearTimeout(syncTimer);
     }
-  }, [notes, images, links, user, isAuthenticated]);
+  }, [notes, images, links, user, isAuthenticated, cloudReady]);
 
-  // Sync to local storage for instant offline resilience
-  useEffect(() => {
-    localStorage.setItem('ownly_auth', JSON.stringify(isAuthenticated));
-  }, [isAuthenticated]);
-
+  // Keep profile data local for resilience, but Firebase remains the auth source of truth.
   useEffect(() => {
     localStorage.setItem('ownly_user', JSON.stringify(user));
   }, [user]);
@@ -149,6 +192,15 @@ export default function App() {
     setIsAccountDrawerOpen(false);
   };
 
+  const handleUpdateProfile = (updates: Partial<UserProfile>) => {
+    setUser((previous) => ({ ...previous, ...updates }));
+    if (auth.currentUser && updates.name) {
+      updateProfile(auth.currentUser, { displayName: updates.name }).catch((error) => {
+        console.warn('Firebase profile update:', error);
+      });
+    }
+  };
+
   // Notes Handlers
   const handleAddNote = (newNote: Omit<NoteItem, 'id' | 'createdAt' | 'updatedAt'>) => {
     const note: NoteItem = {
@@ -173,7 +225,6 @@ export default function App() {
   // Images Handlers
   const handleUploadImages = (newImages: UploadedImageItem[]) => {
     setImages((prev) => [...newImages, ...prev]);
-    // update storage metric estimate
     setUser((prev) => ({
       ...prev,
       storageUsedMb: Number((prev.storageUsedMb + newImages.length * 0.8).toFixed(1)),
@@ -233,9 +284,20 @@ export default function App() {
     }
   };
 
-  // If not logged in, render reference Login Page
   if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+    return <Suspense fallback={<div className="ownly-loading min-h-screen" role="status">Loading access…</div>}><LoginPage onLoginSuccess={handleLoginSuccess} /></Suspense>;
+  }
+
+  if (!cloudReady) {
+    return (
+      <div className="ownly-loading min-h-screen" role="status">
+        <div className="text-center px-6">
+          <div className="text-white font-bold mb-2">Connecting to your cloud workspace…</div>
+          <div className="text-white/50 text-xs max-w-sm">Your workspace will appear after Firestore loads, so another device sees the same content.</div>
+          {cloudError && <div className="mt-4 text-[#ff6a7e] text-xs max-w-md">{cloudError}</div>}
+        </div>
+      </div>
+    );
   }
 
   const stats = {
@@ -246,8 +308,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans flex flex-col selection:bg-[#FF2A3A] selection:text-white" id="ownly-app-root">
-      {/* Top Header with OWNLY Logo, Center Pill Navigation, and 3-Bar Touch Menu */}
+    <div className="ownly-workspace min-h-screen text-white font-sans flex flex-col selection:bg-[#ff304f] selection:text-white relative overflow-hidden" id="ownly-app-root">
+
+      {/* Top Header */}
+      <div className="relative z-10 flex flex-col min-h-screen">
       <Header
         activeTab={activeTab}
         onSelectTab={(tab) => {
@@ -259,8 +323,13 @@ export default function App() {
       />
 
       {/* Main Workspace Body */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
-        <AnimatePresence mode="wait">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 z-10">
+        <div className={`cloud-status ${cloudError ? 'cloud-status--error' : ''}`} role="status">
+          <span className="cloud-status__dot" />
+          {cloudError || (lastCloudSync ? `Cloud workspace synced at ${lastCloudSync}` : 'Cloud workspace connected')}
+        </div>
+        <Suspense fallback={<div className="ownly-loading" role="status">Loading workspace…</div>}>
+          <AnimatePresence mode="wait">
           {activeTab === 'home' && (
             <HomeSection
               key="home"
@@ -320,23 +389,29 @@ export default function App() {
               onDeleteLink={handleDeleteLink}
             />
           )}
-        </AnimatePresence>
+          </AnimatePresence>
+        </Suspense>
       </main>
 
-      {/* Account Details & Logout Drawer (Triggered by 3-bar button) */}
-      <AccountDrawer
-        isOpen={isAccountDrawerOpen}
-        onClose={() => setIsAccountDrawerOpen(false)}
-        user={user}
-        onLogout={handleLogout}
-        stats={stats}
-        onNavigateTab={(tab) => {
-          setActiveTab(tab);
-          setIsAccountDrawerOpen(false);
-        }}
-        onExportData={handleExportData}
-        onResetWorkspace={handleResetWorkspace}
-      />
+      {/* Account Details & Logout Drawer */}
+      <Suspense fallback={null}>
+        <AccountDrawer
+          isOpen={isAccountDrawerOpen}
+          onClose={() => setIsAccountDrawerOpen(false)}
+          user={user}
+          onLogout={handleLogout}
+          stats={stats}
+          onNavigateTab={(tab) => {
+            setActiveTab(tab);
+            setIsAccountDrawerOpen(false);
+          }}
+          onExportData={handleExportData}
+          onResetWorkspace={handleResetWorkspace}
+          onUpdateProfile={handleUpdateProfile}
+        />
+        <WorkspaceAssistant notes={notes} images={images} links={links} activeTab={activeTab} />
+      </Suspense>
+      </div>
     </div>
   );
 }

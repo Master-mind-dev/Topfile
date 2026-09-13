@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { OwnlyLogo } from './OwnlyLogo';
-import { Eye, EyeOff, Sparkles, ArrowRight, ShieldCheck, CheckCircle2, Flame } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2, Lock, Mail, User as UserIcon } from 'lucide-react';
 import { UserProfile } from '../types';
 import { 
   auth, 
@@ -17,8 +17,8 @@ interface LoginPageProps {
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('rmohammed7dastagir@gmail.com');
-  const [password, setPassword] = useState('ownlyworkspace123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('Mohammed Dastagir');
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -47,16 +47,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     try {
       if (isSignUp) {
         // Create user with Firebase Auth
-        const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, cleanPass);
-        if (name.trim() && userCredential.user) {
-          await updateProfile(userCredential.user, {
-            displayName: name.trim()
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, cleanPass);
+          if (name.trim() && userCredential.user) {
+            await updateProfile(userCredential.user, {
+              displayName: name.trim()
+            });
+          }
+          onLoginSuccess({
+            email: userCredential.user.email || cleanEmail,
+            name: name.trim() || userCredential.user.displayName || 'Workspace User',
           });
+        } catch (signUpErr: any) {
+          if (signUpErr.code === 'auth/email-already-in-use') {
+            setError('This email already has an account. Please log in instead.');
+          } else {
+            throw signUpErr;
+          }
         }
-        onLoginSuccess({
-          email: userCredential.user.email || cleanEmail,
-          name: name.trim() || userCredential.user.displayName || 'Workspace User',
-        });
       } else {
         // Sign in with Firebase Auth
         try {
@@ -66,83 +74,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             name: userCredential.user.displayName || (cleanEmail.startsWith('rmohammed') ? 'Mohammed Dastagir' : cleanEmail.split('@')[0]),
           });
         } catch (signInErr: any) {
-          // If user doesn't exist yet, automatically auto-provision account for smooth onboarding
-          if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential' || signInErr.code === 'auth/invalid-login-credentials') {
-            try {
-              const autoCreated = await createUserWithEmailAndPassword(auth, cleanEmail, cleanPass);
-              if (autoCreated.user) {
-                const displayName = cleanEmail.startsWith('rmohammed') ? 'Mohammed Dastagir' : cleanEmail.split('@')[0];
-                await updateProfile(autoCreated.user, { displayName });
-                onLoginSuccess({
-                  email: autoCreated.user.email || cleanEmail,
-                  name: displayName,
-                });
-                return;
-              }
-            } catch (autoErr: any) {
-              setError(signInErr.message?.replace('Firebase: ', '') || 'Invalid email or password credentials.');
-            }
-          } else {
-            setError(signInErr.message?.replace('Firebase: ', '') || 'Authentication failed. Please check credentials.');
-          }
+          throw signInErr;
         }
       }
     } catch (err: any) {
       console.warn('Firebase auth attempt:', err);
-      // Friendly message translation
-      if (err.code === 'auth/email-already-in-use') {
-        // Auto sign in with password if existing
-        try {
-          const res = await signInWithEmailAndPassword(auth, cleanEmail, cleanPass);
-          onLoginSuccess({
-            email: res.user.email || cleanEmail,
-            name: res.user.displayName || name.trim() || 'Mohammed Dastagir',
-          });
-          return;
-        } catch {
-          setError('Email is already registered. Please click Login instead.');
-        }
-      } else if (err.code === 'auth/weak-password') {
+      if (err.code === 'auth/weak-password') {
         setError('Password should be at least 6 characters.');
       } else if (err.code === 'auth/invalid-email') {
         setError('Invalid email address format.');
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        setError('This Firebase account was not found or the password is incorrect. Use Sign up once, then use that same account on every device.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Too many attempts. Please wait and try again.');
+      } else if (err.message?.includes('Firebase is unavailable')) {
+        setError('Firebase is not configured correctly. Add the valid Firebase Web API key in Render.');
       } else {
-        setError(err.message?.replace('Firebase: ', '') || 'Could not authenticate. Please retry.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleQuickDemoLogin = async () => {
-    setIsLoading(true);
-    setError('');
-    const demoEmail = 'rmohammed7dastagir@gmail.com';
-    const demoPass = 'ownlyworkspace123';
-    const demoName = 'Mohammed Dastagir';
-
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, demoEmail, demoPass);
-      onLoginSuccess({
-        email: userCredential.user.email || demoEmail,
-        name: userCredential.user.displayName || demoName,
-      });
-    } catch {
-      try {
-        const created = await createUserWithEmailAndPassword(auth, demoEmail, demoPass);
-        if (created.user) {
-          await updateProfile(created.user, { displayName: demoName });
-        }
-        onLoginSuccess({
-          email: demoEmail,
-          name: demoName,
-        });
-      } catch {
-        // Direct session fallback
-        onLoginSuccess({
-          email: demoEmail,
-          name: demoName,
-        });
+        setError('Unable to sign in right now. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -158,112 +106,99 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       await sendPasswordResetEmail(auth, email.trim());
       setResetSent(true);
     } catch (err: any) {
-      setResetSent(true); // show confirmation to avoid user enumeration
+      setError(err.code === 'auth/user-not-found' ? 'No account was found for this email.' : 'Could not send the reset email.');
     }
   };
 
   return (
     <div 
-      className="min-h-screen w-full bg-black text-white flex flex-col justify-between items-center px-4 py-8 sm:py-12 relative overflow-hidden"
+      className="ownly-login min-h-screen w-full text-white flex flex-col justify-between items-center px-5 py-6 sm:py-10 relative overflow-hidden selection:bg-[#ff304f] selection:text-white"
       id="ownly-auth-screen"
     >
-      {/* Background ambient accents */}
-      <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#FF2A3A]/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-zinc-800/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="ownly-login__header w-full max-w-6xl flex justify-between items-center z-10">
+        <div className="flex items-center gap-2">
+          <OwnlyLogo size="sm" />
+          <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-[0.3em] text-white/45 border-l border-[#ff304f]/35 pl-3 ml-2">PRIVATE WORKSPACE</span>
+        </div>
 
-      {/* Header bar branding */}
-      <div className="w-full max-w-5xl flex justify-end items-center z-10">
-        <button
-          onClick={handleQuickDemoLogin}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-white bg-white/10 border border-white/20 hover:bg-white/20 hover:border-white/40 transition-colors cursor-pointer"
-          id="btn-quick-demo-login"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-white" />
-          Instant Demo Access
-        </button>
       </div>
 
-      {/* Center Auth Card */}
+      {/* Center Auth Card with Anime Starry Glow */}
       <motion.div 
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
         className="w-full max-w-md my-auto z-10"
       >
         <div 
-          className="w-full bg-white/5 border border-white/20 rounded-3xl p-6 sm:p-10 shadow-2xl backdrop-blur-xl relative"
+          className="ownly-login__panel w-full bg-black/75 border border-white/15 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl relative overflow-hidden"
           id="login-card-container"
         >
-          {/* Top Logo in Card */}
-          <div className="text-center mb-5">
+          {/* Subtle Ambient Radial Light behind Card */}
+          <div className="text-center mb-7">
             <OwnlyLogo size="lg" />
+            <div className="text-[10px] tracking-[0.3em] text-[#ff304f] uppercase font-extrabold mt-5 mb-2">OWNLY ACCESS</div>
+            <h1 className="ownly-login__title text-2xl sm:text-3xl font-bold tracking-tight text-white">{isSignUp ? 'Create account' : 'Welcome back'}</h1>
           </div>
-
-          {/* Heading */}
-          <div className="text-center mb-6">
-            <div className="text-[10px] tracking-[0.2em] text-white/40 uppercase font-bold mb-1">
-              WORKSPACE ACCESS
-            </div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white mb-1">
-              {isSignUp ? 'CREATE AN ACCOUNT' : 'WELCOME BACK'}
-            </h1>
-            <p className="text-sm font-medium text-white/60">
-              {isSignUp ? 'Sign Up' : 'Login'}
-            </p>
-          </div>
-
           {error && (
-            <div className="mb-5 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-medium text-center">
+            <div className="mb-4 p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs font-medium text-center">
               {error}
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+          <form onSubmit={handleSubmit} className="royal-login__form space-y-4">
             {isSignUp && (
               <div>
-                <label className="block text-[11px] font-bold tracking-wider uppercase text-white/60 mb-1.5 pl-1">
+                <label className="block text-[10px] font-extrabold tracking-wider uppercase text-white/70 mb-1 pl-1">
                   FULL NAME
                 </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your full name"
-                  required
-                  className="w-full bg-white text-black font-semibold placeholder:text-zinc-400 px-4 py-3 rounded-2xl outline-none focus:ring-2 focus:ring-white transition-all text-sm shadow-inner"
-                  id="input-name"
-                />
+                <div className="relative">
+                  <UserIcon className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your full name"
+                    required
+                    className="w-full bg-white text-black font-semibold placeholder:text-zinc-400 pl-10 pr-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-white transition-all text-xs sm:text-sm shadow-inner"
+                    id="input-name"
+                  />
+                </div>
               </div>
             )}
 
             <div>
-              <label className="block text-[11px] font-bold tracking-wider uppercase text-white/60 mb-1.5 pl-1">
-                EMAIL
+              <label className="block text-[10px] font-extrabold tracking-wider uppercase text-white/70 mb-1 pl-1">
+                EMAIL ADDRESS
               </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                required
-                className="w-full bg-white text-black font-semibold placeholder:text-zinc-400 px-4 py-3 rounded-2xl outline-none focus:ring-2 focus:ring-white transition-all text-sm shadow-inner"
-                id="input-email"
-              />
+              <div className="relative">
+                <Mail className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                  className="w-full bg-white text-black font-semibold placeholder:text-zinc-400 pl-10 pr-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-white transition-all text-xs sm:text-sm shadow-inner"
+                  id="input-email"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold tracking-wider uppercase text-white/60 mb-1.5 pl-1">
+              <label className="block text-[10px] font-extrabold tracking-wider uppercase text-white/70 mb-1 pl-1">
                 PASSWORD
               </label>
               <div className="relative">
+                <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Password"
                   required
-                  className="w-full bg-white text-black font-semibold placeholder:text-zinc-400 px-4 py-3 pr-11 rounded-2xl outline-none focus:ring-2 focus:ring-white transition-all text-sm shadow-inner"
+                  className="w-full bg-white text-black font-semibold placeholder:text-zinc-400 pl-10 pr-11 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-white transition-all text-xs sm:text-sm shadow-inner"
                   id="input-password"
                 />
                 <button
@@ -295,19 +230,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               </div>
             )}
 
-            {/* Log in Button with vivid red hover style */}
+            {/* Submit Button */}
             <div className="pt-2">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-white text-black hover:bg-[#FF2A3A] hover:text-white active:scale-[0.99] font-bold text-sm py-3 rounded-full transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-sm group"
+                className="w-full bg-[#ff304f] text-white hover:bg-[#ff4f68] active:scale-[0.99] font-bold text-xs sm:text-sm py-3.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-lg group"
                 id="btn-login-submit"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-black/30 border-t-black group-hover:border-white/30 group-hover:border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>{isSignUp ? 'Create Account' : 'Log in'}</span>
+                    <span>{isSignUp ? 'Create Workspace Account' : 'Log into Workspace'}</span>
                     <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                   </>
                 )}
@@ -316,9 +251,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </form>
 
           {/* Toggle Sign Up / Login */}
-          <div className="mt-6 text-center text-xs sm:text-sm">
+          <div className="mt-5 text-center text-xs">
             <span className="text-white/60 font-medium">
-              {isSignUp ? 'Already have an account? ' : 'No account? '}
+              {isSignUp ? 'Already have an account? ' : 'No account yet? '}
             </span>
             <button
               type="button"
@@ -326,7 +261,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 setIsSignUp(!isSignUp);
                 setError('');
               }}
-              className="text-white hover:underline font-bold transition-colors cursor-pointer ml-1"
+              className="text-[#ff6a7e] hover:text-white underline font-bold transition-colors cursor-pointer ml-1"
               id="btn-toggle-auth-mode"
             >
               {isSignUp ? 'Login' : 'Sign up'}
@@ -343,7 +278,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-sm bg-black border border-white/20 rounded-3xl p-6 shadow-2xl text-center"
+              className="w-full max-w-sm bg-black border border-white/20 rounded-3xl p-6 shadow-2xl text-center relative"
             >
               <ShieldCheck className="w-10 h-10 text-white mx-auto mb-3" />
               <h3 className="text-lg font-bold text-white mb-1">Reset Password</h3>
@@ -362,8 +297,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter email"
-                    className="w-full bg-white text-black font-semibold px-4 py-2.5 rounded-xl text-sm outline-none"
+                    placeholder="Enter registered email"
+                    className="w-full bg-white text-black font-semibold px-4 py-2.5 rounded-xl text-xs sm:text-sm outline-none"
                   />
                 </div>
               )}
@@ -392,8 +327,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       </AnimatePresence>
 
       {/* Footer */}
-      <div className="text-center text-white/30 text-xs font-medium z-10">
-        <p>OWNLY Workspace Platform • High Density System</p>
+      <div className="text-center text-white/40 text-[11px] font-medium z-10">
+        <p>OWNLY Workspace Engine • Smooth Anime Atmosphere</p>
       </div>
     </div>
   );

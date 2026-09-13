@@ -75,12 +75,9 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
 
       if (videoRef.current) {
         videoRef.current.srcObject = newStream;
-        videoRef.current.play().catch(() => {
-          // Quietly ignore auto-play restrictions
-        });
+        videoRef.current.play().catch(() => {});
       }
     } catch (err: any) {
-      // Quietly try standard video fallback without facingMode constraints
       try {
         const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
         setStream(fallbackStream);
@@ -129,7 +126,6 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
     canvas.height = 720;
     const ctx = canvas.getContext('2d');
     if (ctx) {
-      // Create high-res dark scan graphic
       const grad = ctx.createLinearGradient(0, 0, 1280, 720);
       grad.addColorStop(0, '#121316');
       grad.addColorStop(1, '#050507');
@@ -161,7 +157,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
       ctx.fillStyle = '#FFFFFF';
       ctx.font = 'bold 36px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('OWNLY HARDWARE CAPTURE', 640, 350);
+      ctx.fillText('OWNLY WORKSPACE SCAN', 640, 350);
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
       ctx.font = '18px sans-serif';
@@ -236,7 +232,6 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
     const ctx = canvas.getContext('2d');
     if (ctx) {
       if (facingMode === 'user') {
-        // Mirror selfie camera
         ctx.translate(canvas.width, 0);
         ctx.scale(-1, 1);
       }
@@ -307,16 +302,16 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
       />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/20 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/15 pb-5">
         <div>
-          <div className="text-[10px] tracking-[0.2em] text-white/40 uppercase font-bold mb-1">
-            HARDWARE SCANNER
+          <div className="text-[10px] tracking-[0.25em] text-[#FF2A3A] uppercase font-extrabold mb-1">
+            HARDWARE SCANNER & CAPTURE
           </div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-              Camera Capture
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+              Live Camera Capture
             </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white/10 text-white border border-white/20">
+            <span className="px-3 py-0.5 rounded-full text-xs font-extrabold bg-white/10 text-white border border-white/20">
               {isCameraActive ? 'Live Feed Active' : 'Ready'}
             </span>
           </div>
@@ -324,7 +319,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
 
         <button
           onClick={onViewGallery}
-          className="border border-white/20 bg-[#E2E4E8] text-zinc-950 font-bold px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 flex items-center gap-2 cursor-pointer self-start sm:self-auto shadow-sm"
+          className="border border-white/20 bg-[#E2E4E8] text-zinc-950 font-bold px-5 py-2.5 rounded-full text-xs sm:text-sm hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 flex items-center gap-2 cursor-pointer self-start sm:self-auto shadow-md"
         >
           <Eye className="w-4 h-4" />
           View Uploads Gallery
@@ -332,7 +327,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
       </div>
 
       {/* Camera Viewfinder Box */}
-      <div className="w-full max-w-3xl mx-auto rounded-3xl bg-black border border-white/20 overflow-hidden shadow-2xl relative">
+      <div className="w-full max-w-3xl mx-auto rounded-3xl bg-zinc-950 border border-white/20 overflow-hidden shadow-2xl relative backdrop-blur-md">
         
         {/* Flash Overlay */}
         {flashActive && (
@@ -342,7 +337,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
         {/* Countdown Overlay */}
         {countdown !== null && (
           <div className="absolute inset-0 z-30 bg-black/60 backdrop-blur-xs flex items-center justify-center pointer-events-none">
-            <span className="text-8xl font-light text-white animate-ping">
+            <span className="text-8xl font-black text-white animate-ping">
               {countdown}
             </span>
           </div>
@@ -352,14 +347,14 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
         <div className="aspect-[4/3] sm:aspect-video w-full bg-black relative flex items-center justify-center overflow-hidden">
           {errorMsg ? (
             <div className="p-8 text-center text-white/40 max-w-md">
-              <AlertCircle className="w-12 h-12 text-white/60 mx-auto mb-3" />
+              <AlertCircle className="w-12 h-12 text-[#FF2A3A] mx-auto mb-3" />
               <h3 className="text-base font-bold text-white mb-1">Camera Permission Dismissed / Inactive</h3>
               <p className="text-xs text-white/50 mb-5 leading-relaxed">{errorMsg}</p>
               
               <div className="flex flex-wrap items-center justify-center gap-2.5">
                 <button
                   onClick={() => startCamera(facingMode)}
-                  className="px-4 py-2 rounded-full bg-[#E2E4E8] text-zinc-950 hover:bg-[#FF2A3A] hover:text-white font-bold text-xs transition-all duration-200 cursor-pointer shadow-sm"
+                  className="px-4 py-2 rounded-full bg-[#E2E4E8] text-zinc-950 hover:bg-[#FF2A3A] hover:text-white font-bold text-xs transition-all duration-200 cursor-pointer shadow-md"
                 >
                   Retry Camera
                 </button>
@@ -398,19 +393,19 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
                   <div className="border-r border-b border-white" />
                   <div className="border-r border-b border-white" />
                   <div className="border-b border-white" />
-                  <div className="border-r border-white" />
-                  <div className="border-r border-white" />
+                  <div className="border-r border-b border-white" />
+                  <div className="border-r border-b border-white" />
                   <div />
                 </div>
               )}
 
-              {/* Viewfinder Target Framing Center Marks */}
+              {/* Center Marks */}
               <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                 <div className="w-24 h-24 border border-white/20 rounded-2xl relative">
-                  <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-white" />
-                  <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-white" />
-                  <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-white" />
-                  <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-white" />
+                  <div className="absolute -top-1 -left-1 w-3 h-3 border-t-2 border-l-2 border-[#FF2A3A]" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 border-t-2 border-r-2 border-[#FF2A3A]" />
+                  <div className="absolute -bottom-1 -left-1 w-3 h-3 border-b-2 border-l-2 border-[#FF2A3A]" />
+                  <div className="absolute -bottom-1 -right-1 w-3 h-3 border-b-2 border-r-2 border-[#FF2A3A]" />
                 </div>
               </div>
             </>
@@ -418,19 +413,18 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
 
           {/* Top Quick Settings Bar */}
           <div className="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-auto z-20">
-            <div className="flex items-center gap-2 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+            <div className="flex items-center gap-2 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-lg">
               <span className={`w-2 h-2 rounded-full ${isCameraActive ? 'bg-emerald-400 animate-pulse' : 'bg-white/40'}`} />
-              <span className="text-[10px] font-bold text-white uppercase tracking-widest">
+              <span className="text-[10px] font-extrabold text-white uppercase tracking-widest">
                 {facingMode === 'user' ? 'Front Camera' : 'Back Camera'}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Grid Toggle */}
               <button
                 type="button"
                 onClick={() => setShowGrid(!showGrid)}
-                className={`p-2 rounded-full backdrop-blur-md border transition-all duration-200 cursor-pointer ${
+                className={`p-2 rounded-full backdrop-blur-md border transition-all duration-200 cursor-pointer shadow-md ${
                   showGrid ? 'bg-[#E2E4E8] text-black border-white hover:bg-[#FF2A3A] hover:text-white' : 'bg-black/80 text-white border-white/20 hover:bg-[#FF2A3A]'
                 }`}
                 title="Toggle Grid Guide"
@@ -438,11 +432,10 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
                 <Grid className="w-3.5 h-3.5" />
               </button>
 
-              {/* Timer Toggle */}
               <button
                 type="button"
                 onClick={() => setTimerSeconds(timerSeconds === 0 ? 3 : 0)}
-                className={`px-2.5 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border transition-all duration-200 flex items-center gap-1 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-md border transition-all duration-200 flex items-center gap-1 cursor-pointer shadow-md ${
                   timerSeconds > 0 ? 'bg-[#E2E4E8] text-black border-white hover:bg-[#FF2A3A] hover:text-white' : 'bg-black/80 text-white border-white/20 hover:bg-[#FF2A3A]'
                 }`}
                 title="Countdown Timer"
@@ -455,12 +448,11 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
         </div>
 
         {/* Viewfinder Bottom Control Bar */}
-        <div className="p-4 sm:p-6 bg-black border-t border-white/10 flex items-center justify-around gap-4">
-          {/* Flip Camera Button */}
+        <div className="p-4 sm:p-6 bg-black/90 border-t border-white/10 flex items-center justify-around gap-4">
           <button
             type="button"
             onClick={toggleFacingMode}
-            className="p-3.5 rounded-2xl bg-white/5 border border-white/20 text-white/80 hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 cursor-pointer flex flex-col items-center gap-1"
+            className="p-3.5 rounded-2xl bg-white/5 border border-white/20 text-white/80 hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 cursor-pointer flex flex-col items-center gap-1 shadow-md"
             title="Switch Camera (Front/Back)"
             id="btn-flip-camera"
           >
@@ -481,7 +473,6 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
             </div>
           </button>
 
-          {/* Quick Reload / Snap Demo Button */}
           <button
             type="button"
             onClick={() => {
@@ -491,7 +482,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
                 startCamera(facingMode);
               }
             }}
-            className="p-3.5 rounded-2xl bg-white/5 border border-white/20 text-white/80 hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 cursor-pointer flex flex-col items-center gap-1"
+            className="p-3.5 rounded-2xl bg-white/5 border border-white/20 text-white/80 hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 cursor-pointer flex flex-col items-center gap-1 shadow-md"
             title="Reload Camera / Snap Frame"
             id="btn-reload-camera"
           >
@@ -509,12 +500,12 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-xl bg-black border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative max-h-[90vh] flex flex-col overflow-y-auto"
+              className="w-full max-w-xl bg-zinc-950 border border-white/20 rounded-3xl p-6 sm:p-8 shadow-2xl relative max-h-[90vh] flex flex-col overflow-y-auto"
               id="snapshot-preview-modal"
             >
               <div className="flex items-center justify-between pb-4 border-b border-white/10">
                 <div className="flex items-center gap-2">
-                  <Camera className="w-5 h-5 text-white" />
+                  <Camera className="w-5 h-5 text-[#FF2A3A]" />
                   <h3 className="text-base font-bold text-white uppercase tracking-wider">
                     Captured Snapshot
                   </h3>
@@ -555,7 +546,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
                       type="text"
                       value={snapshotName}
                       onChange={(e) => setSnapshotName(e.target.value)}
-                      className="w-full bg-white/5 border border-white/20 text-white font-semibold px-3.5 py-2.5 rounded-xl text-xs outline-none focus:border-white"
+                      className="w-full bg-black/80 border border-white/20 text-white font-semibold px-3.5 py-2.5 rounded-xl text-xs outline-none focus:border-white"
                     />
                   </div>
 
@@ -568,7 +559,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
                       value={snapshotNotes}
                       onChange={(e) => setSnapshotNotes(e.target.value)}
                       placeholder="Optional notes for this capture..."
-                      className="w-full bg-white/5 border border-white/20 text-white font-normal px-3.5 py-2.5 rounded-xl text-xs outline-none focus:border-white"
+                      className="w-full bg-black/80 border border-white/20 text-white font-normal px-3.5 py-2.5 rounded-xl text-xs outline-none focus:border-white"
                     />
                   </div>
 

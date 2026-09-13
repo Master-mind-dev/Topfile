@@ -14,9 +14,9 @@ export const initialNotes: NoteItem[] = [
   {
     id: 'note-1',
     title: 'Product Design & Branding Goals',
-    content: '1. Maintain a clean pure black & white aesthetic.\n2. Ensure smooth tab transitions for Home, Notes, Uploads, Camera, and Links.\n3. Integrate link metadata scraper for seamless YouTube and web embeds.',
+    content: '1. Maintain a clean pure black & anime night theme.\n2. Ensure smooth tab transitions for Home, Notes, Uploads, Camera, and Links.\n3. Integrate link metadata scraper for seamless YouTube and web embeds.',
     category: 'Work',
-    colorTag: '#ef4444',
+    colorTag: '#FF2A3A',
     isPinned: true,
     createdAt: '2026-08-22T09:30:00Z',
     updatedAt: '2026-08-23T10:15:00Z',
@@ -34,7 +34,7 @@ export const initialNotes: NoteItem[] = [
   {
     id: 'note-3',
     title: 'Weekly Task Checklist',
-    content: '• Review architecture diagrams\n• Verify camera framing responsiveness on mobile\n• Test video link parsing for shorts and regular videos\n• Sync account preferences',
+    content: '• Review anime background animation rendering efficiency\n• Verify camera framing responsiveness on mobile\n• Test video link parsing for shorts and regular videos\n• Sync account preferences and offline backup',
     category: 'Personal',
     colorTag: '#10b981',
     isPinned: false,
@@ -56,7 +56,7 @@ export const initialNotes: NoteItem[] = [
 export const initialImages: UploadedImageItem[] = [
   {
     id: 'img-1',
-    name: 'architecture_diagram.png',
+    name: 'night_sky_concept.png',
     dataUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80',
     fileSize: '1.4 MB',
     dimensions: '1920 x 1080',
@@ -89,13 +89,13 @@ export const initialImages: UploadedImageItem[] = [
 export const initialLinks: LinkItem[] = [
   {
     id: 'link-1',
-    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    title: 'Never Gonna Give You Up - Official Music Video',
-    description: 'The official music video for Rick Astley - Never Gonna Give You Up. A landmark visual production.',
-    embedThumb: 'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+    url: 'https://www.youtube.com/watch?v=M7lc1UVf-VE',
+    title: 'YouTube Player API Demo',
+    description: 'A stable YouTube embed demo for testing playback inside OWNLY.',
+    embedThumb: 'https://img.youtube.com/vi/M7lc1UVf-VE/hqdefault.jpg',
     linkHost: 'youtube.com',
     embedProvider: 'youtube',
-    embedId: 'dQw4w9WgXcQ',
+    embedId: 'M7lc1UVf-VE',
     isPlayable: true,
     createdAt: '2026-08-23T10:00:00Z',
   },

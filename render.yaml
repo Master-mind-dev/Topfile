@@ -1,24 +1,27 @@
 services:
   - type: web
-    name: ownly-app
+    name: ownly
     runtime: node
+    buildCommand: npm ci && npm run build
     startCommand: npm start
-    buildCommand: npm run build
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 3000
-      - key: VITE_FIREBASE_API_KEY
-        sync: false
-      - key: VITE_FIREBASE_AUTH_DOMAIN
-        sync: false
-      - key: VITE_FIREBASE_PROJECT_ID
-        sync: false
-      - key: VITE_FIREBASE_STORAGE_BUCKET
-        sync: false
-      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
-        sync: false
-      - key: VITE_FIREBASE_APP_ID
-        sync: false
+    healthCheckPath: /api/test
     autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: VITE_FIREBASE_API_KEY
+        value: AIzaSyBU_vTdK1WxEfHi-MEZDfdMCR89fbVsiHg
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        value: personal-space-7c96d.firebaseapp.com
+      - key: VITE_FIREBASE_PROJECT_ID
+        value: personal-space-7c96d
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        value: personal-space-7c96d.firebasestorage.app
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        value: 458025475917
+      - key: VITE_FIREBASE_APP_ID
+        value: 1:458025475917:web:34b47c0edd64d294c3e104
+      - key: VITE_FIREBASE_MEASUREMENT_ID
+        value: G-3J4DRX7GGH
+      - key: GEMINI_API_KEY
+        sync: false

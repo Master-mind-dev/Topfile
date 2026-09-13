@@ -3,11 +3,20 @@ import axios from "axios";
 import * as cheerio from "cheerio";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const envFile = path.join(__dirname, '.env');
+if (fs.existsSync(envFile)) {
+  for (const line of fs.readFileSync(envFile, 'utf8').split(/\r?\n/)) {
+    const match = line.match(/^([^#=]+)=(.*)$/);
+    if (match && !process.env[match[1].trim()]) process.env[match[1].trim()] = match[2].trim().replace(/^"|"$/g, '');
+  }
+}
 
 const PORT = 3000;
 
@@ -86,6 +95,32 @@ async function startServer() {
       message: 'Backend is running!',
       timestamp: new Date().toISOString()
     });
+  });
+
+  app.post('/api/assistant', async (req, res) => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    const { prompt, context } = req.body || {};
+    if (!apiKey) return res.status(503).json({ success: false, error: 'Gemini is not configured on the server.' });
+    if (!prompt || typeof prompt !== 'string') return res.status(400).json({ success: false, error: 'A prompt is required.' });
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: 'You are OWNLY AI, a concise workspace assistant. Help users understand and organize their notes, images, and links. Never claim to have changed files or data unless the application explicitly reports that action.' }] },
+          contents: [{ parts: [{ text: `Workspace context:\n${JSON.stringify(context || {})}\n\nUser request:\n${prompt}` }] }],
+          generationConfig: { temperature: 0.35, maxOutputTokens: 700 },
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) return res.status(response.status).json({ success: false, error: data.error?.message || 'Gemini request failed.' });
+      const answer = data.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text || '').join('') || 'No answer was returned.';
+      return res.json({ success: true, answer });
+    } catch (error) {
+      console.error('Gemini assistant error:', (error as Error).message);
+      return res.status(502).json({ success: false, error: 'The Gemini assistant could not be reached.' });
+    }
   });
 
   // API Endpoint to securely parse any link

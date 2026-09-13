@@ -11,7 +11,8 @@ import {
   Pin,
   Sparkles,
   ExternalLink,
-  Play
+  Play,
+  Flame
 } from 'lucide-react';
 import { NoteItem, UploadedImageItem, LinkItem, TabType } from '../types';
 
@@ -44,31 +45,39 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
   const recentImages = [...images].slice(0, 4);
   const recentLinks = [...links].slice(0, 2);
 
+  const metrics = [
+    { label: 'Notes Vault', value: totalNotes, detail: `${pinnedNotes.length} pinned records`, tab: 'notes' as TabType, icon: FileText, tone: 'gold' },
+    { label: 'Media Assets', value: images.length, detail: 'Saved gallery uploads', tab: 'upload' as TabType, icon: ImageIcon, tone: 'blue' },
+    { label: 'Live Snaps', value: images.filter((img) => img.source === 'camera').length, detail: 'Camera captures', tab: 'scan' as TabType, icon: Camera, tone: 'green' },
+    { label: 'Video & Links', value: links.length, detail: 'YouTube & web cards', tab: 'links' as TabType, icon: LinkIcon, tone: 'violet' },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.25 }}
-      className="space-y-8 pb-16"
+      className="ownly-home space-y-8 pb-16"
       id="home-dashboard-view"
     >
       {/* Top Header Row with High Density Metrics Grid */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/20 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/15 pb-6">
         <div>
-          <div className="text-[10px] tracking-[0.2em] text-white/40 uppercase font-bold mb-1">
-            SPACE ENGINE OVERVIEW
+          <div className="text-[10px] tracking-[0.25em] text-[#FF2A3A] uppercase font-extrabold mb-1 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#FF2A3A] animate-ping" />
+            WORKSPACE ENGINE ACTIVE
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
-            Workspace Dashboard
+            <h1 className="ownly-home__title text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+            Personal Space Dashboard
           </h1>
         </div>
 
         {/* Quick Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={onOpenCreateNote}
-            className="bg-[#E2E4E8] text-zinc-950 px-4 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-2 hover:bg-[#FF2A3A] hover:text-white active:scale-95 transition-all duration-200 cursor-pointer shadow-sm"
+            className="journey-action journey-action--primary bg-[#E2E4E8] text-zinc-950 px-4 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 hover:bg-[#FF2A3A] hover:text-white active:scale-95 transition-all duration-200 cursor-pointer shadow-md"
             id="btn-home-create-note"
           >
             <Plus className="w-4 h-4" />
@@ -76,94 +85,80 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
           </button>
           <button
             onClick={onOpenCamera}
-            className="border border-white/20 bg-white/5 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 cursor-pointer"
+            className="journey-action border border-white/20 bg-white/5 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-1.5 hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 cursor-pointer backdrop-blur-md"
             id="btn-home-open-camera"
           >
             <Camera className="w-4 h-4" />
-            Capture
+            Live Scan
+          </button>
+          <button
+            onClick={onOpenAddLink}
+            className="journey-action border border-white/20 bg-white/5 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-1.5 hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 cursor-pointer backdrop-blur-md"
+            id="btn-home-add-link"
+          >
+            <LinkIcon className="w-4 h-4" />
+            Add Media
           </button>
         </div>
       </div>
 
-      {/* High Density Metric Cards Grid (Matching Theme: 3-4 columns with border-white/20, text-5xl font-light) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div 
-          onClick={() => onNavigateTab('notes')}
-          className="border border-white/20 p-5 sm:p-6 rounded-2xl bg-white/5 hover:border-white/40 transition-colors cursor-pointer group"
-        >
-          <div className="flex items-center justify-between text-white/40 text-xs font-bold tracking-widest uppercase mb-2">
-            <span>Total Notes</span>
-            <FileText className="w-4 h-4 group-hover:text-white transition-colors" />
-          </div>
-          <div className="text-4xl sm:text-5xl font-light tracking-tight text-white">{totalNotes}</div>
-          <div className="text-[11px] text-white/40 mt-2">{pinnedNotes.length} pinned records</div>
-        </div>
-
-        <div 
-          onClick={() => onNavigateTab('upload')}
-          className="border border-white/20 p-5 sm:p-6 rounded-2xl bg-black hover:border-white/40 transition-colors cursor-pointer group"
-        >
-          <div className="flex items-center justify-between text-white/40 text-xs font-bold tracking-widest uppercase mb-2">
-            <span>Media Assets</span>
-            <ImageIcon className="w-4 h-4 group-hover:text-white transition-colors" />
-          </div>
-          <div className="text-4xl sm:text-5xl font-light tracking-tight text-white">{images.length}</div>
-          <div className="text-[11px] text-white/40 mt-2">Saved gallery uploads</div>
-        </div>
-
-        <div 
-          onClick={() => onNavigateTab('scan')}
-          className="border border-white/20 p-5 sm:p-6 rounded-2xl bg-white/5 hover:border-white/40 transition-colors cursor-pointer group"
-        >
-          <div className="flex items-center justify-between text-white/40 text-xs font-bold tracking-widest uppercase mb-2">
-            <span>Camera Snaps</span>
-            <Camera className="w-4 h-4 group-hover:text-white transition-colors" />
-          </div>
-          <div className="text-4xl sm:text-5xl font-light tracking-tight text-white">
-            {images.filter((img) => img.source === 'camera').length}
-          </div>
-          <div className="text-[11px] text-white/40 mt-2">Live instant captures</div>
-        </div>
-
-        <div 
-          onClick={() => onNavigateTab('links')}
-          className="border border-white/20 p-5 sm:p-6 rounded-2xl bg-black hover:border-white/40 transition-colors cursor-pointer group"
-        >
-          <div className="flex items-center justify-between text-white/40 text-xs font-bold tracking-widest uppercase mb-2">
-            <span>Saved Links</span>
-            <LinkIcon className="w-4 h-4 group-hover:text-white transition-colors" />
-          </div>
-          <div className="text-4xl sm:text-5xl font-light tracking-tight text-white">{links.length}</div>
-          <div className="text-[11px] text-white/40 mt-2">Videos & web bookmarks</div>
-        </div>
+      {/* High Density Metric Cards Grid with Anime Night Glow */}
+      <div className="ownly-home__metrics grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
+        {metrics.map((metric, index) => {
+          const Icon = metric.icon;
+          return (
+            <motion.button
+              key={metric.label}
+              type="button"
+              onClick={() => onNavigateTab(metric.tab)}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.06, duration: 0.35 }}
+              className={`journey-metric journey-metric--${metric.tone} text-left border border-white/15 p-5 sm:p-6 rounded-3xl bg-zinc-950/60 hover:bg-zinc-900/80 transition-all duration-300 cursor-pointer group shadow-xl relative overflow-hidden backdrop-blur-md`}
+            >
+              <div className="journey-metric__glow absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl transition-all" />
+              <div className="flex items-center justify-between text-white/50 text-[10px] sm:text-xs font-bold tracking-widest uppercase mb-2">
+                <span>{metric.label}</span>
+                <Icon className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              </div>
+              <motion.div key={metric.value} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white">
+                {metric.value}
+              </motion.div>
+              <div className="text-[11px] text-white/50 mt-2 flex items-center gap-1">
+                <span className="journey-metric__dot w-1.5 h-1.5 rounded-full" />
+                {metric.detail}
+              </div>
+            </motion.button>
+          );
+        })}
       </div>
 
       {/* Grid: Recent Notes & High Density Live Resource Shelf */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-2">
+      <div className="ownly-home__lower grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 pt-2">
         
         {/* Recent Notes Column */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold tracking-widest uppercase text-white/60 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-white" />
+            <h2 className="text-xs font-bold tracking-widest uppercase text-white/70 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-[#FF2A3A]" />
               Recent Notes
             </h2>
             <button
               onClick={() => onNavigateTab('notes')}
-              className="text-xs text-white/40 hover:text-white transition-colors cursor-pointer"
+              className="text-xs text-white/50 hover:text-white transition-colors cursor-pointer"
             >
-              View All ({totalNotes})
+              View All ({totalNotes}) →
             </button>
           </div>
 
           {recentNotes.length === 0 ? (
-            <div className="p-8 rounded-xl border border-white/10 text-center text-white/40">
+            <div className="p-8 rounded-3xl border border-white/10 text-center text-white/40 bg-zinc-950/40">
               <p className="text-xs font-medium">No notes created yet.</p>
               <button
                 onClick={onOpenCreateNote}
-                className="mt-3 px-3.5 py-1.5 rounded-full bg-white text-black font-bold text-xs"
+                className="mt-3 px-4 py-2 rounded-full bg-[#E2E4E8] text-black font-bold text-xs hover:bg-[#FF2A3A] hover:text-white transition-all"
               >
-                Create note
+                Create first note
               </button>
             </div>
           ) : (
@@ -172,19 +167,27 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                 <div
                   key={note.id}
                   onClick={() => onSelectNote(note)}
-                  className="p-4 border border-white/10 rounded-xl hover:border-white/40 transition-colors cursor-pointer group bg-white/[0.02]"
+                  className="p-4 sm:p-5 border border-white/10 rounded-2xl hover:border-white/40 transition-all cursor-pointer group bg-zinc-950/50 backdrop-blur-md shadow-lg"
+                  style={{
+                    borderLeftWidth: '3px',
+                    borderLeftColor: note.colorTag || '#FF2A3A',
+                  }}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="font-semibold text-sm text-white group-hover:text-white transition-colors truncate">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="font-bold text-sm text-white group-hover:text-white transition-colors truncate">
                       {note.title}
                     </div>
-                    {note.isPinned && <Pin className="w-3 h-3 text-white/70 flex-shrink-0 ml-2" />}
+                    {note.isPinned && (
+                      <span className="flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/10 text-white/80">
+                        <Pin className="w-2.5 h-2.5 fill-current" />
+                      </span>
+                    )}
                   </div>
-                  <p className="text-xs text-white/40 line-clamp-1 leading-relaxed">
+                  <p className="text-xs text-white/50 line-clamp-2 leading-relaxed">
                     {note.content}
                   </p>
-                  <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-white/30">
-                    <span>{note.category}</span>
+                  <div className="mt-3 pt-2.5 border-t border-white/5 flex items-center justify-between text-[10px] text-white/40">
+                    <span className="font-semibold px-2 py-0.5 rounded bg-white/5 border border-white/10">{note.category}</span>
                     <span>{new Date(note.updatedAt).toLocaleDateString()}</span>
                   </div>
                 </div>
@@ -196,24 +199,24 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
         {/* Live Resource & Saved Video Shelf */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold tracking-widest uppercase text-white/60 flex items-center gap-2">
-              <LinkIcon className="w-4 h-4 text-white" />
-              Live Resource & Media
+            <h2 className="text-xs font-bold tracking-widest uppercase text-white/70 flex items-center gap-2">
+              <LinkIcon className="w-4 h-4 text-purple-400" />
+              Featured Media Stream
             </h2>
             <button
               onClick={() => onNavigateTab('links')}
-              className="text-xs text-white/40 hover:text-white transition-colors cursor-pointer"
+              className="text-xs text-white/50 hover:text-white transition-colors cursor-pointer"
             >
-              Open Links Hub
+              Open Links Hub →
             </button>
           </div>
 
           {recentLinks.length > 0 ? (
             <div 
               onClick={() => onNavigateTab('links')}
-              className="bg-white/5 rounded-2xl overflow-hidden border border-white/10 hover:border-white/40 transition-colors cursor-pointer group"
+              className="bg-zinc-950/60 rounded-3xl overflow-hidden border border-white/15 hover:border-[#FF2A3A] transition-all duration-300 cursor-pointer group shadow-2xl backdrop-blur-md"
             >
-              <div className="aspect-video bg-white/10 relative flex items-center justify-center overflow-hidden">
+              <div className="aspect-video bg-black relative flex items-center justify-center overflow-hidden">
                 {recentLinks[0].embedThumb ? (
                   <img
                     src={recentLinks[0].embedThumb}
@@ -227,33 +230,36 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
                   </div>
                 )}
                 {recentLinks[0].isPlayable && (
-                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                    <div className="w-14 h-10 bg-red-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform shadow-xl">
-                      <Play className="w-5 h-5 fill-white ml-0.5" />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-full bg-[#FF2A3A] text-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-2xl">
+                      <Play className="w-6 h-6 fill-white ml-0.5" />
                     </div>
                   </div>
                 )}
+                <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-black/80 text-white backdrop-blur-md border border-white/20">
+                  {recentLinks[0].linkHost}
+                </div>
               </div>
               <div className="p-5">
-                <div className="text-sm font-bold text-white mb-2 line-clamp-1 group-hover:text-white transition-colors">
+                <div className="text-sm sm:text-base font-bold text-white mb-2 line-clamp-1 group-hover:text-[#FF2A3A] transition-colors">
                   {recentLinks[0].title}
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="text-[10px] py-1 px-2 border border-white/20 rounded uppercase font-bold tracking-wider text-white">
-                    {recentLinks[0].isPlayable ? 'Play Video' : 'View Link'}
+                <div className="flex items-center justify-between text-xs text-white/50">
+                  <div className="text-[10px] py-1 px-2.5 border border-white/20 rounded-full uppercase font-bold tracking-wider text-white bg-white/5">
+                    {recentLinks[0].isPlayable ? '▶ Play Video Stream' : 'Open Link'}
                   </div>
-                  <div className="text-[10px] text-white/40">
-                    {recentLinks[0].linkHost}
+                  <div className="text-[11px] text-white/40">
+                    Click to open in theater
                   </div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="p-8 rounded-2xl border border-white/10 text-center text-white/40 bg-white/5">
+            <div className="p-8 rounded-3xl border border-white/10 text-center text-white/40 bg-zinc-950/40">
               <p className="text-xs">No media bookmarks saved yet.</p>
               <button
                 onClick={onOpenAddLink}
-                className="mt-3 px-4 py-2 rounded-full bg-white text-black font-bold text-xs"
+                className="mt-3 px-4 py-2 rounded-full bg-[#E2E4E8] text-black font-bold text-xs hover:bg-[#FF2A3A] hover:text-white transition-all"
               >
                 Add first video
               </button>

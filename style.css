@@ -1,0 +1,275 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+.login-container {
+    width: 100%;
+    min-height: 100vh;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    position: relative;
+    overflow: hidden;
+}
+
+
+/* =========================
+   BACKGROUND VIDEO
+   ========================= */
+
+.background-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    z-index: -2;
+
+    transform: scale(1.05);
+}
+
+/* =========================
+   VIDEO DARK OVERLAY
+   ========================= */
+
+.video-overlay {
+    position: absolute;
+
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100%;
+
+    background: rgba(0, 0, 0, 0.45);
+
+    z-index: -1;
+}
+
+
+/* =========================
+   LOGIN CARD
+   ========================= */
+
+.login-card {
+    width: 380px;
+
+    padding: 50px;
+
+    text-align: center;
+
+    background: rgba(255, 255, 255, 0.10);
+
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+
+    border: 1px solid rgba(255, 255, 255, 0.25);
+
+    border-radius: 20px;
+
+    color: white;
+}
+
+
+/* =========================
+   HEADINGS
+   ========================= */
+.login-card h1 {
+    margin-bottom: 30px;
+    font-size: 42px;
+    letter-spacing: 5px;
+
+    animation: ownlyGlow 3s ease-in-out infinite;
+}
+
+
+/* OWNLY animation */
+
+@keyframes ownlyGlow {
+
+    0% {
+        opacity: 0.75;
+        letter-spacing: 5px;
+        transform: scale(1);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+    }
+
+    50% {
+        opacity: 1;
+        letter-spacing: 8px;
+        transform: scale(1.02);
+        text-shadow:
+            0 0 10px rgba(255, 255, 255, 0.5),
+            0 0 25px rgba(255, 255, 255, 0.2);
+    }
+
+    100% {
+        opacity: 0.75;
+        letter-spacing: 5px;
+        transform: scale(1);
+        text-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+    }
+}
+
+.login-card h2 {
+    margin-bottom: 25px;
+    font-size: 22px;
+}
+
+.login-card h3 {
+    margin-bottom: 30px;
+    font-size: 20px;
+}
+
+
+/* =========================
+   FORM
+   ========================= */
+
+form {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+label {
+    margin-top: 15px;
+    margin-bottom: 6px;
+}
+
+input {
+    width: 100%;
+    height: 42px;
+
+    padding: 0 12px;
+
+    border: none;
+    border-radius: 8px;
+
+    outline: none;
+}
+
+
+/* =========================
+   FORGOT PASSWORD
+   ========================= */
+
+.forgot {
+    margin-top: 10px;
+    text-align: right;
+
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.forgot:hover {
+    text-decoration: underline;
+}
+
+
+/* =========================
+   LOGIN BUTTON
+   ========================= */
+
+button {
+    margin-top: 25px;
+
+    height: 42px;
+
+    border: none;
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 16px;
+    font-weight: bold;
+
+    transition: 0.3s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+
+/* =========================
+   SIGN UP
+   ========================= */
+
+p {
+    margin-top: 20px;
+    text-align: center;
+}
+
+p a {
+    color: white;
+    font-weight: bold;
+}
+
+
+/* =========================
+   MOBILE
+   390px - 480px
+   ========================= */
+
+@media (max-width: 480px) {
+
+    .login-container {
+        padding: 20px;
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 360px;
+
+        padding: 35px 25px;
+
+        border-radius: 18px;
+    }
+
+    @media (max-width: 480px) {
+
+    .login-card h1 {
+        font-size: 30px;
+        letter-spacing: 4px;
+    }
+
+}
+   
+    .login-card h2 {
+        font-size: 18px;
+        margin-bottom: 18px;
+    }
+
+    .login-card h3 {
+        font-size: 17px;
+        margin-bottom: 22px;
+    }
+
+    input {
+        height: 40px;
+    }
+
+    button {
+        height: 42px;
+    }
+
+    .background-video {
+        object-fit: cover;
+    }
+}
