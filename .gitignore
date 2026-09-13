@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Build files
+/dist
+/build
+*.cjs
+*.js.map
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Testing
+/coverage
+
+# Misc
+.cache/
+*.tsbuildinfo
+
+# Firebase
+.firebaserc
