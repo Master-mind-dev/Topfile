@@ -145,8 +145,8 @@ async function startServer() {
 
   // ============ NOTES ENDPOINTS ============
 
-  // Get all notes for user
-  app.get('/api/notes', verifyToken, async (req, res) => {
+    // Get all notes for user
+  app.get('/api/notes', verifyToken, async (req: any, res) => {
     try {
       const result = await query('SELECT * FROM notes WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
       res.json({ success: true, notes: result.rows });
@@ -157,7 +157,7 @@ async function startServer() {
   });
 
   // Create note
-  app.post('/api/notes', verifyToken, async (req, res) => {
+  app.post('/api/notes', verifyToken, async (req: any, res) => {
     try {
       const { id, title, content, category, colorTag, isPinned } = req.body;
       const result = await query(
@@ -172,7 +172,7 @@ async function startServer() {
   });
 
   // Update note
-  app.put('/api/notes/:id', verifyToken, async (req, res) => {
+  app.put('/api/notes/:id', verifyToken, async (req: any, res) => {
     try {
       const { title, content, category, colorTag, isPinned } = req.body;
       const result = await query(
@@ -190,7 +190,7 @@ async function startServer() {
   });
 
   // Delete note
-  app.delete('/api/notes/:id', verifyToken, async (req, res) => {
+  app.delete('/api/notes/:id', verifyToken, async (req: any, res) => {
     try {
       const result = await query('DELETE FROM notes WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
       if (result.rowCount === 0) {
@@ -206,7 +206,7 @@ async function startServer() {
   // ============ IMAGES ENDPOINTS ============
 
   // Get all images for user
-  app.get('/api/images', verifyToken, async (req, res) => {
+  app.get('/api/images', verifyToken, async (req: any, res) => {
     try {
       const result = await query('SELECT * FROM images WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
       res.json({ success: true, images: result.rows });
@@ -217,7 +217,7 @@ async function startServer() {
   });
 
   // Create image
-  app.post('/api/images', verifyToken, async (req, res) => {
+  app.post('/api/images', verifyToken, async (req: any, res) => {
     try {
       const { id, name, dataUrl, fileSize, dimensions, source, notes: imgNotes } = req.body;
       const result = await query(
@@ -232,7 +232,7 @@ async function startServer() {
   });
 
   // Delete image
-  app.delete('/api/images/:id', verifyToken, async (req, res) => {
+  app.delete('/api/images/:id', verifyToken, async (req: any, res) => {
     try {
       const result = await query('DELETE FROM images WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
       if (result.rowCount === 0) {
@@ -248,7 +248,7 @@ async function startServer() {
   // ============ LINKS ENDPOINTS ============
 
   // Get all links for user
-  app.get('/api/links', verifyToken, async (req, res) => {
+  app.get('/api/links', verifyToken, async (req: any, res) => {
     try {
       const result = await query('SELECT * FROM links WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
       res.json({ success: true, links: result.rows });
@@ -259,7 +259,7 @@ async function startServer() {
   });
 
   // Create link
-  app.post('/api/links', verifyToken, async (req, res) => {
+  app.post('/api/links', verifyToken, async (req: any, res) => {
     try {
       const { id, url, title, description, embedThumb, linkHost, embedProvider, embedId, isPlayable } = req.body;
       const result = await query(
@@ -274,7 +274,7 @@ async function startServer() {
   });
 
   // Delete link
-  app.delete('/api/links/:id', verifyToken, async (req, res) => {
+  app.delete('/api/links/:id', verifyToken, async (req: any, res) => {
     try {
       const result = await query('DELETE FROM links WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
       if (result.rowCount === 0) {
@@ -290,7 +290,7 @@ async function startServer() {
   // ============ USER PROFILE ENDPOINTS ============
 
   // Get user profile
-  app.get('/api/user/profile', verifyToken, async (req, res) => {
+  app.get('/api/user/profile', verifyToken, async (req: any, res) => {
     try {
       const result = await query('SELECT id, email, name, avatar_url, joined_date, plan, storage_used_mb, total_storage_mb FROM users WHERE id = $1', [req.user.id]);
       if (result.rows.length === 0) {
@@ -304,7 +304,7 @@ async function startServer() {
   });
 
   // Update user profile
-  app.put('/api/user/profile', verifyToken, async (req, res) => {
+  app.put('/api/user/profile', verifyToken, async (req: any, res) => {
     try {
       const { name, avatarUrl } = req.body;
       const result = await query(
@@ -317,6 +317,7 @@ async function startServer() {
       res.status(500).json({ success: false, error: 'Failed to update profile' });
     }
   });
+
 
   // ============ EXISTING ENDPOINTS ============
 
@@ -495,10 +496,11 @@ async function startServer() {
     });
   }
 
-    app.listen(PORT, '0.0.0.0', () => {
-    console.log(`✅ OWNLY server running on http://localhost:${PORT}`);
-  });
+    app.listen(Number(PORT), '0.0.0.0', () => {
+      console.log(`✅ OWNLY server running on http://localhost:${PORT}`);
+    });
 }
+
 
 startServer().catch(err => {
   console.error('Server startup failed:', err);
