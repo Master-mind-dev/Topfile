@@ -1,7 +1,7 @@
 // API client for communicating with our PostgreSQL backend
 // Replace Firebase calls with these API calls
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+const API_BASE = 'https://topfile.onrender.com/api';
 
 let authToken: string | null = null;
 

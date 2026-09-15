@@ -14,7 +14,7 @@ import {
   initialLinks 
 } from './data/mockData';
 import { AnimatePresence, motion } from 'motion/react';
-import { auth, db, onAuthStateChanged, signOut, doc, setDoc, onSnapshot, updateProfile } from './lib/firebase';
+import * as api from './lib/api';
 const AccountDrawer = lazy(() => import('./components/AccountDrawer').then((module) => ({ default: module.AccountDrawer })));
 const LoginPage = lazy(() => import('./components/LoginPage').then((module) => ({ default: module.LoginPage })));
 const WorkspaceAssistant = lazy(() => import('./components/WorkspaceAssistant').then((module) => ({ default: module.WorkspaceAssistant })));
@@ -79,25 +79,22 @@ export default function App() {
 
   cloudDataRef.current = { notes, images, links };
 
-  // Listen to Firebase Auth state
+  // Listen to Auth state
   useEffect(() => {
-    let unsubscribeCloud = () => undefined;
-    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
-      setCloudReady(false);
-      setCloudError('');
-      setLastCloudSync(null);
-      unsubscribeCloud();
-      if (fbUser) {
+    const checkAuth = async () => {
+      try {
+        const profile = await api.getUserProfile();
         setIsAuthenticated(true);
-        setUser((prev) => ({
-          ...prev,
-          email: fbUser.email || prev.email,
-          name: fbUser.displayName || prev.name || fbUser.email?.split('@')[0] || 'Mohammed Dastagir',
-        }));
+        setUser(profile);
+        setCloudReady(true);
+      } catch (e) {
+        setIsAuthenticated(false);
+        setCloudReady(false);
+      }
+    };
 
-        const userDocRef = doc(db, 'users', fbUser.uid);
-        let isFirstSnapshot = true;
-        unsubscribeCloud = onSnapshot(userDocRef, (snap) => {
+    checkAuth();
+  }, []);
           if (!isFirstSnapshot && cloudWritePendingRef.current) return;
           const data = snap.data() || {};
           if (isFirstSnapshot) {
