@@ -90,64 +90,8 @@ export default function App() {
 
     checkAuth();
   }, []);
-          if (!isFirstSnapshot && cloudWritePendingRef.current) return;
-          const data = snap.data() || {};
-          if (isFirstSnapshot) {
-            setNotes(mergeItems(data.notes, cloudDataRef.current.notes));
-            setImages(mergeItems(data.images, cloudDataRef.current.images));
-            setLinks(mergeItems(data.links, cloudDataRef.current.links));
-            isFirstSnapshot = false;
-          } else {
-            if (data.notes) setNotes(data.notes);
-            if (data.images) setImages(data.images);
-            if (data.links) setLinks(data.links);
-          }
-          if (data.profile) setUser((previous) => ({ ...previous, ...data.profile }));
-          setCloudReady(true);
-          setCloudError('');
-          setLastCloudSync(new Date().toLocaleTimeString());
-        }, (error) => {
-          console.warn('Firestore subscription:', error);
-          setCloudError(`Cloud sync failed: ${error.code || 'permission denied'}. Deploy Firestore rules and use the same Firebase account.`);
-          setCloudReady(false);
-        });
-      } else {
-        setIsAuthenticated(false);
-        setCloudReady(false);
-      }
-    });
 
-    return () => {
-      unsubscribeCloud();
-      unsubscribe();
-    };
-  }, []);
-
-  // Save to Firestore when authenticated
-  useEffect(() => {
-    const fbUser = auth.currentUser;
-    if (fbUser && isAuthenticated && cloudReady) {
-      const userDocRef = doc(db, 'users', fbUser.uid);
-      cloudWritePendingRef.current = true;
-      const syncTimer = window.setTimeout(() => setDoc(userDocRef, {
-        notes,
-        images,
-        links,
-        profile: user,
-        updatedAt: new Date().toISOString()
-      }, { merge: true }).catch((err) => {
-        console.warn('Firestore sync note:', err);
-        cloudWritePendingRef.current = false;
-        setCloudError(`Cloud save failed: ${err.code || 'permission denied'}.`);
-      }).then(() => {
-        cloudWritePendingRef.current = false;
-        setLastCloudSync(new Date().toLocaleTimeString());
-      }), 600);
-      return () => window.clearTimeout(syncTimer);
-    }
-  }, [notes, images, links, user, isAuthenticated, cloudReady]);
-
-  // Keep profile data local for resilience, but Firebase remains the auth source of truth.
+  // Keep profile data local for resilience
   useEffect(() => {
     localStorage.setItem('ownly_user', JSON.stringify(user));
   }, [user]);
