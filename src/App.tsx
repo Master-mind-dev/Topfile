@@ -26,25 +26,18 @@ const UploadSection = lazy(() => import('./components/UploadSection').then((modu
 const CameraSection = lazy(() => import('./components/CameraSection').then((module) => ({ default: module.CameraSection })));
 const LinkSection = lazy(() => import('./components/LinkSection').then((module) => ({ default: module.LinkSection })));
 
+// ...existing code...
 export default function App() {
   const mergeItems = <T extends { id: string }>(cloudItems: T[] | undefined, localItems: T[]) => {
-    const cloud = cloudItems || [];
-    const cloudIds = new Set(cloud.map((item) => item.id));
-    return [...cloud, ...localItems.filter((item) => !cloudIds.has(item.id))];
-  };
-
-  // Persistence state
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return false;
-  });
-
-  const [user, setUser] = useState<UserProfile>(() => {
-    const saved = localStorage.getItem('ownly_user');
-    return saved ? JSON.parse(saved) : initialUserProfile;
-  });
-
+// ...existing code...
   const [activeTab, setActiveTab] = useState<TabType>('home');
-  const [isAdminView, setIsAdminView] = useState(false);
+  const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
+
+  // Check if we are on the admin route
+  const isAdminRoute = window.location.pathname === '/admin';
+
+  const [notes, setNotes] = useState<NoteItem[]>(() => {
+// ...existing code...
   const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
 
   const [notes, setNotes] = useState<NoteItem[]>(() => {
@@ -306,9 +299,10 @@ export default function App() {
     linksCount: links.length,
   };
 
+// ...existing code...
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-red-500/30">
-      {isAdminView ? (
+      {isAdminRoute ? (
         <AdminPanel />
       ) : (
         <>
@@ -318,6 +312,7 @@ export default function App() {
             setActiveTab={setActiveTab} 
             onOpenAccount={() => setIsAccountDrawerOpen(true)}
           />
+// ...existing code...
           <main className="pt-20 px-4 pb-12 max-w-7xl mx-auto">
             <AnimatePresence mode="wait">
               {activeTab === 'home' && (
@@ -402,6 +397,7 @@ export default function App() {
             </div>
           </div>
 
+// ...existing code...
           <AccountDrawer 
             isOpen={isAccountDrawerOpen} 
             onClose={() => setIsAccountDrawerOpen(false)} 
