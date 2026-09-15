@@ -88,6 +88,15 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
 
+  // ============ ADMIN MIDDLEWARE ============
+  const verifyAdmin = (req: any, res: any, next: any) => {
+    const adminPassword = req.headers['x-admin-password'];
+    if (adminPassword !== process.env.ADMIN_PASSWORD) {
+      return res.status(403).json({ success: false, error: 'Unauthorized: Admin access only' });
+    }
+    next();
+  };
+
   // ============ AUTH ENDPOINTS ============
   
   // Register
@@ -318,6 +327,66 @@ async function startServer() {
     }
   });
 
+
+  // ============ ADMIN ENDPOINTS ============
+
+  // Get all users
+  app.get('/api/admin/users', verifyAdmin, async (req, res) => {
+    try {
+      const result = await query('SELECT id, email, name, joined_date, plan, storage_used_mb FROM users ORDER BY joined_date DESC');
+      res.json({ success: true, users: result.rows });
+    } catch (err) {
+      console.error('Admin users error:', err);
+      res.status(500).json({ success: false, error: 'Failed to fetch users' });
+    }
+  });
+
+  // Get specific user's data
+  app.get('/api/admin/user/:email', verifyAdmin, async (req, res) => {
+    try {
+      const userResult = await query('SELECT * FROM users WHERE email = $1', [req.params.email]);
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+      
+      const userId = userResult.rows[0].id;
+      const notes = await query('SELECT * FROM notes WHERE user_id = $1', [userId]);
+      const images = await query('SELECT * FROM images WHERE user_id = $1', [userId]);
+      const links = await query('SELECT * FROM links WHERE user_id = $1', [userId]);
+      
+      res.json({ 
+        success: true, 
+        user: userResult.rows[0], 
+        notes: notes.rows,
+        images: images.rows,
+        links: links.rows
+      });
+    } catch (err) {
+      console.error('Admin user data error:', err);
+      res.status(500).json({ success: false, error: 'Failed to fetch user data' });
+    }
+  });
+
+  // Delete user
+  app.delete('/api/admin/user/:email', verifyAdmin, async (req, res) => {
+    try {
+      const userResult = await query('SELECT id FROM users WHERE email = $1', [req.params.email]);
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+      
+      const userId = userResult.rows[0].id;
+      await query('DELETE FROM notes WHERE user_id = $1', [userId]);
+      await query('DELETE FROM images WHERE user_id = $1', [userId]);
+      await query('DELETE FROM links WHERE user_id = $1', [userId]);
+      await query('DELETE FROM users WHERE id = $1', [userId]);
+      
+      res.json({ success: true, message: 'User and all their data deleted' });
+    } catch (err) {
+      console.error('Admin delete error:', err);
+      res.status(500).json({ success: false, error: 'Failed to delete user' });
+    }
+  });
 
   // ============ EXISTING ENDPOINTS ============
 

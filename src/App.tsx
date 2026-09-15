@@ -15,6 +15,7 @@ import {
 } from './data/mockData';
 import { AnimatePresence, motion } from 'motion/react';
 import * as api from './lib/api';
+import { AdminPanel } from './components/AdminPanel';
 const AccountDrawer = lazy(() => import('./components/AccountDrawer').then((module) => ({ default: module.AccountDrawer })));
 const LoginPage = lazy(() => import('./components/LoginPage').then((module) => ({ default: module.LoginPage })));
 const WorkspaceAssistant = lazy(() => import('./components/WorkspaceAssistant').then((module) => ({ default: module.WorkspaceAssistant })));
@@ -43,6 +44,7 @@ export default function App() {
   });
 
   const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [isAdminView, setIsAdminView] = useState(false);
   const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
 
   const [notes, setNotes] = useState<NoteItem[]>(() => {
@@ -305,110 +307,116 @@ export default function App() {
   };
 
   return (
-    <div className="ownly-workspace min-h-screen text-white font-sans flex flex-col selection:bg-[#ff304f] selection:text-white relative overflow-hidden" id="ownly-app-root">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-red-500/30">
+      {isAdminView ? (
+        <AdminPanel />
+      ) : (
+        <>
+          <Header 
+            user={user} 
+            activeTab={activeTab} 
+            setActiveTab={setActiveTab} 
+            onOpenAccount={() => setIsAccountDrawerOpen(true)}
+          />
+          <main className="pt-20 px-4 pb-12 max-w-7xl mx-auto">
+            <AnimatePresence mode="wait">
+              {activeTab === 'home' && (
+                <motion.div
+                  key="home"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <HomeSection user={user} />
+                </motion.div>
+              )}
+              {activeTab === 'notes' && (
+                <motion.div
+                  key="notes"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <NotesSection 
+                    notes={notes} 
+                    setNotes={setNotes} 
+                    selectedNoteToEdit={selectedNoteToEdit}
+                    setSelectedNoteToEdit={setSelectedNoteToEdit}
+                  />
+                </motion.div>
+              )}
+              {activeTab === 'upload' && (
+                <motion.div
+                  key="upload"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <UploadSection 
+                    images={images} 
+                    setImages={setImages} 
+                  />
+                </motion.div>
+              )}
+              {activeTab === 'scan' && (
+                <motion.div
+                  key="scan"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <CameraSection 
+                    images={images} 
+                    setImages={setImages} 
+                  />
+                </motion.div>
+              )}
+              {activeTab === 'links' && (
+                <motion.div
+                  key="links"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <LinkSection 
+                    links={links} 
+                    setLinks={setLinks} 
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </main>
 
-      {/* Top Header */}
-      <div className="relative z-10 flex flex-col min-h-screen">
-      <Header
-        activeTab={activeTab}
-        onSelectTab={(tab) => {
-          setActiveTab(tab);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onOpenAccountDrawer={() => setIsAccountDrawerOpen(true)}
-        notesCount={notes.length}
-      />
+          {/* Hidden Admin Trigger: Press 'Ctrl + Shift + A' to open admin panel */}
+          <div 
+            className="fixed bottom-4 right-4 opacity-0 hover:opacity-100 transition-opacity cursor-pointer z-50"
+            onClick={() => setIsAdminView(true)}
+          >
+            <div className="p-2 bg-zinc-900 rounded-full border border-zinc-800 text-[10px] text-zinc-600">
+              Admin
+            </div>
+          </div>
 
-      {/* Main Workspace Body */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 z-10">
-        <div className={`cloud-status ${cloudError ? 'cloud-status--error' : ''}`} role="status">
-          <span className="cloud-status__dot" />
-          {cloudError || (lastCloudSync ? `Cloud workspace synced at ${lastCloudSync}` : 'Cloud workspace connected')}
-        </div>
-        <Suspense fallback={<div className="ownly-loading" role="status">Loading workspace…</div>}>
-          <AnimatePresence mode="wait">
-          {activeTab === 'home' && (
-            <HomeSection
-              key="home"
-              notes={notes}
-              images={images}
-              links={links}
-              onNavigateTab={(tab) => {
-                setActiveTab(tab);
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              onOpenCreateNote={() => setActiveTab('notes')}
-              onOpenUpload={() => setActiveTab('upload')}
-              onOpenCamera={() => setActiveTab('scan')}
-              onOpenAddLink={() => setActiveTab('links')}
-              onSelectNote={(note) => {
-                setSelectedNoteToEdit(note);
-                setActiveTab('notes');
-              }}
-            />
-          )}
-
-          {activeTab === 'notes' && (
-            <NotesSection
-              key="notes"
-              notes={notes}
-              onAddNote={handleAddNote}
-              onUpdateNote={handleUpdateNote}
-              onDeleteNote={handleDeleteNote}
-              selectedNoteToEdit={selectedNoteToEdit}
-              onClearSelectedNote={() => setSelectedNoteToEdit(null)}
-            />
-          )}
-
-          {activeTab === 'upload' && (
-            <UploadSection
-              key="upload"
-              images={images}
-              onUploadImages={handleUploadImages}
-              onDeleteImage={handleDeleteImage}
-              onOpenCamera={() => setActiveTab('scan')}
-            />
-          )}
-
-          {activeTab === 'scan' && (
-            <CameraSection
-              key="scan"
-              onSaveCapturedImage={handleSaveCapturedImage}
-              onViewGallery={() => setActiveTab('upload')}
-            />
-          )}
-
-          {activeTab === 'links' && (
-            <LinkSection
-              key="links"
-              links={links}
-              onAddLink={handleAddLink}
-              onDeleteLink={handleDeleteLink}
-            />
-          )}
-          </AnimatePresence>
-        </Suspense>
-      </main>
-
-      {/* Account Details & Logout Drawer */}
-      <Suspense fallback={null}>
-        <AccountDrawer
-          isOpen={isAccountDrawerOpen}
-          onClose={() => setIsAccountDrawerOpen(false)}
-          user={user}
-          onLogout={handleLogout}
-          stats={stats}
-          onNavigateTab={(tab) => {
-            setActiveTab(tab);
-            setIsAccountDrawerOpen(false);
-          }}
-          onExportData={handleExportData}
-          onResetWorkspace={handleResetWorkspace}
-          onUpdateProfile={handleUpdateProfile}
-        />
-        <WorkspaceAssistant notes={notes} images={images} links={links} activeTab={activeTab} />
-      </Suspense>
-      </div>
+          <AccountDrawer 
+            isOpen={isAccountDrawerOpen} 
+            onClose={() => setIsAccountDrawerOpen(false)} 
+            user={user} 
+            setUser={setUser} 
+            isAuthenticated={isAuthenticated}
+            setIsAuthenticated={setIsAuthenticated}
+            onLogout={() => {
+              api.logout();
+              setIsAuthenticated(false);
+              setIsAccountDrawerOpen(false);
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }
