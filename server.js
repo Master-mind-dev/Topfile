@@ -84,9 +84,17 @@ async function startServer() {
     app.use(cors({
         origin: '*',
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization']
+        allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-password', 'x-admin-secret']
     }));
     app.use(express.json({ limit: '10mb' }));
+    // ============ ADMIN MIDDLEWARE ============
+    const verifyAdmin = (req, res, next) => {
+        const adminPassword = req.headers['x-admin-password'];
+        if (!process.env.ADMIN_PASSWORD || adminPassword !== process.env.ADMIN_PASSWORD) {
+            return res.status(403).json({ success: false, error: 'Unauthorized: Invalid admin password' });
+        }
+        next();
+    };
     // ============ AUTH ENDPOINTS ============
     // Register
     app.post('/api/auth/register', async (req, res) => {
@@ -289,21 +297,59 @@ async function startServer() {
             res.status(500).json({ success: false, error: 'Failed to update profile' });
         }
     });
-    // ============ EXISTING ENDPOINTS ============
-    app.get('/api/admin/users', verifyToken, async (req, res) => {
+    // ============ ADMIN ENDPOINTS ============
+    // Get all users
+    app.get('/api/admin/users', verifyAdmin, async (req, res) => {
         try {
-            // Basic security: only the first user or a specific email can be "admin" 
-            // or you can check for an ADMIN_SECRET in headers
-            const adminSecret = req.headers['x-admin-secret'];
-            if (adminSecret !== process.env.ADMIN_SECRET && req.user.email !== 'rmohammeddastagir1@gmail.com') {
-                return res.status(403).json({ success: false, error: 'Unauthorized admin access' });
-            }
-            const result = await query('SELECT id, email, name, joined_date, plan FROM users ORDER BY joined_date DESC');
+            const result = await query('SELECT id, email, name, joined_date, plan, storage_used_mb FROM users ORDER BY joined_date DESC');
             res.json({ success: true, users: result.rows });
         }
         catch (err) {
-            console.error('Admin get users error:', err);
+            console.error('Admin users error:', err);
             res.status(500).json({ success: false, error: 'Failed to fetch users' });
+        }
+    });
+    // Get specific user's data
+    app.get('/api/admin/user/:email', verifyAdmin, async (req, res) => {
+        try {
+            const userResult = await query('SELECT * FROM users WHERE email = $1', [req.params.email]);
+            if (userResult.rows.length === 0) {
+                return res.status(404).json({ success: false, error: 'User not found' });
+            }
+            const userId = userResult.rows[0].id;
+            const notes = await query('SELECT * FROM notes WHERE user_id = $1', [userId]);
+            const images = await query('SELECT * FROM images WHERE user_id = $1', [userId]);
+            const links = await query('SELECT * FROM links WHERE user_id = $1', [userId]);
+            res.json({
+                success: true,
+                user: userResult.rows[0],
+                notes: notes.rows,
+                images: images.rows,
+                links: links.rows
+            });
+        }
+        catch (err) {
+            console.error('Admin user data error:', err);
+            res.status(500).json({ success: false, error: 'Failed to fetch user data' });
+        }
+    });
+    // Delete user
+    app.delete('/api/admin/user/:email', verifyAdmin, async (req, res) => {
+        try {
+            const userResult = await query('SELECT id FROM users WHERE email = $1', [req.params.email]);
+            if (userResult.rows.length === 0) {
+                return res.status(404).json({ success: false, error: 'User not found' });
+            }
+            const userId = userResult.rows[0].id;
+            await query('DELETE FROM notes WHERE user_id = $1', [userId]);
+            await query('DELETE FROM images WHERE user_id = $1', [userId]);
+            await query('DELETE FROM links WHERE user_id = $1', [userId]);
+            await query('DELETE FROM users WHERE id = $1', [userId]);
+            res.json({ success: true, message: 'User and all their data deleted' });
+        }
+        catch (err) {
+            console.error('Admin delete error:', err);
+            res.status(500).json({ success: false, error: 'Failed to delete user' });
         }
     });
     // Test endpoints

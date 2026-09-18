@@ -17,11 +17,9 @@ import { NoteItem } from '../types';
 
 interface NotesSectionProps {
   notes: NoteItem[];
-  onAddNote: (note: Omit<NoteItem, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  onUpdateNote: (id: string, updates: Partial<NoteItem>) => void;
-  onDeleteNote: (id: string) => void;
-  selectedNoteToEdit?: NoteItem | null;
-  onClearSelectedNote?: () => void;
+  setNotes: React.Dispatch<React.SetStateAction<NoteItem[]>>;
+  selectedNoteToEdit: NoteItem | null;
+  setSelectedNoteToEdit: React.Dispatch<React.SetStateAction<NoteItem | null>>;
 }
 
 const CATEGORIES: ('All' | 'General' | 'Work' | 'Personal' | 'Ideas' | 'Urgent')[] = [
@@ -44,11 +42,9 @@ const COLOR_TAGS = [
 
 export const NotesSection: React.FC<NotesSectionProps> = ({
   notes,
-  onAddNote,
-  onUpdateNote,
-  onDeleteNote,
+  setNotes,
   selectedNoteToEdit,
-  onClearSelectedNote,
+  setSelectedNoteToEdit,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<'All' | 'General' | 'Work' | 'Personal' | 'Ideas' | 'Urgent'>('All');
@@ -74,9 +70,19 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
       setNoteColor(selectedNoteToEdit.colorTag);
       setNoteIsPinned(selectedNoteToEdit.isPinned || false);
       setIsEditorOpen(true);
-      if (onClearSelectedNote) onClearSelectedNote();
+      setSelectedNoteToEdit(null);
     }
-  }, [selectedNoteToEdit, onClearSelectedNote]);
+  }, [selectedNoteToEdit, setSelectedNoteToEdit]);
+
+  const onUpdateNote = (id: string, updates: Partial<NoteItem>) => {
+    setNotes((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n))
+    );
+  };
+
+  const onDeleteNote = (id: string) => {
+    setNotes((prev) => prev.filter((n) => n.id !== id));
+  };
 
   const openNewNoteModal = () => {
     setEditingNoteId(null);
@@ -109,16 +115,19 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
         category: noteCategory,
         colorTag: noteColor,
         isPinned: noteIsPinned,
-        updatedAt: new Date().toISOString(),
       });
     } else {
-      onAddNote({
+      const newNote: NoteItem = {
+        id: `note-${Date.now()}`,
         title: noteTitle.trim() || 'Untitled Note',
         content: noteContent.trim(),
         category: noteCategory,
         colorTag: noteColor,
         isPinned: noteIsPinned,
-      });
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setNotes((prev) => [newNote, ...prev]);
     }
 
     setIsEditorOpen(false);

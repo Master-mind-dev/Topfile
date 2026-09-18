@@ -4,12 +4,9 @@ import { OwnlyLogo } from './OwnlyLogo';
 import { Eye, EyeOff, ArrowRight, ShieldCheck, CheckCircle2, Lock, Mail, User as UserIcon } from 'lucide-react';
 import { UserProfile } from '../types';
 import { 
-  auth, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  updateProfile,
-  sendPasswordResetEmail 
-} from '../lib/firebase';
+  register,
+  login
+} from '../lib/api';
 
 interface LoginPageProps {
   onLoginSuccess: (profile: Partial<UserProfile>) => void;
@@ -46,52 +43,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
     try {
       if (isSignUp) {
-        // Create user with Firebase Auth
-        try {
-          const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, cleanPass);
-          if (name.trim() && userCredential.user) {
-            await updateProfile(userCredential.user, {
-              displayName: name.trim()
-            });
-          }
-          onLoginSuccess({
-            email: userCredential.user.email || cleanEmail,
-            name: name.trim() || userCredential.user.displayName || 'Workspace User',
-          });
-        } catch (signUpErr: any) {
-          if (signUpErr.code === 'auth/email-already-in-use') {
-            setError('This email already has an account. Please log in instead.');
-          } else {
-            throw signUpErr;
-          }
-        }
+        const user = await register(cleanEmail, cleanPass, name.trim());
+        onLoginSuccess({
+          email: user.email || cleanEmail,
+          name: user.name || name.trim() || 'Workspace User',
+        });
       } else {
-        // Sign in with Firebase Auth
-        try {
-          const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, cleanPass);
-          onLoginSuccess({
-            email: userCredential.user.email || cleanEmail,
-            name: userCredential.user.displayName || (cleanEmail.startsWith('rmohammed') ? 'Mohammed Dastagir' : cleanEmail.split('@')[0]),
-          });
-        } catch (signInErr: any) {
-          throw signInErr;
-        }
+        const user = await login(cleanEmail, cleanPass);
+        onLoginSuccess({
+          email: user.email || cleanEmail,
+          name: user.name || (cleanEmail.startsWith('rmohammed') ? 'Mohammed Dastagir' : cleanEmail.split('@')[0]),
+        });
       }
     } catch (err: any) {
-      console.warn('Firebase auth attempt:', err);
-      if (err.code === 'auth/weak-password') {
-        setError('Password should be at least 6 characters.');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address format.');
-      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
-        setError('This Firebase account was not found or the password is incorrect. Use Sign up once, then use that same account on every device.');
-      } else if (err.code === 'auth/too-many-requests') {
-        setError('Too many attempts. Please wait and try again.');
-      } else if (err.message?.includes('Firebase is unavailable')) {
-        setError('Firebase is not configured correctly. Add the valid Firebase Web API key in Render.');
-      } else {
-        setError('Unable to sign in right now. Please try again.');
-      }
+      console.warn('Auth attempt failed:', err);
+      setError(err.message || 'Authentication failed. Please verify your credentials or try again.');
     } finally {
       setIsLoading(false);
     }
@@ -102,12 +68,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       setError('Please enter a valid email address.');
       return;
     }
-    try {
-      await sendPasswordResetEmail(auth, email.trim());
-      setResetSent(true);
-    } catch (err: any) {
-      setError(err.code === 'auth/user-not-found' ? 'No account was found for this email.' : 'Could not send the reset email.');
-    }
+    setError('Password reset is not supported via email on PostgreSQL. Please contact your workspace administrator to reset or recreate your account.');
   };
 
   return (

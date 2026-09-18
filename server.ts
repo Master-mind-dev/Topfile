@@ -83,7 +83,7 @@ async function startServer() {
   app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-password', 'x-admin-secret']
   }));
 
   app.use(express.json({ limit: '10mb' }));
@@ -91,8 +91,8 @@ async function startServer() {
   // ============ ADMIN MIDDLEWARE ============
   const verifyAdmin = (req: any, res: any, next: any) => {
     const adminPassword = req.headers['x-admin-password'];
-    if (adminPassword !== process.env.ADMIN_PASSWORD) {
-      return res.status(403).json({ success: false, error: 'Unauthorized: Admin access only' });
+    if (!process.env.ADMIN_PASSWORD || adminPassword !== process.env.ADMIN_PASSWORD) {
+      return res.status(403).json({ success: false, error: 'Unauthorized: Invalid admin password' });
     }
     next();
   };
@@ -390,22 +390,7 @@ async function startServer() {
 
   // ============ EXISTING ENDPOINTS ============
 
-    app.get('/api/admin/users', verifyToken, async (req: any, res) => {
-    try {
-      // Basic security: only the first user or a specific email can be "admin" 
-      // or you can check for an ADMIN_SECRET in headers
-      const adminSecret = req.headers['x-admin-secret'];
-      if (adminSecret !== process.env.ADMIN_SECRET && req.user.email !== 'rmohammeddastagir1@gmail.com') {
-        return res.status(403).json({ success: false, error: 'Unauthorized admin access' });
-      }
 
-      const result = await query('SELECT id, email, name, joined_date, plan FROM users ORDER BY joined_date DESC');
-      res.json({ success: true, users: result.rows });
-    } catch (err) {
-      console.error('Admin get users error:', err);
-      res.status(500).json({ success: false, error: 'Failed to fetch users' });
-    }
-  });
 
   // Test endpoints
 

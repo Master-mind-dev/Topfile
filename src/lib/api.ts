@@ -1,7 +1,9 @@
 // API client for communicating with our PostgreSQL backend
 // Replace Firebase calls with these API calls
 
-const API_BASE = 'https://topfile.onrender.com/api';
+const API_BASE = (typeof window !== 'undefined' && window.location.origin.startsWith('http'))
+  ? '/api'
+  : 'https://topfile.onrender.com/api';
 
 let authToken: string | null = null;
 

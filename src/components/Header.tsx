@@ -1,20 +1,20 @@
 import React from 'react';
 import { OwnlyLogo } from './OwnlyLogo';
-import { TabType } from '../types';
+import { TabType, UserProfile } from '../types';
 import { Home, FileText, Image as ImageIcon, Camera, Link as LinkIcon } from 'lucide-react';
 
 interface HeaderProps {
+  user: UserProfile;
   activeTab: TabType;
-  onSelectTab: (tab: TabType) => void;
-  onOpenAccountDrawer: () => void;
-  notesCount: number;
+  setActiveTab: (tab: TabType) => void;
+  onOpenAccount: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  user,
   activeTab,
-  onSelectTab,
-  onOpenAccountDrawer,
-  notesCount,
+  setActiveTab,
+  onOpenAccount,
 }) => {
   const navItems: { id: TabType; label: string; icon: React.FC<{ className?: string }> }[] = [
     { id: 'home', label: 'Dashboard', icon: Home },
@@ -32,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-2 sm:gap-4 relative py-1.5 sm:py-2">
         
         {/* Left: Brand Logo */}
-        <div className="flex items-center gap-3 cursor-pointer select-none" onClick={() => onSelectTab('home')}>
+        <div className="flex items-center gap-3 cursor-pointer select-none" onClick={() => setActiveTab('home')}>
           <OwnlyLogo size="md" />
         </div>
 
@@ -48,7 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
             return (
               <button
                 key={item.id}
-                onClick={() => onSelectTab(item.id)}
+                onClick={() => setActiveTab(item.id)}
                 aria-current={isActive ? 'page' : undefined}
                 className={`relative px-3.5 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold tracking-tight transition-all duration-200 rounded-xl flex items-center gap-2 cursor-pointer ${
                   isActive 
@@ -59,13 +59,6 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-zinc-950' : 'text-current'}`} />
                 <span>{item.label}</span>
-                {item.id === 'notes' && notesCount > 0 && (
-                  <span className={`px-1.5 py-0.2 text-[10px] font-extrabold rounded-full ${
-                    isActive ? 'bg-[#20140b] text-[#f4dfb0]' : 'bg-white/20 text-white'
-                  }`}>
-                    {notesCount}
-                  </span>
-                )}
               </button>
             );
           })}
@@ -74,14 +67,14 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right: Touch Menu / Account Drawer */}
         <div className="flex items-center gap-3">
           <button
-            onClick={onOpenAccountDrawer}
+            onClick={onOpenAccount}
             className="p-2 sm:p-2.5 rounded-2xl bg-white/5 border border-white/20 text-white hover:bg-[#FF2A3A] hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 cursor-pointer flex items-center justify-center group shadow-md"
             id="btn-three-bar-menu"
             aria-label="Open Account and Workspace Menu"
             title="Account & Settings"
           >
             <div className="w-5 h-4 flex flex-col justify-between items-center py-0.5">
-              <span className="w-4 h-0.5 bg-white rounded-full transition-colors" />
+              <span className="w-4 bg-white rounded-full transition-colors" />
               <span className="w-4 h-0.5 bg-white rounded-full transition-colors" />
               <span className="w-4 h-0.5 bg-white rounded-full transition-colors" />
             </div>
@@ -98,9 +91,9 @@ export const Header: React.FC<HeaderProps> = ({
           return (
             <button
               key={item.id}
-              onClick={() => onSelectTab(item.id)}
-                aria-current={isActive ? 'page' : undefined}
-                className={`flex-1 min-w-[56px] py-1.5 px-2 rounded-xl text-center flex flex-col items-center gap-0.5 transition-all duration-200 ${
+              onClick={() => setActiveTab(item.id)}
+              aria-current={isActive ? 'page' : undefined}
+              className={`flex-1 min-w-[56px] py-1.5 px-2 rounded-xl text-center flex flex-col items-center gap-0.5 transition-all duration-200 ${
                 isActive ? 'bg-[#d9ad52] text-[#20140b] font-bold' : 'text-white/60 font-medium hover:text-[#f4dfb0] hover:bg-[#d9ad52]/15'
               }`}
               id={`mobile-nav-${item.id}`}

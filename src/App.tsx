@@ -16,6 +16,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import * as api from './lib/api';
 import { AdminPanel } from './components/AdminPanel';
+
 const AccountDrawer = lazy(() => import('./components/AccountDrawer').then((module) => ({ default: module.AccountDrawer })));
 const LoginPage = lazy(() => import('./components/LoginPage').then((module) => ({ default: module.LoginPage })));
 const WorkspaceAssistant = lazy(() => import('./components/WorkspaceAssistant').then((module) => ({ default: module.WorkspaceAssistant })));
@@ -26,19 +27,13 @@ const UploadSection = lazy(() => import('./components/UploadSection').then((modu
 const CameraSection = lazy(() => import('./components/CameraSection').then((module) => ({ default: module.CameraSection })));
 const LinkSection = lazy(() => import('./components/LinkSection').then((module) => ({ default: module.LinkSection })));
 
-// ...existing code...
 export default function App() {
-  const mergeItems = <T extends { id: string }>(cloudItems: T[] | undefined, localItems: T[]) => {
-// ...existing code...
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<UserProfile>(initialUserProfile);
 
-  // Check if we are on the admin route
   const isAdminRoute = window.location.pathname === '/admin';
-
-  const [notes, setNotes] = useState<NoteItem[]>(() => {
-// ...existing code...
-  const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
 
   const [notes, setNotes] = useState<NoteItem[]>(() => {
     const saved = localStorage.getItem('ownly_notes');
@@ -53,28 +48,13 @@ export default function App() {
   const [links, setLinks] = useState<LinkItem[]>(() => {
     const saved = localStorage.getItem('ownly_links');
     if (!saved) return initialLinks;
-    return JSON.parse(saved).map((link: LinkItem) => link.embedId === 'dQw4w9WgXcQ'
-      ? {
-          ...link,
-          url: 'https://www.youtube.com/watch?v=M7lc1UVf-VE',
-          title: 'YouTube Player API Demo',
-          description: 'A stable YouTube embed demo for testing playback inside OWNLY.',
-          embedThumb: 'https://img.youtube.com/vi/M7lc1UVf-VE/hqdefault.jpg',
-          embedId: 'M7lc1UVf-VE',
-        }
-      : link);
+    return JSON.parse(saved);
   });
 
   const [selectedNoteToEdit, setSelectedNoteToEdit] = useState<NoteItem | null>(null);
   const [cloudReady, setCloudReady] = useState(false);
   const [cloudError, setCloudError] = useState('');
-  const [lastCloudSync, setLastCloudSync] = useState<string | null>(null);
-  const cloudWritePendingRef = useRef(false);
-  const cloudDataRef = useRef({ notes, images, links });
 
-  cloudDataRef.current = { notes, images, links };
-
-  // Listen to Auth state
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -87,11 +67,9 @@ export default function App() {
         setCloudReady(false);
       }
     };
-
     checkAuth();
   }, []);
 
-  // Keep profile data local for resilience
   useEffect(() => {
     localStorage.setItem('ownly_user', JSON.stringify(user));
   }, [user]);
@@ -108,36 +86,31 @@ export default function App() {
     localStorage.setItem('ownly_links', JSON.stringify(links));
   }, [links]);
 
-  // Auth Handlers
   const handleLoginSuccess = (profile: Partial<UserProfile>) => {
-    setUser((prev) => ({
-      ...prev,
-      ...profile,
-    }));
+    setUser((prev) => ({ ...prev, ...profile }));
     setIsAuthenticated(true);
     setActiveTab('home');
   };
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await api.logout();
     } catch (e) {
-      console.warn('Firebase signout:', e);
+      console.warn('Logout error:', e);
     }
     setIsAuthenticated(false);
     setIsAccountDrawerOpen(false);
   };
 
-  const handleUpdateProfile = (updates: Partial<UserProfile>) => {
+  const handleUpdateProfile = async (updates: Partial<UserProfile>) => {
     setUser((previous) => ({ ...previous, ...updates }));
-    if (auth.currentUser && updates.name) {
-      updateProfile(auth.currentUser, { displayName: updates.name }).catch((error) => {
-        console.warn('Firebase profile update:', error);
-      });
+    try {
+      await api.updateUserProfile(updates as any);
+    } catch (error) {
+      console.warn('Profile update error:', error);
     }
   };
 
-  // Notes Handlers
   const handleAddNote = (newNote: Omit<NoteItem, 'id' | 'createdAt' | 'updatedAt'>) => {
     const note: NoteItem = {
       ...newNote,
@@ -158,7 +131,6 @@ export default function App() {
     setNotes((prev) => prev.filter((n) => n.id !== id));
   };
 
-  // Images Handlers
   const handleUploadImages = (newImages: UploadedImageItem[]) => {
     setImages((prev) => [...newImages, ...prev]);
     setUser((prev) => ({
@@ -171,7 +143,6 @@ export default function App() {
     setImages((prev) => prev.filter((img) => img.id !== id));
   };
 
-  // Camera Handler
   const handleSaveCapturedImage = (capturedImg: UploadedImageItem) => {
     setImages((prev) => [capturedImg, ...prev]);
     setUser((prev) => ({
@@ -180,7 +151,6 @@ export default function App() {
     }));
   };
 
-  // Links Handlers
   const handleAddLink = (newLink: LinkItem) => {
     setLinks((prev) => [newLink, ...prev]);
   };
@@ -189,7 +159,6 @@ export default function App() {
     setLinks((prev) => prev.filter((l) => l.id !== id));
   };
 
-  // Export Data JSON
   const handleExportData = () => {
     const backup = {
       version: '1.0',
@@ -210,7 +179,6 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  // Restore starter samples
   const handleResetWorkspace = () => {
     if (confirm('Restore all default sample notes, images, and video links?')) {
       setNotes(initialNotes);
@@ -229,21 +197,13 @@ export default function App() {
       <div className="ownly-loading min-h-screen" role="status">
         <div className="text-center px-6">
           <div className="text-white font-bold mb-2">Connecting to your cloud workspace…</div>
-          <div className="text-white/50 text-xs max-w-sm">Your workspace will appear after Firestore loads, so another device sees the same content.</div>
+          <div className="text-white/50 text-xs max-w-sm">Your workspace will appear after loading your data, so another device sees the same content.</div>
           {cloudError && <div className="mt-4 text-[#ff6a7e] text-xs max-w-md">{cloudError}</div>}
         </div>
       </div>
     );
   }
 
-  const stats = {
-    notesCount: notes.length,
-    imagesCount: images.length,
-    cameraCount: images.filter((i) => i.source === 'camera').length,
-    linksCount: links.length,
-  };
-
-// ...existing code...
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-red-500/30">
       {isAdminRoute ? (
@@ -256,7 +216,7 @@ export default function App() {
             setActiveTab={setActiveTab} 
             onOpenAccount={() => setIsAccountDrawerOpen(true)}
           />
-// ...existing code...
+
           <main className="pt-20 px-4 pb-12 max-w-7xl mx-auto">
             <AnimatePresence mode="wait">
               {activeTab === 'home' && (
@@ -331,17 +291,15 @@ export default function App() {
             </AnimatePresence>
           </main>
 
-          {/* Hidden Admin Trigger: Press 'Ctrl + Shift + A' to open admin panel */}
           <div 
             className="fixed bottom-4 right-4 opacity-0 hover:opacity-100 transition-opacity cursor-pointer z-50"
-            onClick={() => setIsAdminView(true)}
+            onClick={() => window.location.href = '/admin'}
           >
             <div className="p-2 bg-zinc-900 rounded-full border border-zinc-800 text-[10px] text-zinc-600">
               Admin
             </div>
           </div>
 
-// ...existing code...
           <AccountDrawer 
             isOpen={isAccountDrawerOpen} 
             onClose={() => setIsAccountDrawerOpen(false)} 
@@ -349,11 +307,7 @@ export default function App() {
             setUser={setUser} 
             isAuthenticated={isAuthenticated}
             setIsAuthenticated={setIsAuthenticated}
-            onLogout={() => {
-              api.logout();
-              setIsAuthenticated(false);
-              setIsAccountDrawerOpen(false);
-            }}
+            onLogout={handleLogout}
           />
         </>
       )}

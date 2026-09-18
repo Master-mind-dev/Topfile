@@ -23,29 +23,20 @@ interface AccountDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   user: UserProfile;
-  onLogout: () => void;
-  stats: {
-    notesCount: number;
-    imagesCount: number;
-    cameraCount: number;
-    linksCount: number;
-  };
-  onNavigateTab: (tab: TabType) => void;
-  onExportData: () => void;
-  onResetWorkspace: () => void;
-  onUpdateProfile: (updates: Partial<UserProfile>) => void;
+  setUser: React.Dispatch<React.SetStateAction<UserProfile>>;
+  isAuthenticated: boolean;
+  setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
+  onLogout: () => Promise<void>;
 }
 
 export const AccountDrawer: React.FC<AccountDrawerProps> = ({
   isOpen,
   onClose,
   user,
+  setUser,
+  isAuthenticated,
+  setIsAuthenticated,
   onLogout,
-  stats,
-  onNavigateTab,
-  onExportData,
-  onResetWorkspace,
-  onUpdateProfile,
 }) => {
   const [isEditingProfile, setIsEditingProfile] = React.useState(false);
   const [profileName, setProfileName] = React.useState(user.name);
@@ -59,7 +50,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
   const saveProfile = (event: React.FormEvent) => {
     event.preventDefault();
     if (!profileName.trim()) return;
-    onUpdateProfile({ name: profileName.trim(), avatarUrl: avatarUrl.trim() || undefined });
+    setUser((prev) => ({ ...prev, name: profileName.trim(), avatarUrl: avatarUrl.trim() || undefined }));
     setIsEditingProfile(false);
   };
 
@@ -184,89 +175,56 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Workspace Statistics Summary */}
-              <div className="mt-6">
-                <h4 className="text-[10px] uppercase font-extrabold tracking-widest text-white/40 mb-3 pl-1">
-                  Workspace Summary
-                </h4>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    onClick={() => { onNavigateTab('notes'); onClose(); }}
-                    className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-[#FF2A3A] hover:bg-[#FF2A3A]/5 text-left transition-all group cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between text-white/40 mb-1">
-                      <FileText className="w-4 h-4 text-white group-hover:text-[#FF2A3A] transition-colors" />
-                      <span className="text-xs group-hover:text-[#FF2A3A] transition-colors">View →</span>
-                    </div>
-                    <p className="text-xl font-bold text-white">{stats.notesCount}</p>
-                    <p className="text-xs text-white/40 font-medium">Saved Notes</p>
-                  </button>
-
-                  <button
-                    onClick={() => { onNavigateTab('upload'); onClose(); }}
-                    className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-blue-500 hover:bg-blue-500/5 text-left transition-all group cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between text-white/40 mb-1">
-                      <ImageIcon className="w-4 h-4 text-white group-hover:text-blue-400 transition-colors" />
-                      <span className="text-xs group-hover:text-blue-400 transition-colors">View →</span>
-                    </div>
-                    <p className="text-xl font-bold text-white">{stats.imagesCount}</p>
-                    <p className="text-xs text-white/40 font-medium">Gallery Images</p>
-                  </button>
-
-                  <button
-                    onClick={() => { onNavigateTab('scan'); onClose(); }}
-                    className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-emerald-500 hover:bg-emerald-500/5 text-left transition-all group cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between text-white/40 mb-1">
-                      <Camera className="w-4 h-4 text-white group-hover:text-emerald-400 transition-colors" />
-                      <span className="text-xs group-hover:text-emerald-400 transition-colors">Open →</span>
-                    </div>
-                    <p className="text-xl font-bold text-white">{stats.cameraCount}</p>
-                    <p className="text-xs text-white/40 font-medium">Camera Snaps</p>
-                  </button>
-
-                  <button
-                    onClick={() => { onNavigateTab('links'); onClose(); }}
-                    className="p-3.5 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-purple-500 hover:bg-purple-500/5 text-left transition-all group cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between text-white/40 mb-1">
-                      <LinkIcon className="w-4 h-4 text-white group-hover:text-purple-400 transition-colors" />
-                      <span className="text-xs group-hover:text-purple-400 transition-colors">View →</span>
-                    </div>
-                    <p className="text-xl font-bold text-white">{stats.linksCount}</p>
-                    <p className="text-xs text-white/40 font-medium">Saved Links</p>
-                  </button>
-                </div>
+              {/* Quick Stats Grid */}
+              <div className="grid grid-cols-2 gap-3 mb-8">
+                <button
+                  onClick={() => {}}
+                  className="p-3 bg-white/5 border border-white/10 rounded-2xl text-left hover:bg-white/10 transition-all group"
+                >
+                  <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1">Notes</div>
+                  <div className="text-white font-bold">Vault</div>
+                </button>
+                <button
+                  onClick={() => {}}
+                  className="p-3 bg-white/5 border border-white/10 rounded-2xl text-left hover:bg-white/10 transition-all group"
+                >
+                  <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1">Media</div>
+                  <div className="text-white font-bold">Gallery</div>
+                </button>
+                <button
+                  onClick={() => {}}
+                  className="p-3 bg-white/5 border border-white/10 rounded-2xl text-left hover:bg-white/10 transition-all group"
+                >
+                  <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1">Captures</div>
+                  <div className="text-white font-bold">Live</div>
+                </button>
+                <button
+                  onClick={() => {}}
+                  className="p-3 bg-white/5 border border-white/10 rounded-2xl text-left hover:bg-white/10 transition-all group"
+                >
+                  <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1">Links</div>
+                  <div className="text-white font-bold">Web</div>
+                </button>
               </div>
 
-              {/* Data Tools */}
-              <div className="mt-6 space-y-2">
-                <h4 className="text-[10px] uppercase font-extrabold tracking-widest text-white/40 mb-2 pl-1">
-                  Workspace Actions
-                </h4>
+              {/* Utility Actions */}
+              <div className="space-y-2 pt-6 border-t border-white/10">
+                <div className="text-[10px] tracking-widest text-zinc-500 uppercase font-bold mb-3">Workspace Utility</div>
+                
                 <button
-                  onClick={onExportData}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-white/5 border border-white/10 hover:border-white/30 text-xs font-semibold text-white/80 hover:text-white transition-all cursor-pointer"
-                  id="btn-export-data"
+                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold flex items-center gap-3 hover:bg-white/10 transition-all opacity-50 cursor-not-allowed"
+                  disabled
                 >
-                  <span className="flex items-center gap-2">
-                    <Download className="w-4 h-4 text-[#FF2A3A]" />
-                    Export Full Workspace (JSON)
-                  </span>
-                  <span className="text-[10px] text-white/40 font-bold uppercase">Backup</span>
+                  <Download className="w-4 h-4" />
+                  Export Workspace Data
                 </button>
-
+                
                 <button
-                  onClick={onResetWorkspace}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-white/[0.02] border border-white/10 hover:border-white/30 text-xs font-semibold text-white/40 hover:text-white transition-all cursor-pointer"
-                  id="btn-reset-demo"
+                  className="w-full p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-semibold flex items-center gap-3 hover:bg-red-500/20 transition-all opacity-50 cursor-not-allowed"
+                  disabled
                 >
-                  <span className="flex items-center gap-2">
-                    <Trash2 className="w-4 h-4 text-white/30" />
-                    Restore Starter Samples
-                  </span>
-                  <span className="text-[10px] text-white/40 font-bold uppercase">Reset</span>
+                  <Trash2 className="w-4 h-4" />
+                  Reset Workspace
                 </button>
               </div>
             </div>

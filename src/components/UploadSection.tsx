@@ -15,15 +15,13 @@ import { UploadedImageItem } from '../types';
 
 interface UploadSectionProps {
   images: UploadedImageItem[];
-  onUploadImages: (newImages: UploadedImageItem[]) => void;
-  onDeleteImage: (id: string) => void;
-  onOpenCamera: () => void;
+  setImages: React.Dispatch<React.SetStateAction<UploadedImageItem[]>>;
+  onOpenCamera?: () => void;
 }
 
 export const UploadSection: React.FC<UploadSectionProps> = ({
   images,
-  onUploadImages,
-  onDeleteImage,
+  setImages,
   onOpenCamera,
 }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -59,7 +57,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
 
         newItems.push(item);
         if (newItems.length === fileList.filter((f) => f.type.startsWith('image/')).length) {
-          onUploadImages(newItems);
+          setImages((prev) => [...newItems, ...prev]);
         }
       };
       reader.readAsDataURL(file);
@@ -85,13 +83,17 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
     }
   };
 
+  const handleDeleteImage = (id: string) => {
+    setImages((prev) => prev.filter((img) => img.id !== id));
+  };
+
   const handleDownload = (img: UploadedImageItem) => {
-    const a = document.createElement('a');
-    a.href = img.dataUrl;
-    a.download = img.name || 'image.png';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const link = document.createElement('a');
+    link.href = img.dataUrl;
+    link.download = img.name || 'downloaded-image';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const filteredImages = images.filter((img) => 
@@ -134,7 +136,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
             Upload Images
           </button>
           <button
-            onClick={onOpenCamera}
+            onClick={() => onOpenCamera?.()}
             className="border border-white/20 bg-white/5 text-white font-semibold px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 flex items-center gap-2 cursor-pointer backdrop-blur-md"
             id="btn-open-camera-from-uploads"
           >
@@ -270,7 +272,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       if (confirm('Delete this image?')) {
-                        onDeleteImage(img.id);
+                        handleDeleteImage(img.id);
                       }
                     }}
                     className="p-2.5 rounded-xl bg-red-600/80 text-white hover:bg-red-500 transition-colors shadow-lg"
@@ -349,7 +351,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                 <button
                   onClick={() => {
                     if (confirm('Delete this image from workspace?')) {
-                      onDeleteImage(selectedImage.id);
+                      handleDeleteImage(selectedImage.id);
                       setSelectedImage(null);
                     }
                   }}

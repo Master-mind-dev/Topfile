@@ -15,7 +15,7 @@ export function AdminPanel() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('https://topfile.onrender.com/api/admin/users', {
+      const res = await fetch('/api/admin/users', {
         headers: { 'x-admin-password': adminPassword }
       });
       const data = await res.json();
@@ -35,7 +35,7 @@ export function AdminPanel() {
   const fetchUserData = async (email: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`https://topfile.onrender.com/api/admin/user/${email}`, {
+      const res = await fetch(`/api/admin/user/${email}`, {
         headers: { 'x-admin-password': adminPassword }
       });
       const data = await res.json();
@@ -56,7 +56,7 @@ export function AdminPanel() {
     
     setLoading(true);
     try {
-      const res = await fetch(`https://topfile.onrender.com/api/admin/user/${email}`, {
+      const res = await fetch(`/api/admin/user/${email}`, {
         method: 'DELETE',
         headers: { 'x-admin-password': adminPassword }
       });
