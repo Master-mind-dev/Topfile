@@ -1,15 +1,36 @@
 import pkg from 'pg';
 const { Pool } = pkg;
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/ownly'
-});
-pool.on('error', (err) => console.error('Unexpected error on idle client', err));
+
+const connectionString = process.env.DATABASE_URL;
+
+export const pool = connectionString
+  ? new Pool({
+      connectionString,
+      ssl: !connectionString.includes('localhost') && !connectionString.includes('127.0.0.1')
+        ? { rejectUnauthorized: false }
+        : false,
+    })
+  : null;
+
+if (pool) {
+  pool.on('error', (err) => console.error('Unexpected error on idle client', err));
+}
+
+export function isDatabaseConfigured() {
+  return !!process.env.DATABASE_URL;
+}
+
 // Initialize database schema
 export async function initializeDatabase() {
-    const client = await pool.connect();
-    try {
-        // Users table
-        await client.query(`
+  if (!process.env.DATABASE_URL || !pool) {
+    console.warn('⚠️ DATABASE_URL is not set. Please set DATABASE_URL in your Render Dashboard Environment Variables.');
+    throw new Error('DATABASE_URL environment variable is missing.');
+  }
+
+  const client = await pool.connect();
+  try {
+    // Users table
+    await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email VARCHAR(255) UNIQUE NOT NULL,
@@ -24,8 +45,9 @@ export async function initializeDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-        // Notes table
-        await client.query(`
+
+    // Notes table
+    await client.query(`
       CREATE TABLE IF NOT EXISTS notes (
         id VARCHAR(255) PRIMARY KEY,
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -38,8 +60,9 @@ export async function initializeDatabase() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-        // Images table (uploads)
-        await client.query(`
+
+    // Images table (uploads)
+    await client.query(`
       CREATE TABLE IF NOT EXISTS images (
         id VARCHAR(255) PRIMARY KEY,
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -52,8 +75,9 @@ export async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-        // Links table
-        await client.query(`
+
+    // Links table
+    await client.query(`
       CREATE TABLE IF NOT EXISTS links (
         id VARCHAR(255) PRIMARY KEY,
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -68,32 +92,36 @@ export async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-        // Create indexes for faster queries
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id)`);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_images_user_id ON images(user_id)`);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_links_user_id ON links(user_id)`);
-        await client.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
-        console.log('✅ Database schema initialized successfully');
-    }
-    catch (err) {
-        console.error('Error initializing database:', err);
-        throw err;
-    }
-    finally {
-        client.release();
-    }
+
+    // Create indexes for faster queries
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_images_user_id ON images(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_links_user_id ON links(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
+
+    console.log('✅ Database schema initialized successfully');
+  } catch (err) {
+    console.error('Error initializing database:', err);
+    throw err;
+  } finally {
+    client.release();
+  }
 }
+
 export async function query(text, params) {
-    const start = Date.now();
-    try {
-        const res = await pool.query(text, params);
-        const duration = Date.now() - start;
-        console.log('Executed query', { text, duration, rows: res.rowCount });
-        return res;
-    }
-    catch (error) {
-        console.error('Database query error:', error);
-        throw error;
-    }
+  if (!pool) {
+    throw new Error('Database is not connected: DATABASE_URL environment variable is missing in Render dashboard.');
+  }
+  const start = Date.now();
+  try {
+    const res = await pool.query(text, params);
+    const duration = Date.now() - start;
+    console.log('Executed query', { text, duration, rows: res.rowCount });
+    return res;
+  } catch (error) {
+    console.error('Database query error:', error);
+    throw error;
+  }
 }
+
 export default pool;

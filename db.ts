@@ -1,14 +1,32 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/ownly'
-});
+const connectionString = process.env.DATABASE_URL;
 
-pool.on('error', (err) => console.error('Unexpected error on idle client', err));
+export const pool = connectionString
+  ? new Pool({
+      connectionString,
+      ssl: !connectionString.includes('localhost') && !connectionString.includes('127.0.0.1')
+        ? { rejectUnauthorized: false }
+        : false,
+    })
+  : null;
+
+if (pool) {
+  pool.on('error', (err) => console.error('Unexpected error on idle client', err));
+}
+
+export function isDatabaseConfigured(): boolean {
+  return !!process.env.DATABASE_URL;
+}
 
 // Initialize database schema
 export async function initializeDatabase() {
+  if (!process.env.DATABASE_URL || !pool) {
+    console.warn('⚠️ DATABASE_URL is not set. Please set DATABASE_URL in your Render Dashboard Environment Variables.');
+    throw new Error('DATABASE_URL environment variable is missing.');
+  }
+
   const client = await pool.connect();
   try {
     // Users table
@@ -91,6 +109,9 @@ export async function initializeDatabase() {
 }
 
 export async function query(text: string, params?: any[]) {
+  if (!pool) {
+    throw new Error('Database is not connected: DATABASE_URL environment variable is missing in Render dashboard.');
+  }
   const start = Date.now();
   try {
     const res = await pool.query(text, params);

@@ -71,12 +71,16 @@ async function startServer() {
   const app = express();
 
   // Initialize database
+  let dbConnected = false;
+  let dbErrorMessage = '';
   try {
     await initializeDatabase();
-    console.log('✅ Database initialized');
-  } catch (err) {
-    console.error('Failed to initialize database:', err);
-    process.exit(1);
+    dbConnected = true;
+    console.log('✅ Database initialized successfully');
+  } catch (err: any) {
+    dbErrorMessage = err?.message || 'Database connection error';
+    console.warn('⚠️ Database connection warning:', dbErrorMessage);
+    console.warn('👉 If on Render, please add DATABASE_URL to your Web Service Environment Variables.');
   }
 
   // Enable CORS
@@ -412,6 +416,8 @@ async function startServer() {
     res.json({
       success: true,
       message: 'Backend is running!',
+      database: dbConnected ? 'connected' : 'not_connected',
+      databaseNotice: dbConnected ? undefined : 'Please add DATABASE_URL to your Render Web Service Environment Variables',
       timestamp: new Date().toISOString()
     });
   });
