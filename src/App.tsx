@@ -192,6 +192,11 @@ export default function App() {
     return <Suspense fallback={<div className="ownly-loading min-h-screen" role="status">Loading access…</div>}><LoginPage onLoginSuccess={handleLoginSuccess} /></Suspense>;
   }
 
+  // Admin route must render immediately — never block with loading screen
+  if (isAdminRoute) {
+    return <AdminPanel />;
+  }
+
   if (!cloudReady) {
     return (
       <div className="ownly-loading min-h-screen" role="status">
