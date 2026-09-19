@@ -1,5 +1,9 @@
 import pkg from 'pg';
+import dns from 'dns';
 const { Pool } = pkg;
+
+// Force IPv4 — Render does not support IPv6 outbound connections
+dns.setDefaultResultOrder('ipv4first');
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -9,6 +13,8 @@ export const pool = connectionString
       ssl: !connectionString.includes('localhost') && !connectionString.includes('127.0.0.1')
         ? { rejectUnauthorized: false }
         : false,
+      // Force IPv4 to avoid ENETUNREACH on Render
+      family: 4,
     })
   : null;
 
