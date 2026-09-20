@@ -43,6 +43,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
   const [snapshotName, setSnapshotName] = useState('');
   const [snapshotNotes, setSnapshotNotes] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [canCapture, setCanCapture] = useState(false);
 
   const startCamera = async (mode: 'user' | 'environment') => {
     setErrorMsg('');
@@ -90,19 +91,23 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
 
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
-    
     const video = videoRef.current;
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      setErrorMsg('Camera is still initializing. Please wait a moment and try again.');
+      setTimeout(() => setErrorMsg(''), 3000);
+      return;
+    }
     const canvas = canvasRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/png');
     setCapturedDataUrl(dataUrl);
     setSaveSuccess(false);
+    setSnapshotName(`Capture_${new Date().toISOString().slice(0, 10)}`);
+    setSnapshotNotes('');
   };
 
   const savePhoto = () => {
@@ -127,7 +132,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
     <div className="ownly-camera space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold flex items-center gap-2">
-          <Camera className="w-5 h-5 text-red-500" />
+          <Camera className="w-5 h-5 text-[#d9ad52]" />
           Live Capture
         </h2>
         <div className="flex items-center gap-2">
@@ -146,7 +151,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
         </div>
       </div>
 
-      <div className="relative aspect-video bg-zinc-900 rounded-3xl overflow-hidden border border-white/10 shadow-2xl">
+      <div className="relative w-full max-w-6xl mx-auto aspect-[4/3] bg-zinc-900 rounded-3xl overflow-hidden border border-white/10 shadow-2xl md:aspect-video lg:aspect-[16/9]">
         {!isCameraActive && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
             <Camera className="w-12 h-12 text-zinc-700 mb-4" />
@@ -161,7 +166,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
           </div>
         )}
         
-        <video ref={videoRef} className={`w-full h-full object-cover ${isCameraActive ? 'block' : 'hidden'}`} autoPlay playsInline />
+        <video ref={videoRef} className={`w-full h-full object-cover ${isCameraActive ? 'block' : 'hidden'}`} autoPlay playsInline muted onLoadedMetadata={() => setCanCapture(true)} onPlay={() => setCanCapture(true)} />
         
         {isCameraActive && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
@@ -179,14 +184,17 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
           <div className="absolute bottom-6 left-0 right-0 flex justify-center items-center gap-6">
             <button 
               onClick={stopCamera}
-              className="p-3 bg-black/50 backdrop-blur-md border border-white/20 rounded-full text-white hover:bg-red-500 transition-all"
+              className="p-3 bg-black/50 backdrop-blur-md border border-white/20 rounded-full text-white hover:bg-[#d9ad52]/20 hover:text-[#d9ad52] transition-all"
             >
               <X className="w-5 h-5" />
             </button>
             <button 
               onClick={capturePhoto}
-              className="w-16 h-16 bg-white rounded-full border-4 border-zinc-400 active:scale-90 transition-all shadow-xl"
-            />
+              disabled={!canCapture}
+              className={`w-16 h-16 bg-white rounded-full border-4 border-zinc-400 active:scale-90 transition-all shadow-xl flex items-center justify-center ${canCapture ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
+            >
+              {isCameraActive && <div className={`w-4 h-4 rounded-full bg-[#d9ad52] animate-ping ${!canCapture ? 'hidden' : ''}`} />}
+            </button>
             <button 
               onClick={() => setFacingMode(facingMode === 'user' ? 'environment' : 'user')}
               className="p-3 bg-black/50 backdrop-blur-md border border-white/20 rounded-full text-white hover:bg-white/20 transition-all"

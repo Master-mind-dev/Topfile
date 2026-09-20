@@ -32,7 +32,7 @@ const CATEGORIES: ('All' | 'General' | 'Work' | 'Personal' | 'Ideas' | 'Urgent')
 ];
 
 const COLOR_TAGS = [
-  { name: 'Red', value: '#FF2A3A' },
+  { name: 'Red', value: '#d9ad52' },
   { name: 'Blue', value: '#3b82f6' },
   { name: 'Emerald', value: '#10b981' },
   { name: 'Purple', value: '#8b5cf6' },
@@ -55,7 +55,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
   const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteCategory, setNoteCategory] = useState<'General' | 'Work' | 'Personal' | 'Ideas' | 'Urgent'>('General');
-  const [noteColor, setNoteColor] = useState('#FF2A3A');
+  const [noteColor, setNoteColor] = useState('#d9ad52');
   const [noteIsPinned, setNoteIsPinned] = useState(false);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -89,7 +89,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
     setNoteTitle('');
     setNoteContent('');
     setNoteCategory('General');
-    setNoteColor('#FF2A3A');
+    setNoteColor('#d9ad52');
     setNoteIsPinned(false);
     setIsEditorOpen(true);
   };
@@ -245,7 +245,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
           </p>
           <button
             onClick={openNewNoteModal}
-            className="px-5 py-2.5 rounded-full bg-[#E2E4E8] text-black font-bold text-xs inline-flex items-center gap-1.5 hover:bg-[#FF2A3A] hover:text-white transition-all shadow-md"
+            className="px-5 py-2.5 rounded-full bg-[#d9ad52] text-[#20140b] font-bold text-xs inline-flex items-center gap-1.5 hover:bg-[#f4dfb0] transition-all shadow-md"
           >
             <Plus className="w-4 h-4" />
             New Note
@@ -264,7 +264,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
               className="notes-studio__card p-5 sm:p-6 rounded-2xl border border-white/10 hover:border-[#d9ad52]/60 bg-[#17120f]/80 backdrop-blur-md transition-all flex flex-col justify-between cursor-pointer group relative overflow-hidden shadow-xl"
               style={{
                 borderLeftWidth: '4px',
-                borderLeftColor: note.colorTag || '#FF2A3A',
+                borderLeftColor: note.colorTag || '#d9ad52',
               }}
             >
               {/* Card Top */}
@@ -293,7 +293,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
                       className="p-1.5 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors"
                       title={note.isPinned ? 'Unpin' : 'Pin note'}
                     >
-                      <Pin className={`w-3.5 h-3.5 ${note.isPinned ? 'text-[#FF2A3A] fill-[#FF2A3A]' : ''}`} />
+                      <Pin className={`w-3.5 h-3.5 ${note.isPinned ? 'text-[#d9ad52] fill-[#d9ad52]' : ''}`} />
                     </button>
 
                     <button
@@ -317,7 +317,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
                           onDeleteNote(note.id);
                         }
                       }}
-                      className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-[#d9ad52]/20 text-white/40 hover:text-[#d9ad52] transition-colors"
                       title="Delete note"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -366,7 +366,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
             >
               <div className="flex items-center justify-between pb-4 border-b border-white/10">
                 <div>
-                  <div className="text-[10px] tracking-[0.2em] text-[#FF2A3A] uppercase font-bold">
+                  <div className="text-[10px] tracking-[0.2em] text-[#d9ad52] uppercase font-bold">
                     NOTE EDITOR
                   </div>
                   <h3 id="note-editor-title" className="text-lg font-bold text-white flex items-center gap-2 mt-0.5">
@@ -393,7 +393,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
                     onChange={(e) => setNoteTitle(e.target.value)}
                     placeholder="Enter note title..."
                     required
-                    className="w-full bg-white text-black font-semibold px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-[#FF2A3A] text-sm"
+                     className="w-full bg-[#d9ad52] text-[#20140b] font-bold px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-[#d9ad52] text-sm"
                     id="input-note-title"
                   />
                 </div>
@@ -462,7 +462,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
                     type="checkbox"
                     checked={noteIsPinned}
                     onChange={(e) => setNoteIsPinned(e.target.checked)}
-                    className="w-4 h-4 rounded accent-[#FF2A3A]"
+                     className="w-4 h-4 rounded accent-[#d9ad52]"
                   />
                   Pin this note to the top of the workspace
                 </label>
@@ -472,13 +472,13 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsEditorOpen(false)}
-                    className="flex-1 py-2.5 rounded-full bg-white/5 border border-white/20 text-white/60 hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] font-bold text-xs cursor-pointer transition-all duration-200"
+                    className="flex-1 py-2.5 rounded-full bg-white/5 border border-white/20 text-white/60 hover:bg-[#d9ad52]/10 hover:text-[#d9ad52] hover:border-[#d9ad52]/40 font-bold text-xs cursor-pointer transition-all duration-200"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-2.5 rounded-full bg-[#E2E4E8] text-zinc-950 hover:bg-[#FF2A3A] hover:text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all duration-200"
+                    className="flex-1 py-2.5 rounded-full bg-[#d9ad52] text-[#20140b] hover:bg-[#f4dfb0] font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all duration-200"
                     id="btn-save-note"
                   >
                     <Check className="w-4 h-4" />

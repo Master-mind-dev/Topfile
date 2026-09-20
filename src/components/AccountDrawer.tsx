@@ -6,17 +6,12 @@ import {
   Mail, 
   Calendar, 
   HardDrive, 
-  FileText, 
-  Image as ImageIcon, 
-  Camera, 
-  Link as LinkIcon, 
   Download, 
   Trash2,
-  Sparkles,
   Pencil,
   UserRound
 } from 'lucide-react';
-import { UserProfile, TabType } from '../types';
+import { UserProfile } from '../types';
 import { OwnlyLogo } from './OwnlyLogo';
 
 interface AccountDrawerProps {
@@ -24,8 +19,7 @@ interface AccountDrawerProps {
   onClose: () => void;
   user: UserProfile;
   setUser: React.Dispatch<React.SetStateAction<UserProfile>>;
-  isAuthenticated: boolean;
-  setIsAuthenticated: React.Dispatch<React.SetStateAction<boolean>>;
+  onUpdateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   onLogout: () => Promise<void>;
 }
 
@@ -34,8 +28,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
   onClose,
   user,
   setUser,
-  isAuthenticated,
-  setIsAuthenticated,
+  onUpdateProfile,
   onLogout,
 }) => {
   const [isEditingProfile, setIsEditingProfile] = React.useState(false);
@@ -47,10 +40,15 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
     setAvatarUrl(user.avatarUrl || '');
   }, [user.name, user.avatarUrl]);
 
-  const saveProfile = (event: React.FormEvent) => {
+  const saveProfile = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!profileName.trim()) return;
-    setUser((prev) => ({ ...prev, name: profileName.trim(), avatarUrl: avatarUrl.trim() || undefined }));
+    const updates = {
+      name: profileName.trim(),
+      avatarUrl: avatarUrl.trim() || undefined,
+    };
+    setUser((prev) => ({ ...prev, ...updates }));
+    await onUpdateProfile(updates);
     setIsEditingProfile(false);
   };
 
@@ -62,21 +60,25 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
     reader.onload = () => setAvatarUrl(String(reader.result));
     reader.readAsDataURL(file);
   };
+
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Backdrop overlay */}
           <motion.div
+            key="drawer-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={onClose}
             className="fixed inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
           />
 
           {/* Drawer container */}
           <motion.div
+            key="drawer-content"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -87,14 +89,17 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
             aria-modal="true"
             aria-labelledby="account-drawer-title"
           >
-            {/* Top Header */}
+            {/* Top Header & Content */}
             <div>
               <div className="flex items-center justify-between pb-5 border-b border-white/10">
                 <div className="flex items-center gap-2">
                   <OwnlyLogo size="sm" />
-                  <span id="account-drawer-title" className="text-[10px] uppercase tracking-widest text-[#d9ad52] font-extrabold ml-1">Account</span>
+                  <span id="account-drawer-title" className="text-[10px] uppercase tracking-widest text-[#d9ad52] font-extrabold ml-1">
+                    Account
+                  </span>
                 </div>
                 <button
+                  type="button"
                   onClick={onClose}
                   className="p-2 rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition-colors cursor-pointer"
                   id="btn-close-account-drawer"
@@ -118,7 +123,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <h3 className="text-base font-bold text-white truncate">{user.name}</h3>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#FF2A3A]/20 text-[#FF2A3A] border border-[#FF2A3A]/40">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#d9ad52]/20 text-[#d9ad52] border border-[#d9ad52]/40">
                         {user.plan}
                       </span>
                     </div>
@@ -136,7 +141,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsEditingProfile((editing) => !editing)}
-                  className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white/75 hover:text-white hover:border-[#ff304f]/60 transition-colors"
+                  className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white/75 hover:text-white hover:border-[#d9ad52]/60 transition-colors"
                   aria-expanded={isEditingProfile}
                 >
                   <Pencil className="w-3.5 h-3.5" />
@@ -146,14 +151,26 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                 {isEditingProfile && (
                   <form onSubmit={saveProfile} className="mt-4 space-y-3 border-t border-white/10 pt-4">
                     <label className="block text-[10px] uppercase tracking-wider text-white/50 font-bold">Display name</label>
-                    <input value={profileName} onChange={(event) => setProfileName(event.target.value)} className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2.5 text-sm text-white outline-none focus:border-[#ff304f]" required />
+                    <input
+                      value={profileName}
+                      onChange={(event) => setProfileName(event.target.value)}
+                      className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2.5 text-sm text-white outline-none focus:border-[#d9ad52]"
+                      required
+                    />
                     <label className="block text-[10px] uppercase tracking-wider text-white/50 font-bold">Profile image URL</label>
-                    <input value={avatarUrl.startsWith('data:') ? '' : avatarUrl} onChange={(event) => setAvatarUrl(event.target.value)} placeholder="https://..." className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2.5 text-sm text-white outline-none focus:border-[#ff304f]" />
-                    <label className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-2.5 text-xs font-bold text-white/65 hover:border-[#ff304f] hover:text-white cursor-pointer">
+                    <input
+                      value={avatarUrl.startsWith('data:') ? '' : avatarUrl}
+                      onChange={(event) => setAvatarUrl(event.target.value)}
+                      placeholder="https://..."
+                      className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2.5 text-sm text-white outline-none focus:border-[#d9ad52]"
+                    />
+                    <label className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-2.5 text-xs font-bold text-white/65 hover:border-[#d9ad52] hover:text-white cursor-pointer">
                       <UserRound className="w-3.5 h-3.5" /> Choose profile image
                       <input type="file" accept="image/*" onChange={handleAvatarFile} className="sr-only" />
                     </label>
-                    <button type="submit" className="w-full rounded-xl bg-[#ff304f] py-2.5 text-xs font-bold text-white hover:bg-[#ff4f68]">Save profile</button>
+                    <button type="submit" className="w-full rounded-xl bg-[#d9ad52] py-2.5 text-xs font-bold text-[#20140b] hover:bg-[#f4dfb0]">
+                      Save profile
+                    </button>
                   </form>
                 )}
 
@@ -161,45 +178,47 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                 <div className="mt-4 pt-3 border-t border-white/10">
                   <div className="flex justify-between items-center text-xs font-medium text-white/60 mb-1.5">
                     <span className="flex items-center gap-1 text-white/80">
-                      <HardDrive className="w-3.5 h-3.5 text-[#FF2A3A]" />
+                      <HardDrive className="w-3.5 h-3.5 text-[#d9ad52]" />
                       Storage Allocation
                     </span>
-                    <span className="text-white font-bold">{user.storageUsedMb} MB / {user.totalStorageMb} MB</span>
+                    <span className="text-white font-bold">
+                      {user.storageUsedMb} MB / {user.totalStorageMb} MB
+                    </span>
                   </div>
                   <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                    <div 
-                      className="h-full bg-[#FF2A3A] rounded-full transition-all duration-500" 
-                      style={{ width: `${Math.min(100, (user.storageUsedMb / user.totalStorageMb) * 100)}%` }} 
+                    <div
+                      className="h-full bg-[#d9ad52] rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (user.storageUsedMb / user.totalStorageMb) * 100)}%` }}
                     />
                   </div>
                 </div>
               </div>
 
               {/* Quick Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 mb-8">
+              <div className="grid grid-cols-2 gap-3 my-6">
                 <button
-                  onClick={() => {}}
+                  type="button"
                   className="p-3 bg-white/5 border border-white/10 rounded-2xl text-left hover:bg-white/10 transition-all group"
                 >
                   <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1">Notes</div>
                   <div className="text-white font-bold">Vault</div>
                 </button>
                 <button
-                  onClick={() => {}}
+                  type="button"
                   className="p-3 bg-white/5 border border-white/10 rounded-2xl text-left hover:bg-white/10 transition-all group"
                 >
                   <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1">Media</div>
                   <div className="text-white font-bold">Gallery</div>
                 </button>
                 <button
-                  onClick={() => {}}
+                  type="button"
                   className="p-3 bg-white/5 border border-white/10 rounded-2xl text-left hover:bg-white/10 transition-all group"
                 >
                   <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1">Captures</div>
                   <div className="text-white font-bold">Live</div>
                 </button>
                 <button
-                  onClick={() => {}}
+                  type="button"
                   className="p-3 bg-white/5 border border-white/10 rounded-2xl text-left hover:bg-white/10 transition-all group"
                 >
                   <div className="text-zinc-500 text-[10px] uppercase font-bold mb-1">Links</div>
@@ -209,18 +228,22 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
 
               {/* Utility Actions */}
               <div className="space-y-2 pt-6 border-t border-white/10">
-                <div className="text-[10px] tracking-widest text-zinc-500 uppercase font-bold mb-3">Workspace Utility</div>
-                
+                <div className="text-[10px] tracking-widest text-zinc-500 uppercase font-bold mb-3">
+                  Workspace Utility
+                </div>
+
                 <button
+                  type="button"
                   className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold flex items-center gap-3 hover:bg-white/10 transition-all opacity-50 cursor-not-allowed"
                   disabled
                 >
                   <Download className="w-4 h-4" />
                   Export Workspace Data
                 </button>
-                
+
                 <button
-                  className="w-full p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-semibold flex items-center gap-3 hover:bg-red-500/20 transition-all opacity-50 cursor-not-allowed"
+                  type="button"
+                  className="w-full p-3 rounded-xl bg-[#d9ad52]/10 border border-[#d9ad52]/20 text-[#d9ad52] text-xs font-semibold flex items-center gap-3 hover:bg-[#d9ad52]/20 transition-all opacity-50 cursor-not-allowed"
                   disabled
                 >
                   <Trash2 className="w-4 h-4" />
@@ -232,11 +255,12 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
             {/* Bottom: Logout Button */}
             <div className="pt-5 mt-6 border-t border-white/10">
               <button
+                type="button"
                 onClick={() => {
                   onLogout();
                   onClose();
                 }}
-                className="w-full py-3.5 px-4 rounded-full bg-[#E2E4E8] hover:bg-[#FF2A3A] text-zinc-950 hover:text-white font-bold text-xs tracking-wide transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95 shadow-md"
+                className="w-full py-3.5 px-4 rounded-full bg-[#d9ad52] text-[#20140b] hover:bg-[#f4dfb0] font-bold text-xs tracking-wide transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95 shadow-md"
                 id="btn-logout-account"
               >
                 <LogOut className="w-4 h-4" />

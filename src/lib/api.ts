@@ -1,5 +1,6 @@
 // API client for communicating with our PostgreSQL backend
 // Replace Firebase calls with these API calls
+import { UserProfile } from '../types';
 
 const API_BASE = (typeof window !== 'undefined' && window.location.origin.startsWith('http'))
   ? '/api'
@@ -75,10 +76,10 @@ export async function getUserProfile() {
   return data.user;
 }
 
-export async function updateUserProfile(name: string, avatarUrl?: string) {
+export async function updateUserProfile(updates: Partial<UserProfile>) {
   const data = await apiRequest('/user/profile', {
     method: 'PUT',
-    body: JSON.stringify({ name, avatarUrl }),
+    body: JSON.stringify(updates),
   });
   return data.user;
 }

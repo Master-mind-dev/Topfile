@@ -113,7 +113,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/15 pb-5">
         <div>
-          <div className="text-[10px] tracking-[0.25em] text-[#FF2A3A] uppercase font-extrabold mb-1">
+          <div className="text-[10px] tracking-[0.25em] text-[#d9ad52] uppercase font-extrabold mb-1">
             MEDIA ASSET VAULT
           </div>
           <div className="flex items-center gap-3">
@@ -129,15 +129,15 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="bg-[#E2E4E8] text-zinc-950 font-bold px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-[#FF2A3A] hover:text-white active:scale-95 transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-md"
+            className="bg-[#d9ad52] text-[#20140b] font-bold px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-[#f4dfb0] active:scale-95 transition-all duration-200 flex items-center gap-2 cursor-pointer shadow-md"
             id="btn-upload-picker"
           >
             <Upload className="w-4 h-4" />
             Upload Images
           </button>
-          <button
+            <button
             onClick={() => onOpenCamera?.()}
-            className="border border-white/20 bg-white/5 text-white font-semibold px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 flex items-center gap-2 cursor-pointer backdrop-blur-md"
+            className="border border-white/20 bg-white/5 text-white font-semibold px-4 py-2 rounded-full text-xs sm:text-sm hover:bg-[#d9ad52]/20 hover:text-[#d9ad52] hover:border-[#d9ad52] active:scale-95 transition-all duration-200 flex items-center gap-2 cursor-pointer backdrop-blur-md"
             id="btn-open-camera-from-uploads"
           >
             <Camera className="w-4 h-4" />
@@ -165,7 +165,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
         onClick={() => fileInputRef.current?.click()}
         className={`w-full p-8 sm:p-10 rounded-3xl border-2 border-dashed transition-all flex flex-col items-center justify-center text-center cursor-pointer relative overflow-hidden backdrop-blur-md ${
           dragActive
-            ? 'border-[#FF2A3A] bg-[#FF2A3A]/10 scale-[0.99]'
+            ? 'border-[#d9ad52] bg-[#d9ad52]/10 scale-[0.99]'
             : 'border-white/20 bg-zinc-950/40 hover:border-white/50'
         }`}
         id="drag-drop-zone"
@@ -173,9 +173,9 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
         <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white mb-3 shadow-lg">
           <Upload className="w-6 h-6 text-white" />
         </div>
-        <h3 className="text-sm sm:text-base font-bold text-white mb-1">
-          Drop image files here, or <span className="text-[#FF2A3A] underline underline-offset-4">browse device</span>
-        </h3>
+          <h3 className="text-sm sm:text-base font-bold text-white mb-1">
+            Drop image files here, or <span className="text-[#d9ad52] underline underline-offset-4">browse device</span>
+          </h3>
         <p className="text-xs text-white/40 max-w-sm">
           Supports PNG, JPG, JPEG, SVG, WebP and animated GIF format files.
         </p>
@@ -191,7 +191,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search uploaded images by name..."
-              className="w-full bg-black/70 border border-white/10 text-white placeholder:text-white/40 pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm outline-none focus:border-[#FF2A3A] font-medium transition-colors"
+               className="w-full bg-black/70 border border-white/10 text-white placeholder:text-white/40 pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm outline-none focus:border-[#d9ad52] font-medium transition-colors"
             />
           </div>
           <span className="text-xs font-semibold text-white/40 pr-2">
@@ -210,7 +210,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
           </p>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-5 py-2.5 rounded-full bg-[#E2E4E8] text-black font-bold text-xs inline-flex items-center gap-1.5 hover:bg-[#FF2A3A] hover:text-white transition-all shadow-md"
+            className="px-5 py-2.5 rounded-full bg-[#d9ad52] text-[#20140b] font-bold text-xs inline-flex items-center gap-1.5 hover:bg-[#f4dfb0] transition-all shadow-md"
           >
             Upload Now
           </button>
@@ -235,7 +235,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                 {/* Source Badge */}
                 <span className={`absolute top-3 left-3 px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider backdrop-blur-md border border-white/10 ${
                   img.source === 'camera' 
-                    ? 'bg-[#FF2A3A] text-white' 
+                    ? 'bg-[#d9ad52] text-black' 
                     : 'bg-black/80 text-white'
                 }`}>
                   {img.source === 'camera' ? 'Camera Snap' : 'Uploaded'}
@@ -275,7 +275,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                         handleDeleteImage(img.id);
                       }
                     }}
-                    className="p-2.5 rounded-xl bg-red-600/80 text-white hover:bg-red-500 transition-colors shadow-lg"
+                    className="p-2.5 rounded-xl bg-[#d9ad52]/80 text-white hover:bg-[#f4dfb0] text-[#20140b] transition-colors shadow-lg"
                     title="Delete Image"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -355,7 +355,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                       setSelectedImage(null);
                     }
                   }}
-                  className="text-red-400 hover:text-red-300 font-bold flex items-center gap-1 cursor-pointer"
+                  className="text-[#d9ad52] hover:text-[#f4dfb0] font-bold flex items-center gap-1 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Delete Image

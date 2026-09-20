@@ -15,7 +15,7 @@ export const OwnlyLogo: React.FC<OwnlyLogoProps> = ({ size = 'md', className = '
 
   return (
     <div className={`inline-flex items-center select-none font-black ${sizeClasses[size]} ${className}`} id="ownly-logo-brand">
-      <span className="text-[#FF2A3A] font-black uppercase drop-shadow-[0_0_15px_rgba(255,42,58,0.6)]">
+      <span className="text-[#d9ad52] font-black uppercase drop-shadow-[0_0_15px_rgba(217,173,82,0.6)]">
         OWN
       </span>
       <span className="text-white font-black uppercase drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]">

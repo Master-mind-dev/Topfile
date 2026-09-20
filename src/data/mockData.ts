@@ -16,7 +16,7 @@ export const initialNotes: NoteItem[] = [
     title: 'Product Design & Branding Goals',
     content: '1. Maintain a clean pure black & anime night theme.\n2. Ensure smooth tab transitions for Home, Notes, Uploads, Camera, and Links.\n3. Integrate link metadata scraper for seamless YouTube and web embeds.',
     category: 'Work',
-    colorTag: '#FF2A3A',
+     colorTag: '#d9ad52',
     isPinned: true,
     createdAt: '2026-08-22T09:30:00Z',
     updatedAt: '2026-08-23T10:15:00Z',

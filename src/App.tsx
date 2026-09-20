@@ -31,37 +31,72 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<UserProfile>(initialUserProfile);
+  const [user, setUser] = useState<UserProfile>(() => {
+    const saved = localStorage.getItem('ownly_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return initialUserProfile;
+      }
+    }
+    return initialUserProfile;
+  });
 
   const isAdminRoute = window.location.pathname === '/admin';
 
   const [notes, setNotes] = useState<NoteItem[]>(() => {
     const saved = localStorage.getItem('ownly_notes');
-    return saved ? JSON.parse(saved) : initialNotes;
+    if (saved) {
+      try { return JSON.parse(saved); } catch { return initialNotes; }
+    }
+    return initialNotes;
   });
 
   const [images, setImages] = useState<UploadedImageItem[]>(() => {
     const saved = localStorage.getItem('ownly_images');
-    return saved ? JSON.parse(saved) : initialImages;
+    if (saved) {
+      try { return JSON.parse(saved); } catch { return initialImages; }
+    }
+    return initialImages;
   });
 
   const [links, setLinks] = useState<LinkItem[]>(() => {
     const saved = localStorage.getItem('ownly_links');
     if (!saved) return initialLinks;
-    return JSON.parse(saved);
+    try { return JSON.parse(saved); } catch { return initialLinks; }
   });
 
   const [selectedNoteToEdit, setSelectedNoteToEdit] = useState<NoteItem | null>(null);
   const [cloudReady, setCloudReady] = useState(false);
   const [cloudError, setCloudError] = useState('');
 
+  // Camera open handler for UploadSection capture button
+  const handleOpenCamera = () => {
+    setActiveTab('scan');
+  };
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const profile = await api.getUserProfile();
-        setIsAuthenticated(true);
-        setUser(profile);
-        setCloudReady(true);
+        const saved = localStorage.getItem('ownly_user');
+        const token = localStorage.getItem('ownly_auth_token');
+        if (!token && !saved) {
+          setIsAuthenticated(false);
+          setCloudReady(false);
+          return;
+        }
+        try {
+          const profile = await api.getUserProfile();
+          setIsAuthenticated(true);
+          setUser((prev) => ({ ...prev, ...profile }));
+          setCloudReady(true);
+        } catch (apiErr) {
+          // Backend unavailable — continue in offline mode with localStorage data
+          setIsAuthenticated(true);
+          setCloudReady(false);
+          setCloudError('Offline mode — using local workspace data.');
+        }
       } catch (e) {
         setIsAuthenticated(false);
         setCloudReady(false);
@@ -105,7 +140,7 @@ export default function App() {
   const handleUpdateProfile = async (updates: Partial<UserProfile>) => {
     setUser((previous) => ({ ...previous, ...updates }));
     try {
-      await api.updateUserProfile(updates as any);
+       await api.updateUserProfile(updates);
     } catch (error) {
       console.warn('Profile update error:', error);
     }
@@ -197,32 +232,38 @@ export default function App() {
     return <AdminPanel />;
   }
 
-  if (!cloudReady) {
+  if (!cloudReady && !cloudError) {
     return (
       <div className="ownly-loading min-h-screen" role="status">
         <div className="text-center px-6">
           <div className="text-white font-bold mb-2">Connecting to your cloud workspace…</div>
           <div className="text-white/50 text-xs max-w-sm">Your workspace will appear after loading your data, so another device sees the same content.</div>
-          {cloudError && <div className="mt-4 text-[#ff6a7e] text-xs max-w-md">{cloudError}</div>}
+          {cloudError && <div className="mt-4 text-[#d9ad52] text-xs max-w-md">{cloudError}</div>}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-red-500/30">
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-[#d9ad52]/30">
       {isAdminRoute ? (
         <AdminPanel />
       ) : (
         <>
-          <Header 
-            user={user} 
-            activeTab={activeTab} 
-            setActiveTab={setActiveTab} 
-            onOpenAccount={() => setIsAccountDrawerOpen(true)}
-          />
+           <Header 
+             user={user} 
+             activeTab={activeTab} 
+             setActiveTab={setActiveTab} 
+             onOpenAccount={() => setIsAccountDrawerOpen(true)}
+           />
 
-          <main className="pt-20 px-4 pb-12 max-w-7xl mx-auto">
+           {cloudError && !cloudReady && (
+             <div className="fixed top-16 left-0 right-0 z-40 px-4 py-2 bg-[#d9ad52]/10 border-b border-[#d9ad52]/30 text-xs text-[#d9ad52] text-center backdrop-blur-md">
+               <span className="font-semibold">Offline Mode:</span> {cloudError}
+             </div>
+           )}
+
+            <main className={`pt-20 px-4 pb-12 max-w-7xl mx-auto ${cloudError && !cloudReady ? 'pt-28' : ''}`}>
             <AnimatePresence mode="wait">
               {activeTab === 'home' && (
                 <motion.div
@@ -232,7 +273,7 @@ export default function App() {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <HomeSection user={user} />
+                  <HomeSection user={user} notes={notes} images={images} links={links} />
                 </motion.div>
               )}
               {activeTab === 'notes' && (
@@ -262,6 +303,7 @@ export default function App() {
                   <UploadSection 
                     images={images} 
                     setImages={setImages} 
+                    onOpenCamera={handleOpenCamera}
                   />
                 </motion.div>
               )}
@@ -310,8 +352,7 @@ export default function App() {
             onClose={() => setIsAccountDrawerOpen(false)} 
             user={user} 
             setUser={setUser} 
-            isAuthenticated={isAuthenticated}
-            setIsAuthenticated={setIsAuthenticated}
+            onUpdateProfile={handleUpdateProfile}
             onLogout={handleLogout}
           />
         </>

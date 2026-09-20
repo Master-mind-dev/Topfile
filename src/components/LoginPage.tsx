@@ -73,13 +73,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
   return (
     <div 
-      className="ownly-login min-h-screen w-full text-white flex flex-col justify-between items-center px-5 py-6 sm:py-10 relative overflow-hidden selection:bg-[#ff304f] selection:text-white"
+      className="ownly-login min-h-screen w-full text-white flex flex-col justify-between items-center px-5 py-6 sm:py-10 relative overflow-hidden selection:bg-[#d9ad52]/30 selection:text-white"
       id="ownly-auth-screen"
     >
       <div className="ownly-login__header w-full max-w-6xl flex justify-between items-center z-10">
         <div className="flex items-center gap-2">
           <OwnlyLogo size="sm" />
-          <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-[0.3em] text-white/45 border-l border-[#ff304f]/35 pl-3 ml-2">PRIVATE WORKSPACE</span>
+          <span className="hidden sm:inline-block text-[10px] uppercase font-bold tracking-[0.3em] text-white/45 border-l border-[#d9ad52]/35 pl-3 ml-2">PRIVATE WORKSPACE</span>
         </div>
 
       </div>
@@ -98,11 +98,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           {/* Subtle Ambient Radial Light behind Card */}
           <div className="text-center mb-7">
             <OwnlyLogo size="lg" />
-            <div className="text-[10px] tracking-[0.3em] text-[#ff304f] uppercase font-extrabold mt-5 mb-2">OWNLY ACCESS</div>
+            <div className="text-[10px] tracking-[0.3em] text-[#d9ad52] uppercase font-extrabold mt-5 mb-2">OWNLY ACCESS</div>
             <h1 className="ownly-login__title text-2xl sm:text-3xl font-bold tracking-tight text-white">{isSignUp ? 'Create account' : 'Welcome back'}</h1>
           </div>
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs font-medium text-center">
+            <div className="mb-4 p-3 rounded-xl bg-[#d9ad52]/15 border border-[#d9ad52]/30 text-[#d4b87c] text-xs font-medium text-center">
               {error}
             </div>
           )}
@@ -196,7 +196,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-[#ff304f] text-white hover:bg-[#ff4f68] active:scale-[0.99] font-bold text-xs sm:text-sm py-3.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-lg group"
+                className="w-full bg-[#d9ad52] text-[#20140b] hover:bg-[#f4dfb0] active:scale-[0.99] font-bold text-xs sm:text-sm py-3.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer shadow-lg group"
                 id="btn-login-submit"
               >
                 {isLoading ? (
@@ -222,7 +222,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 setIsSignUp(!isSignUp);
                 setError('');
               }}
-              className="text-[#ff6a7e] hover:text-white underline font-bold transition-colors cursor-pointer ml-1"
+               className="text-[#d9ad52] hover:text-white underline font-bold transition-colors cursor-pointer ml-1"
               id="btn-toggle-auth-mode"
             >
               {isSignUp ? 'Login' : 'Sign up'}
@@ -276,7 +276,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   <button
                     type="button"
                     onClick={handleSendResetEmail}
-                    className="flex-1 py-2.5 rounded-full text-xs font-bold text-black bg-[#E2E4E8] hover:bg-[#FF2A3A] hover:text-white transition-all duration-200 cursor-pointer"
+                    className="flex-1 py-2.5 rounded-full text-xs font-bold text-black bg-[#d9ad52] hover:bg-[#f4dfb0] transition-all duration-200 cursor-pointer"
                   >
                     Send Instructions
                   </button>

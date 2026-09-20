@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={onOpenAccount}
-            className="p-2 sm:p-2.5 rounded-2xl bg-white/5 border border-white/20 text-white hover:bg-[#FF2A3A] hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 cursor-pointer flex items-center justify-center group shadow-md"
+            className="p-2 sm:p-2.5 rounded-2xl bg-white/5 border border-white/20 text-white hover:bg-[#d9ad52]/20 hover:border-[#d9ad52]/40 active:scale-95 transition-all duration-200 cursor-pointer flex items-center justify-center group shadow-md"
             id="btn-three-bar-menu"
             aria-label="Open Account and Workspace Menu"
             title="Account & Settings"

@@ -18,13 +18,12 @@ import { NoteItem, UploadedImageItem, LinkItem, TabType, UserProfile } from '../
 
 interface HomeSectionProps {
   user: UserProfile;
+  notes: NoteItem[];
+  images: UploadedImageItem[];
+  links: LinkItem[];
 }
 
-export const HomeSection: React.FC<HomeSectionProps> = ({ user }) => {
-  // Mock data for the dashboard summary since we are simplifying
-  const notes: NoteItem[] = [];
-  const images: UploadedImageItem[] = [];
-  const links: LinkItem[] = [];
+export const HomeSection: React.FC<HomeSectionProps> = ({ user, notes, images, links }) => {
 
   const totalNotes = notes.length;
   const pinnedNotes = notes.filter((n) => n.isPinned);
@@ -50,8 +49,8 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ user }) => {
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/15 pb-6">
         <div>
-          <div className="text-[10px] tracking-[0.25em] text-[#FF2A3A] uppercase font-extrabold mb-1 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#FF2A3A] animate-ping" />
+            <div className="text-[10px] tracking-[0.25em] text-[#d9ad52] uppercase font-extrabold mb-1 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#d9ad52] animate-ping" />
             WORKSPACE ENGINE ACTIVE
           </div>
           <h1 className="ownly-home__title text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
@@ -59,16 +58,16 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ user }) => {
           </h1>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button className="journey-action journey-action--primary bg-[#E2E4E8] text-zinc-950 px-4 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 hover:bg-[#FF2A3A] hover:text-white active:scale-95 transition-all duration-200 cursor-pointer shadow-md">
-            <Plus className="w-4 h-4" />
-            New Note
-          </button>
-          <button className="journey-action border border-white/20 bg-white/5 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-1.5 hover:bg-[#FF2A3A] hover:text-white hover:border-[#FF2A3A] active:scale-95 transition-all duration-200 cursor-pointer backdrop-blur-md">
-            <Camera className="w-4 h-4" />
-            Live Scan
-          </button>
-        </div>
+<div className="flex flex-wrap items-center gap-2.5">
+            <button className="journey-action journey-action--primary bg-[#d9ad52] text-[#20140b] px-4 py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 hover:bg-[#f4dfb0] active:scale-95 transition-all duration-200 cursor-pointer shadow-md">
+              <Plus className="w-4 h-4" />
+              New Note
+            </button>
+            <button className="journey-action border border-white/20 bg-white/5 text-white px-4 py-2 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-1.5 hover:bg-[#d9ad52] hover:text-[#20140b] hover:border-[#d9ad52] active:scale-95 transition-all duration-200 cursor-pointer backdrop-blur-md">
+              <Camera className="w-4 h-4" />
+              Live Scan
+            </button>
+          </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -118,7 +117,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({ user }) => {
 
         <div className="space-y-6">
           <h2 className="text-lg font-bold flex items-center gap-2">
-            <Flame className="w-4 h-4 text-red-500" />
+            <Flame className="w-4 h-4 text-[#d9ad52]" />
             Quick Access
           </h2>
           <div className="p-4 bg-zinc-900/50 border border-white/10 rounded-2xl space-y-4">
