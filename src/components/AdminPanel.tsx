@@ -10,7 +10,20 @@ import {
   Search,
   Mail,
   Calendar,
+  Wifi,
+  FileText,
+  Image,
+  Link,
 } from 'lucide-react';
+
+interface AdminStats {
+  totalUsers: number;
+  totalNotes: number;
+  totalImages: number;
+  totalLinks: number;
+  liveConnections: number;
+  liveUsers: number;
+}
 
 export function AdminPanel() {
   const [adminPassword, setAdminPassword] = useState('');
@@ -20,6 +33,22 @@ export function AdminPanel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [stats, setStats] = useState<AdminStats | null>(null);
+
+  const fetchStats = async (password: string) => {
+    try {
+      const res = await fetch('/api/admin/stats', { headers: { 'x-admin-password': password } });
+      const data = await res.json();
+      if (data.success) setStats(data.stats);
+    } catch { /* silently ignore */ }
+  };
+
+  // Refresh stats every 10s when authenticated
+  React.useEffect(() => {
+    if (!isAuthenticated) return;
+    const interval = setInterval(() => fetchStats(adminPassword), 10_000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, adminPassword]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +62,7 @@ export function AdminPanel() {
       if (data.success) {
         setIsAuthenticated(true);
         setUsers(data.users);
+        fetchStats(adminPassword);
       } else {
         setError(data.error || 'Invalid admin password');
       }
@@ -156,6 +186,7 @@ export function AdminPanel() {
               <h1 className="text-2xl font-bold">User Management</h1>
               <p className="text-xs text-white/40 mt-0.5">
                 {users.length} registered {users.length === 1 ? 'user' : 'users'}
+                {stats && <span className="ml-2 text-green-400">· {stats.liveConnections} device{stats.liveConnections !== 1 ? 's' : ''} live</span>}
               </p>
             </div>
           </div>
@@ -169,6 +200,26 @@ export function AdminPanel() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {/* Live Stats Cards */}
+        {stats && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            {[
+              { icon: Users, label: 'Users', value: stats.totalUsers, color: '#d9ad52' },
+              { icon: FileText, label: 'Notes', value: stats.totalNotes, color: '#a78bfa' },
+              { icon: Image, label: 'Images', value: stats.totalImages, color: '#60a5fa' },
+              { icon: Link, label: 'Links', value: stats.totalLinks, color: '#34d399' },
+              { icon: Wifi, label: 'Live Users', value: stats.liveUsers, color: '#4ade80' },
+              { icon: Wifi, label: 'Connections', value: stats.liveConnections, color: '#4ade80' },
+            ].map(({ icon: Icon, label, value, color }) => (
+              <div key={label} className="bg-zinc-950 border border-white/10 rounded-2xl p-3 flex flex-col gap-1">
+                <Icon className="w-4 h-4" style={{ color }} />
+                <p className="text-xl font-bold">{value}</p>
+                <p className="text-[11px] text-white/40">{label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Search Bar (Samsung One UI style) */}
         <div className="relative mb-6">
           <Search className="w-4 h-4 text-white/40 absolute left-4 top-1/2 -translate-y-1/2" />
@@ -212,7 +263,10 @@ export function AdminPanel() {
                   >
                     <div className="flex justify-between items-start">
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm text-white truncate">
+                        <p className="font-medium text-sm text-white truncate flex items-center gap-1.5">
+                          {user.online_devices > 0 && (
+                            <span className="inline-block w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" title="Online" />
+                          )}
                           {user.name}
                         </p>
                         <p className="text-xs text-zinc-500 truncate mt-0.5">
@@ -222,6 +276,11 @@ export function AdminPanel() {
                           <span className="text-[10px] bg-zinc-800 px-2 py-0.5 rounded-full">
                             Plan: {user.plan}
                           </span>
+                          {user.online_devices > 0 && (
+                            <span className="text-[10px] text-green-400">
+                              {user.online_devices} device{user.online_devices > 1 ? 's' : ''} online
+                            </span>
+                          )}
                           <span className="text-[10px] text-zinc-600 flex items-center gap-1">
                             <Calendar className="w-2.5 h-2.5" />
                             {user.joined_date

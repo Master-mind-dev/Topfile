@@ -24,7 +24,8 @@
     "motion": "^12.4.7",
     "pg": "^8.11.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.9",

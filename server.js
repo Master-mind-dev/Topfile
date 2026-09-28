@@ -1,4 +1,7 @@
 import express from "express";
+import { createServer } from "http";
+import { WebSocketServer } from "ws";
+import jwt from "jsonwebtoken";
 import axios from "axios";
 import * as cheerio from "cheerio";
 import cors from "cors";
@@ -8,6 +11,30 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { initializeDatabase, query } from "./db.js";
 import { verifyToken, generateToken, hashPassword, comparePassword } from "./auth.js";
+
+// ============ WEBSOCKET BROADCAST MAP ============
+// userClients: Map<userId, Set<WebSocket>>
+const userClients = new Map();
+
+function broadcastToUser(userId, payload, senderWs = null) {
+    const clients = userClients.get(String(userId));
+    if (!clients) return;
+    const msg = JSON.stringify(payload);
+    for (const ws of clients) {
+        if (ws !== senderWs && ws.readyState === 1) {
+            ws.send(msg);
+        }
+    }
+}
+
+function broadcastToAll(payload) {
+    const msg = JSON.stringify(payload);
+    for (const [, clients] of userClients) {
+        for (const ws of clients) {
+            if (ws.readyState === 1) ws.send(msg);
+        }
+    }
+}
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const envFile = path.join(__dirname, '.env');
@@ -162,7 +189,9 @@ async function startServer() {
         try {
             const { id, title, content, category, colorTag, isPinned } = req.body;
             const result = await query('INSERT INTO notes (id, user_id, title, content, category, color_tag, is_pinned) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *', [id, req.user.id, title, content, category, colorTag, isPinned || false]);
-            res.json({ success: true, note: result.rows[0] });
+            const note = result.rows[0];
+            res.json({ success: true, note });
+            broadcastToUser(req.user.id, { type: 'note_created', note });
         }
         catch (err) {
             console.error('Create note error:', err);
@@ -177,7 +206,9 @@ async function startServer() {
             if (result.rows.length === 0) {
                 return res.status(404).json({ success: false, error: 'Note not found' });
             }
-            res.json({ success: true, note: result.rows[0] });
+            const note = result.rows[0];
+            res.json({ success: true, note });
+            broadcastToUser(req.user.id, { type: 'note_updated', note });
         }
         catch (err) {
             console.error('Update note error:', err);
@@ -192,6 +223,7 @@ async function startServer() {
                 return res.status(404).json({ success: false, error: 'Note not found' });
             }
             res.json({ success: true, message: 'Note deleted' });
+            broadcastToUser(req.user.id, { type: 'note_deleted', id: req.params.id });
         }
         catch (err) {
             console.error('Delete note error:', err);
@@ -215,7 +247,9 @@ async function startServer() {
         try {
             const { id, name, dataUrl, fileSize, dimensions, source, notes: imgNotes } = req.body;
             const result = await query('INSERT INTO images (id, user_id, name, data_url, file_size, dimensions, source, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *', [id, req.user.id, name, dataUrl, fileSize, dimensions, source, imgNotes]);
-            res.json({ success: true, image: result.rows[0] });
+            const image = result.rows[0];
+            res.json({ success: true, image });
+            broadcastToUser(req.user.id, { type: 'image_created', image });
         }
         catch (err) {
             console.error('Create image error:', err);
@@ -230,6 +264,7 @@ async function startServer() {
                 return res.status(404).json({ success: false, error: 'Image not found' });
             }
             res.json({ success: true, message: 'Image deleted' });
+            broadcastToUser(req.user.id, { type: 'image_deleted', id: req.params.id });
         }
         catch (err) {
             console.error('Delete image error:', err);
@@ -253,7 +288,9 @@ async function startServer() {
         try {
             const { id, url, title, description, embedThumb, linkHost, embedProvider, embedId, isPlayable } = req.body;
             const result = await query('INSERT INTO links (id, user_id, url, title, description, embed_thumb, link_host, embed_provider, embed_id, is_playable) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *', [id, req.user.id, url, title, description, embedThumb, linkHost, embedProvider, embedId, isPlayable]);
-            res.json({ success: true, link: result.rows[0] });
+            const link = result.rows[0];
+            res.json({ success: true, link });
+            broadcastToUser(req.user.id, { type: 'link_created', link });
         }
         catch (err) {
             console.error('Create link error:', err);
@@ -268,6 +305,7 @@ async function startServer() {
                 return res.status(404).json({ success: false, error: 'Link not found' });
             }
             res.json({ success: true, message: 'Link deleted' });
+            broadcastToUser(req.user.id, { type: 'link_deleted', id: req.params.id });
         }
         catch (err) {
             console.error('Delete link error:', err);
@@ -302,15 +340,45 @@ async function startServer() {
         }
     });
     // ============ ADMIN ENDPOINTS ============
-    // Get all users
+    // Get all users (with live connected device count)
     app.get('/api/admin/users', verifyAdmin, async (req, res) => {
         try {
             const result = await query('SELECT id, email, name, joined_date, plan, storage_used_mb FROM users ORDER BY joined_date DESC');
-            res.json({ success: true, users: result.rows });
+            const users = result.rows.map((u) => ({
+                ...u,
+                online_devices: userClients.get(String(u.id))?.size || 0,
+            }));
+            res.json({ success: true, users });
         }
         catch (err) {
             console.error('Admin users error:', err);
             res.status(500).json({ success: false, error: 'Failed to fetch users' });
+        }
+    });
+    // Admin stats: total users, total content counts, live connections
+    app.get('/api/admin/stats', verifyAdmin, async (req, res) => {
+        try {
+            const usersCount = await query('SELECT COUNT(*) FROM users');
+            const notesCount = await query('SELECT COUNT(*) FROM notes');
+            const imagesCount = await query('SELECT COUNT(*) FROM images');
+            const linksCount = await query('SELECT COUNT(*) FROM links');
+            let liveConnections = 0;
+            for (const [, clients] of userClients) liveConnections += clients.size;
+            const liveUsers = userClients.size;
+            res.json({
+                success: true,
+                stats: {
+                    totalUsers: parseInt(usersCount.rows[0].count),
+                    totalNotes: parseInt(notesCount.rows[0].count),
+                    totalImages: parseInt(imagesCount.rows[0].count),
+                    totalLinks: parseInt(linksCount.rows[0].count),
+                    liveConnections,
+                    liveUsers,
+                }
+            });
+        } catch (err) {
+            console.error('Admin stats error:', err);
+            res.status(500).json({ success: false, error: 'Failed to fetch stats' });
         }
     });
     // Get specific user's data
@@ -520,8 +588,54 @@ async function startServer() {
             res.sendFile(path.join(distPath, 'index.html'));
         });
     }
-    app.listen(Number(PORT), '0.0.0.0', () => {
+    // ============ HTTP + WEBSOCKET SERVER ============
+    const httpServer = createServer(app);
+    const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+    wss.on('connection', (ws, req) => {
+        let userId = null;
+
+        ws.on('message', (raw) => {
+            try {
+                const msg = JSON.parse(raw);
+
+                // AUTH: client sends { type:'auth', token } on connect
+                if (msg.type === 'auth') {
+                    try {
+                        const secret = process.env.JWT_SECRET || 'ownly-secret-key-change-in-production';
+                        const decoded = jwt.verify(msg.token, secret);
+                        userId = String(decoded.userId || decoded.id);
+                        if (!userClients.has(userId)) userClients.set(userId, new Set());
+                        userClients.get(userId).add(ws);
+                        ws.send(JSON.stringify({ type: 'auth_ok', userId }));
+                        console.log(`🔌 WS: user ${userId} connected (${userClients.get(userId).size} devices)`);
+                    } catch {
+                        ws.send(JSON.stringify({ type: 'auth_error', error: 'Invalid token' }));
+                        ws.close();
+                    }
+                    return;
+                }
+
+                // PING keep-alive
+                if (msg.type === 'ping') {
+                    ws.send(JSON.stringify({ type: 'pong' }));
+                    return;
+                }
+            } catch { /* ignore malformed messages */ }
+        });
+
+        ws.on('close', () => {
+            if (userId && userClients.has(userId)) {
+                userClients.get(userId).delete(ws);
+                if (userClients.get(userId).size === 0) userClients.delete(userId);
+                console.log(`❌ WS: user ${userId} disconnected`);
+            }
+        });
+    });
+
+    httpServer.listen(Number(PORT), '0.0.0.0', () => {
         console.log(`✅ OWNLY server running on http://localhost:${PORT}`);
+        console.log(`🔌 WebSocket sync active at ws://localhost:${PORT}/ws`);
     });
 }
 startServer().catch(err => {

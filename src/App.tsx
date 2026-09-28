@@ -16,6 +16,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import * as api from './lib/api';
 import { AdminPanel } from './components/AdminPanel';
+import { useRealtimeSync } from './hooks/useRealtimeSync';
 
 const AccountDrawer = lazy(() => import('./components/AccountDrawer').then((module) => ({ default: module.AccountDrawer })));
 const LoginPage = lazy(() => import('./components/LoginPage').then((module) => ({ default: module.LoginPage })));
@@ -75,6 +76,24 @@ export default function App() {
   });
 
   const [selectedNoteToEdit, setSelectedNoteToEdit] = useState<NoteItem | null>(null);
+
+  // ── Real-time sync: update state when another device makes a change ──
+  useRealtimeSync(isAuthenticated, {
+    onNoteCreated: (note) =>
+      setNotes((prev) => prev.some((n) => n.id === note.id) ? prev : [note, ...prev]),
+    onNoteUpdated: (note) =>
+      setNotes((prev) => prev.map((n) => n.id === note.id ? { ...n, ...note } : n)),
+    onNoteDeleted: (id) =>
+      setNotes((prev) => prev.filter((n) => n.id !== id)),
+    onImageCreated: (image) =>
+      setImages((prev) => prev.some((i) => i.id === image.id) ? prev : [image, ...prev]),
+    onImageDeleted: (id) =>
+      setImages((prev) => prev.filter((i) => i.id !== id)),
+    onLinkCreated: (link) =>
+      setLinks((prev) => prev.some((l) => l.id === link.id) ? prev : [link, ...prev]),
+    onLinkDeleted: (id) =>
+      setLinks((prev) => prev.filter((l) => l.id !== id)),
+  });
 
   // Camera open handler for UploadSection capture button
   const handleOpenCamera = () => {
