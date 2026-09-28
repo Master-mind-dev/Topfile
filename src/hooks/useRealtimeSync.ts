@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { NoteItem, UploadedImageItem, LinkItem } from '../types';
+import { formatNote, formatImage, formatLink } from '../lib/api';
 
 export interface SyncHandlers {
   onNoteCreated?: (note: NoteItem) => void;
@@ -18,6 +19,12 @@ export function useRealtimeSync(
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryDelay = useRef(1000);
+  const handlersRef = useRef<SyncHandlers>(handlers);
+
+  // Keep latest handlers ref without reconnecting socket
+  useEffect(() => {
+    handlersRef.current = handlers;
+  });
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -50,25 +57,25 @@ export function useRealtimeSync(
           const msg = JSON.parse(event.data);
           switch (msg.type) {
             case 'note_created':
-              handlers.onNoteCreated?.(msg.note);
+              handlersRef.current.onNoteCreated?.(formatNote(msg.note));
               break;
             case 'note_updated':
-              handlers.onNoteUpdated?.(msg.note);
+              handlersRef.current.onNoteUpdated?.(formatNote(msg.note));
               break;
             case 'note_deleted':
-              handlers.onNoteDeleted?.(msg.id);
+              handlersRef.current.onNoteDeleted?.(msg.id);
               break;
             case 'image_created':
-              handlers.onImageCreated?.(msg.image);
+              handlersRef.current.onImageCreated?.(formatImage(msg.image));
               break;
             case 'image_deleted':
-              handlers.onImageDeleted?.(msg.id);
+              handlersRef.current.onImageDeleted?.(msg.id);
               break;
             case 'link_created':
-              handlers.onLinkCreated?.(msg.link);
+              handlersRef.current.onLinkCreated?.(formatLink(msg.link));
               break;
             case 'link_deleted':
-              handlers.onLinkDeleted?.(msg.id);
+              handlersRef.current.onLinkDeleted?.(msg.id);
               break;
           }
         } catch { /* ignore parse errors */ }

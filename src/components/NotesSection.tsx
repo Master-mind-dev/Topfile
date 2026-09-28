@@ -14,6 +14,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { NoteItem } from '../types';
+import * as api from '../lib/api';
 
 interface NotesSectionProps {
   notes: NoteItem[];
@@ -74,14 +75,24 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
     }
   }, [selectedNoteToEdit, setSelectedNoteToEdit]);
 
-  const onUpdateNote = (id: string, updates: Partial<NoteItem>) => {
+  const onUpdateNote = async (id: string, updates: Partial<NoteItem>) => {
     setNotes((prev) =>
       prev.map((n) => (n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n))
     );
+    try {
+      await api.updateNote(id, updates);
+    } catch (e) {
+      console.warn('Sync note update failed:', e);
+    }
   };
 
-  const onDeleteNote = (id: string) => {
+  const onDeleteNote = async (id: string) => {
     setNotes((prev) => prev.filter((n) => n.id !== id));
+    try {
+      await api.deleteNote(id);
+    } catch (e) {
+      console.warn('Sync note delete failed:', e);
+    }
   };
 
   const openNewNoteModal = () => {
@@ -104,18 +115,19 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
     setIsEditorOpen(true);
   };
 
-  const handleSaveNote = (e: React.FormEvent) => {
+  const handleSaveNote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!noteTitle.trim() && !noteContent.trim()) return;
 
     if (editingNoteId) {
-      onUpdateNote(editingNoteId, {
+      const updates = {
         title: noteTitle.trim() || 'Untitled Note',
         content: noteContent.trim(),
         category: noteCategory,
         colorTag: noteColor,
         isPinned: noteIsPinned,
-      });
+      };
+      onUpdateNote(editingNoteId, updates);
     } else {
       const newNote: NoteItem = {
         id: `note-${Date.now()}`,
@@ -128,6 +140,11 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
         updatedAt: new Date().toISOString(),
       };
       setNotes((prev) => [newNote, ...prev]);
+      try {
+        await api.createNote(newNote);
+      } catch (e) {
+        console.warn('Sync note create failed:', e);
+      }
     }
 
     setIsEditorOpen(false);

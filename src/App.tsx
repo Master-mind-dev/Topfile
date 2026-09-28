@@ -100,6 +100,35 @@ export default function App() {
     setActiveTab('scan');
   };
 
+  // Load data from backend when authenticated
+  const loadUserData = async () => {
+    const token = localStorage.getItem('ownly_auth_token');
+    if (!token) return;
+    try {
+      const [fetchedNotes, fetchedImages, fetchedLinks, profile] = await Promise.allSettled([
+        api.getNotes(),
+        api.getImages(),
+        api.getLinks(),
+        api.getUserProfile(),
+      ]);
+
+      if (fetchedNotes.status === 'fulfilled' && Array.isArray(fetchedNotes.value)) {
+        setNotes(fetchedNotes.value);
+      }
+      if (fetchedImages.status === 'fulfilled' && Array.isArray(fetchedImages.value)) {
+        setImages(fetchedImages.value);
+      }
+      if (fetchedLinks.status === 'fulfilled' && Array.isArray(fetchedLinks.value)) {
+        setLinks(fetchedLinks.value);
+      }
+      if (profile.status === 'fulfilled' && profile.value) {
+        setUser((prev) => ({ ...prev, ...profile.value }));
+      }
+    } catch (err) {
+      console.warn('Failed to load user workspace data from server:', err);
+    }
+  };
+
   // Auth check — never blocks UI if backend unavailable
   useEffect(() => {
     const checkAuth = async () => {
@@ -113,8 +142,7 @@ export default function App() {
 
       if (token) {
         try {
-          const profile = await api.getUserProfile();
-          setUser((prev) => ({ ...prev, ...profile }));
+          await loadUserData();
         } catch {
           // Backend offline — still authenticated locally
           setCloudError('Offline mode — using local workspace data.');
@@ -138,6 +166,7 @@ export default function App() {
     localStorage.setItem('ownly_user', JSON.stringify(newUser));
     setIsAuthenticated(true);
     setActiveTab('home');
+    loadUserData();
   };
 
   const handleLogout = async () => {

@@ -15,6 +15,7 @@ import {
   Youtube
 } from 'lucide-react';
 import { LinkItem } from '../types';
+import * as api from '../lib/api';
 
 interface LinkSectionProps {
   links: LinkItem[];
@@ -54,6 +55,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
     }
 
     setIsParsing(true);
+    let createdItem: LinkItem | null = null;
     try {
       const res = await fetch('/api/parse-link', {
         method: 'POST',
@@ -63,7 +65,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const data = await res.json();
       if (data.success) {
-        const newItem: LinkItem = {
+        createdItem = {
           id: `link-${Date.now()}`,
           url: data.url || trimmedUrl,
           title: data.title || 'Bookmarked Link',
@@ -75,7 +77,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
           isPlayable: data.isPlayable || false,
           createdAt: new Date().toISOString(),
         };
-        setLinks((prev) => [newItem, ...prev]);
+        setLinks((prev) => [createdItem!, ...prev]);
         setUrlInput('');
       } else {
         throw new Error(data.error || 'Failed to parse link metadata');
@@ -106,7 +108,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
       } catch (e) {
         console.error('URL parsing error', e);
       }
-      const newItem: LinkItem = {
+      createdItem = {
         id: `link-${Date.now()}`,
         url: trimmedUrl,
         title,
@@ -118,15 +120,27 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
         isPlayable: isPlayable,
         createdAt: new Date().toISOString(),
       };
-      setLinks((prev) => [newItem, ...prev]);
+      setLinks((prev) => [createdItem!, ...prev]);
       setUrlInput('');
     } finally {
       setIsParsing(false);
+      if (createdItem) {
+        try {
+          await api.createLink(createdItem);
+        } catch (err) {
+          console.warn('Sync create link failed:', err);
+        }
+      }
     }
   };
 
-  const handleDeleteLink = (id: string) => {
+  const handleDeleteLink = async (id: string) => {
     setLinks((prev) => prev.filter((l) => l.id !== id));
+    try {
+      await api.deleteLink(id);
+    } catch (e) {
+      console.warn('Sync delete link failed:', e);
+    }
   };
 
   // Sort by most recently saved

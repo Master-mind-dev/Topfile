@@ -84,10 +84,57 @@ export async function updateUserProfile(updates: Partial<UserProfile>) {
   return data.user;
 }
 
+// Helper to format DB note to frontend NoteItem
+export function formatNote(n: any) {
+  if (!n) return n;
+  return {
+    id: n.id,
+    title: n.title,
+    content: n.content,
+    category: n.category || 'General',
+    colorTag: n.color_tag || n.colorTag || '#d9ad52',
+    isPinned: n.is_pinned !== undefined ? n.is_pinned : n.isPinned,
+    createdAt: n.created_at || n.createdAt || new Date().toISOString(),
+    updatedAt: n.updated_at || n.updatedAt || new Date().toISOString(),
+  };
+}
+
+// Helper to format DB image to frontend UploadedImageItem
+export function formatImage(img: any) {
+  if (!img) return img;
+  return {
+    id: img.id,
+    name: img.name,
+    dataUrl: img.data_url || img.dataUrl,
+    fileSize: img.file_size || img.fileSize,
+    dimensions: img.dimensions,
+    source: img.source || 'upload',
+    notes: img.notes,
+    createdAt: img.created_at || img.createdAt || new Date().toISOString(),
+  };
+}
+
+// Helper to format DB link to frontend LinkItem
+export function formatLink(l: any) {
+  if (!l) return l;
+  return {
+    id: l.id,
+    url: l.url,
+    title: l.title,
+    description: l.description,
+    embedThumb: l.embed_thumb || l.embedThumb || '',
+    linkHost: l.link_host || l.linkHost || 'web',
+    embedProvider: l.embed_provider || l.embedProvider || 'generic',
+    embedId: l.embed_id || l.embedId || null,
+    isPlayable: l.is_playable !== undefined ? l.is_playable : l.isPlayable,
+    createdAt: l.created_at || l.createdAt || new Date().toISOString(),
+  };
+}
+
 // ============ NOTES ============
 export async function getNotes() {
   const data = await apiRequest('/notes');
-  return data.notes;
+  return (data.notes || []).map(formatNote);
 }
 
 export async function createNote(note: any) {
@@ -95,7 +142,7 @@ export async function createNote(note: any) {
     method: 'POST',
     body: JSON.stringify(note),
   });
-  return data.note;
+  return formatNote(data.note);
 }
 
 export async function updateNote(id: string, updates: any) {
@@ -103,7 +150,7 @@ export async function updateNote(id: string, updates: any) {
     method: 'PUT',
     body: JSON.stringify(updates),
   });
-  return data.note;
+  return formatNote(data.note);
 }
 
 export async function deleteNote(id: string) {
@@ -113,7 +160,7 @@ export async function deleteNote(id: string) {
 // ============ IMAGES ============
 export async function getImages() {
   const data = await apiRequest('/images');
-  return data.images;
+  return (data.images || []).map(formatImage);
 }
 
 export async function createImage(image: any) {
@@ -121,7 +168,7 @@ export async function createImage(image: any) {
     method: 'POST',
     body: JSON.stringify(image),
   });
-  return data.image;
+  return formatImage(data.image);
 }
 
 export async function deleteImage(id: string) {
@@ -131,7 +178,7 @@ export async function deleteImage(id: string) {
 // ============ LINKS ============
 export async function getLinks() {
   const data = await apiRequest('/links');
-  return data.links;
+  return (data.links || []).map(formatLink);
 }
 
 export async function createLink(link: any) {
@@ -139,7 +186,7 @@ export async function createLink(link: any) {
     method: 'POST',
     body: JSON.stringify(link),
   });
-  return data.link;
+  return formatLink(data.link);
 }
 
 export async function deleteLink(id: string) {

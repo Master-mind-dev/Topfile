@@ -11,6 +11,7 @@ import {
   Search
 } from 'lucide-react';
 import { UploadedImageItem } from '../types';
+import * as api from '../lib/api';
 
 interface UploadSectionProps {
   images: UploadedImageItem[];
@@ -38,7 +39,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
       if (!file.type.startsWith('image/')) return;
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const dataUrl = e.target?.result as string;
         const sizeFormatted = file.size > 1024 * 1024 
           ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` 
@@ -57,6 +58,13 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
         newItems.push(item);
         if (newItems.length === fileList.filter((f) => f.type.startsWith('image/')).length) {
           setImages((prev) => [...newItems, ...prev]);
+          for (const img of newItems) {
+            try {
+              await api.createImage(img);
+            } catch (err) {
+              console.warn('Sync image create failed:', err);
+            }
+          }
         }
       };
       reader.readAsDataURL(file);
@@ -82,8 +90,13 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
     }
   };
 
-  const handleDeleteImage = (id: string) => {
+  const handleDeleteImage = async (id: string) => {
     setImages((prev) => prev.filter((img) => img.id !== id));
+    try {
+      await api.deleteImage(id);
+    } catch (e) {
+      console.warn('Sync image delete failed:', e);
+    }
   };
 
   const handleDownload = (img: UploadedImageItem) => {

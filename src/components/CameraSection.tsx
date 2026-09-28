@@ -11,6 +11,7 @@ import {
   FlipHorizontal
 } from 'lucide-react';
 import { UploadedImageItem } from '../types';
+import * as api from '../lib/api';
 
 interface CameraSectionProps {
   images: UploadedImageItem[];
@@ -136,7 +137,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
     setSnapshotNotes('');
   };
 
-  const savePhoto = () => {
+  const savePhoto = async () => {
     if (!capturedDataUrl) return;
 
     const newImage: UploadedImageItem = {
@@ -151,6 +152,11 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
 
     setImages((prev) => [newImage, ...prev]);
     setSaveSuccess(true);
+    try {
+      await api.createImage(newImage);
+    } catch (e) {
+      console.warn('Sync camera capture failed:', e);
+    }
     setTimeout(() => {
       setSaveSuccess(false);
       setCapturedDataUrl(null);
