@@ -87,6 +87,14 @@ export async function updateUserProfile(updates: Partial<UserProfile>) {
 // Helper to format DB note to frontend NoteItem
 export function formatNote(n: any) {
   if (!n) return n;
+  let attachments = n.attachments;
+  if (typeof attachments === 'string') {
+    try {
+      attachments = JSON.parse(attachments);
+    } catch {
+      attachments = [];
+    }
+  }
   return {
     id: n.id,
     title: n.title,
@@ -94,6 +102,7 @@ export function formatNote(n: any) {
     category: n.category || 'General',
     colorTag: n.color_tag || n.colorTag || '#d9ad52',
     isPinned: n.is_pinned !== undefined ? n.is_pinned : n.isPinned,
+    attachments: Array.isArray(attachments) ? attachments : [],
     createdAt: n.created_at || n.createdAt || new Date().toISOString(),
     updatedAt: n.updated_at || n.updatedAt || new Date().toISOString(),
   };

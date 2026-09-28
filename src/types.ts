@@ -10,6 +10,14 @@ export interface UserProfile {
   totalStorageMb: number;
 }
 
+export interface NoteAttachment {
+  id: string;
+  name: string;
+  url: string; // base64 data url or hosted link
+  size?: string;
+  type?: 'pdf' | 'doc' | 'ppt' | 'xls' | 'txt' | 'other';
+}
+
 export interface NoteItem {
   id: string;
   title: string;
@@ -17,6 +25,7 @@ export interface NoteItem {
   category: 'General' | 'Work' | 'Personal' | 'Ideas' | 'Urgent';
   colorTag: string;
   isPinned?: boolean;
+  attachments?: NoteAttachment[];
   createdAt: string;
   updatedAt: string;
 }

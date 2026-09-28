@@ -62,9 +62,15 @@ export async function initializeDatabase() {
         category VARCHAR(50),
         color_tag VARCHAR(7),
         is_pinned BOOLEAN DEFAULT FALSE,
+        attachments JSONB DEFAULT '[]',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Migration for existing tables: add attachments if missing
+    await client.query(`
+      ALTER TABLE notes ADD COLUMN IF NOT EXISTS attachments JSONB DEFAULT '[]';
     `);
 
     // Images table (uploads)

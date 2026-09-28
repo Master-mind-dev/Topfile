@@ -187,8 +187,9 @@ async function startServer() {
     // Create note
     app.post('/api/notes', verifyToken, async (req, res) => {
         try {
-            const { id, title, content, category, colorTag, isPinned } = req.body;
-            const result = await query('INSERT INTO notes (id, user_id, title, content, category, color_tag, is_pinned) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *', [id, req.user.id, title, content, category, colorTag, isPinned || false]);
+            const { id, title, content, category, colorTag, isPinned, attachments } = req.body;
+            const attachmentsJson = JSON.stringify(attachments || []);
+            const result = await query('INSERT INTO notes (id, user_id, title, content, category, color_tag, is_pinned, attachments) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *', [id, req.user.id, title, content, category, colorTag, isPinned || false, attachmentsJson]);
             const note = result.rows[0];
             res.json({ success: true, note });
             broadcastToUser(req.user.id, { type: 'note_created', note });
@@ -201,8 +202,18 @@ async function startServer() {
     // Update note
     app.put('/api/notes/:id', verifyToken, async (req, res) => {
         try {
-            const { title, content, category, colorTag, isPinned } = req.body;
-            const result = await query('UPDATE notes SET title = $1, content = $2, category = $3, color_tag = $4, is_pinned = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 AND user_id = $7 RETURNING *', [title, content, category, colorTag, isPinned, req.params.id, req.user.id]);
+            const { title, content, category, colorTag, isPinned, attachments } = req.body;
+            const attachmentsJson = attachments !== undefined ? JSON.stringify(attachments) : null;
+            let queryStr;
+            let params;
+            if (attachmentsJson !== null) {
+                queryStr = 'UPDATE notes SET title = $1, content = $2, category = $3, color_tag = $4, is_pinned = $5, attachments = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 AND user_id = $8 RETURNING *';
+                params = [title, content, category, colorTag, isPinned, attachmentsJson, req.params.id, req.user.id];
+            } else {
+                queryStr = 'UPDATE notes SET title = $1, content = $2, category = $3, color_tag = $4, is_pinned = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 AND user_id = $7 RETURNING *';
+                params = [title, content, category, colorTag, isPinned, req.params.id, req.user.id];
+            }
+            const result = await query(queryStr, params);
             if (result.rows.length === 0) {
                 return res.status(404).json({ success: false, error: 'Note not found' });
             }
