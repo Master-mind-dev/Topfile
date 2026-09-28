@@ -393,7 +393,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
                     onChange={(e) => setNoteTitle(e.target.value)}
                     placeholder="Enter note title..."
                     required
-                     className="w-full bg-[#d9ad52] text-[#20140b] font-bold px-4 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-[#d9ad52] text-sm"
+                    className="w-full bg-black/80 border border-white/20 text-white font-semibold px-4 py-2.5 rounded-xl outline-none focus:border-[#d9ad52] text-sm transition-colors"
                     id="input-note-title"
                   />
                 </div>
@@ -462,7 +462,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
                     type="checkbox"
                     checked={noteIsPinned}
                     onChange={(e) => setNoteIsPinned(e.target.checked)}
-                     className="w-4 h-4 rounded accent-[#d9ad52]"
+                    className="w-4 h-4 rounded accent-[#d9ad52]"
                   />
                   Pin this note to the top of the workspace
                 </label>

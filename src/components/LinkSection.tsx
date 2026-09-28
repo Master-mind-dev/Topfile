@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  Link as LinkIcon,
-  Plus,
-  Play,
-  ExternalLink,
-  Trash2,
-  Copy,
-  Check,
-  Search,
+import { 
+  Link as LinkIcon, 
+  Play, 
+  ExternalLink, 
+  Trash2, 
+  Copy, 
+  Check, 
   X,
-   Bookmark,
   RefreshCw,
+  Search,
   Clock,
-  Film
+  Globe,
+  Youtube
 } from 'lucide-react';
 import { LinkItem } from '../types';
 
@@ -29,40 +28,31 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
   const [urlInput, setUrlInput] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [searchQuery, setSearchQuery] =
-    useState('');
-  const [activePlayItem, setActivePlayItem] =
-    useState<LinkItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activePlayItem, setActivePlayItem] = useState<LinkItem | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
-
-  // Auto-save all existing links as "saved" on mount
-  React.useEffect(() => {
-    const newSaved = new Set<string>();
-    links.forEach((l) => newSaved.add(l.id));
-    setSavedIds(newSaved);
-  }, [links]);
-
-  const handleToggleSave = (id: string) => {
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
+  const [duplicateWarning, setDuplicateWarning] = useState('');
 
   const handleParseAndAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setDuplicateWarning('');
     let trimmedUrl = urlInput.trim();
     if (!trimmedUrl) return;
     if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
       trimmedUrl = 'https://' + trimmedUrl;
     }
+
+    // Duplicate check BEFORE fetching
+    const isDuplicate = links.some(
+      (l) => l.url === trimmedUrl || l.url.replace(/\/$/, '') === trimmedUrl.replace(/\/$/, '')
+    );
+    if (isDuplicate) {
+      setDuplicateWarning('This URL is already saved in your workspace.');
+      setTimeout(() => setDuplicateWarning(''), 3000);
+      return;
+    }
+
     setIsParsing(true);
     try {
       const res = await fetch('/api/parse-link', {
@@ -85,37 +75,33 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
           isPlayable: data.isPlayable || false,
           createdAt: new Date().toISOString(),
         };
-        const newSaved = new Set(savedIds);
-        newSaved.add(newItem.id);
-        setSavedIds(newSaved);
         setLinks((prev) => [newItem, ...prev]);
         setUrlInput('');
       } else {
         throw new Error(data.error || 'Failed to parse link metadata');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      // Fallback: parse URL manually client-side
       console.warn('Backend parsing fallback:', err);
       let host = 'web';
       let isPlayable = false;
       let embedId: string | null = null;
       let provider = 'generic';
-      let embedThumb = '';
+      let title = 'Bookmarked Link';
       try {
         const parsed = new URL(trimmedUrl);
         host = parsed.hostname.replace(/^www\./, '');
         if (host.includes('youtube.com') || host.includes('youtu.be')) {
           provider = 'youtube';
           isPlayable = true;
+          title = 'YouTube Video';
           if (host.includes('youtu.be')) {
             const parts = trimmedUrl.split('/');
-            embedId = parts[parts.length - 1];
+            embedId = parts[parts.length - 1].split('?')[0];
           } else {
             const urlParams = new URLSearchParams(parsed.search);
             embedId = urlParams.get('v');
           }
-          embedThumb = embedId
-            ? `https://img.youtube.com/vi/${embedId}/hqdefault.jpg`
-            : '';
         }
       } catch (e) {
         console.error('URL parsing error', e);
@@ -123,23 +109,15 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
       const newItem: LinkItem = {
         id: `link-${Date.now()}`,
         url: trimmedUrl,
-        title:
-          provider === 'youtube'
-            ? 'YouTube Video'
-            : host === 'web'
-              ? 'Bookmarked Link'
-              : host,
+        title,
         description: '',
-        embedThumb,
+        embedThumb: embedId ? `https://img.youtube.com/vi/${embedId}/hqdefault.jpg` : '',
         linkHost: host,
         embedProvider: provider,
         embedId: embedId,
         isPlayable: isPlayable,
         createdAt: new Date().toISOString(),
       };
-      const newSaved = new Set(savedIds);
-      newSaved.add(newItem.id);
-      setSavedIds(newSaved);
       setLinks((prev) => [newItem, ...prev]);
       setUrlInput('');
     } finally {
@@ -148,179 +126,284 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
   };
 
   const handleDeleteLink = (id: string) => {
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
     setLinks((prev) => prev.filter((l) => l.id !== id));
   };
 
-  const filteredLinks = [...links]
-    .filter((l) =>
-      l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      l.url.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+  // Sort by most recently saved
+  const sortedLinks = [...links].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  const filteredLinks = sortedLinks.filter((l) =>
+    l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.linkHost.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="ownly-links space-y-6">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/15 pb-5">
+    <div className="ownly-links space-y-6 pb-16">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5 pt-2">
         <div>
-          <div className="text-[10px] tracking-[0.3em] text-[#d9ad52] uppercase font-extrabold mb-1 flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[#d9ad52]" />
-            WEB LINK VAULT
+          <div className="text-[10px] tracking-[0.25em] text-[#a78bfa] uppercase font-extrabold mb-1">
+            LINK LIBRARY
           </div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
-              <LinkIcon className="w-5 h-5 text-[#d9ad52]" />
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
               Saved Links
             </h1>
-            <span className="px-3 py-0.5 rounded-full text-xs font-extrabold bg-[#d9ad52]/12 text-[#f4dfb0] border border-[#d9ad52]/30">
-              {links.length} {links.length === 1 ? 'link' : 'links'}
+            <span className="px-3 py-0.5 rounded-full text-xs font-extrabold bg-white/10 text-white border border-white/20">
+              {links.length} Total
             </span>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          {(copiedId || savedIds.size > 0) && (
-            <div className="hidden sm:flex items-center gap-1 text-xs text-white/50">
-              {copiedId && <Check className="w-3 h-3 text-green-400" />}
-              Saved: {savedIds.size}
-            </div>
-          )}
+          <p className="text-sm text-white/40 mt-1">Save YouTube videos, websites, and web links.</p>
         </div>
       </div>
 
-      {/* URL Input Bar — YouTube-style */}
+      {/* URL Input Form */}
       <form onSubmit={handleParseAndAdd} className="relative">
-        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-          <LinkIcon className="w-4 h-4 text-zinc-500 group-focus-within:text-[#d9ad52] transition-colors" />
-        </div>
-        <input
-          type="text"
-          placeholder="Paste YouTube, web, or video URL…"
-          className="w-full bg-zinc-900 border border-white/10 rounded-3xl pl-11 pr-28 py-3 text-sm focus:outline-none focus:border-[#d9ad52]/50 transition-all text-white placeholder:text-white/40 font-medium shadow-inner"
-          value={urlInput}
-          onChange={(e) => setUrlInput(e.target.value)}
-          aria-label="Paste link URL"
-          id="input-link-url"
-        />
-        <button
-          type="submit"
-          disabled={isParsing || !urlInput.trim()}
-          className="absolute right-2 top-2 bottom-2 px-5 bg-[#d9ad52] text-[#20140b] rounded-2xl text-xs font-bold hover:bg-[#f4dfb0] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-md"
-          id="btn-add-link"
-        >
-          {isParsing ? (
-            <RefreshCw className="w-3 h-3 animate-spin" />
-          ) : (
-            <>
-              <Plus className="w-3 h-3" />
-              Save
-            </>
-          )}
-        </button>
-      </form>
-
-      {errorMsg && (
-        <div className="p-3 rounded-xl bg-[#d9ad52]/10 border border-[#d9ad52]/30 text-[#d4b87c] text-xs">
-          {errorMsg}
-        </div>
-      )}
-
-      {/* Search */}
-      {links.length > 0 && (
-        <div className="relative">
-          <Search className="w-4 h-4 text-white/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search saved links…"
-            className="w-full bg-black/70 border border-white/10 text-white placeholder:text-white/40 pl-10 pr-4 py-2.5 rounded-2xl text-xs sm:text-sm outline-none focus:border-[#d9ad52] font-medium transition-colors"
-            id="input-search-links"
-          />
-        </div>
-      )}
-
-      {/* YouTube-style grid of link cards */}
-      {filteredLinks.length === 0 ? (
-        <div className="p-12 rounded-3xl border border-white/10 bg-zinc-950/40 text-center text-white/40">
-          <Film className="w-12 h-12 text-white/20 mx-auto mb-3" />
-          <h3 className="text-base font-bold text-white mb-1">No saved links yet</h3>
-          <p className="text-xs text-white/40 max-w-xs mx-auto mb-4">
-            Paste a YouTube URL or web link above and tap Save. Each link is
-            bookmarked and instantly available on reload.
-          </p>
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <LinkIcon className="w-4 h-4 text-zinc-500 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Paste URL (YouTube, website, etc.)"
+              className="w-full bg-zinc-900 border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-sm focus:outline-none focus:border-[#a78bfa]/60 transition-all text-white placeholder:text-white/30"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              id="input-link-url"
+            />
+          </div>
           <button
-            onClick={() =>
-              document.getElementById('input-link-url')?.focus()
-            }
-            className="px-5 py-2.5 rounded-full bg-[#d9ad52] text-[#20140b] font-bold text-xs inline-flex items-center gap-1.5 hover:bg-[#f4dfb0] transition-all shadow-md"
+            type="submit"
+            disabled={isParsing || !urlInput.trim()}
+            className="px-6 py-3.5 bg-[#a78bfa] text-white rounded-2xl text-sm font-bold hover:bg-[#c4b5fd] transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 min-w-[90px]"
+            id="btn-add-link"
           >
-            <Plus className="w-4 h-4" />
-            Add Your First Link
+            {isParsing ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Add Link'}
           </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredLinks.map((link) => (
-            <LinkCard
-              key={link.id}
-              link={link}
-              isSaved={savedIds.has(link.id)}
-              hasCopied={copiedId === link.id}
-              onToggleSave={() => handleToggleSave(link.id)}
-              onCopy={() => {
-                navigator.clipboard.writeText(link.url);
-                setCopiedId(link.id);
-                setTimeout(() => setCopiedId(null), 2000);
-              }}
-              onDelete={() => handleDeleteLink(link.id)}
-              onPlay={() => setActivePlayItem(link)}
-            />
-          ))}
+
+        {/* Warnings */}
+        <AnimatePresence>
+          {duplicateWarning && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mt-2 px-4 py-2 bg-amber-400/10 border border-amber-400/20 rounded-xl text-amber-400 text-xs flex items-center gap-2"
+            >
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+              {duplicateWarning}
+            </motion.div>
+          )}
+          {errorMsg && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="mt-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs"
+            >
+              {errorMsg}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </form>
+
+      {/* Search bar */}
+      {links.length > 0 && (
+        <div className="relative">
+          <Search className="w-4 h-4 text-white/30 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search saved links..."
+            className="w-full bg-zinc-950/60 border border-white/10 rounded-2xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:border-white/30 transition-all text-white placeholder:text-white/30"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       )}
 
-      {/* YouTube-style video player modal */}
+      {/* History section header */}
+      {filteredLinks.length > 0 && (
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-white/60 flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5" />
+            History — sorted by most recent
+          </h2>
+          <span className="text-xs text-zinc-600">{filteredLinks.length} link{filteredLinks.length !== 1 ? 's' : ''}</span>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {filteredLinks.length === 0 && (
+        <div className="p-12 rounded-3xl border border-white/10 bg-zinc-950/40 text-center text-white/40">
+          <LinkIcon className="w-12 h-12 text-white/20 mx-auto mb-3" />
+          <h3 className="text-base font-bold text-white mb-1">
+            {searchQuery ? 'No links matched your search' : 'No links saved yet'}
+          </h3>
+          <p className="text-xs text-white/40 max-w-xs mx-auto">
+            {searchQuery ? 'Try a different keyword or URL.' : 'Paste a YouTube URL or any website link above to save it here.'}
+          </p>
+        </div>
+      )}
+
+      {/* Links Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <AnimatePresence>
+          {filteredLinks.map((link, idx) => (
+            <motion.div
+              key={link.id}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2, delay: idx * 0.04 }}
+              className="p-4 bg-white/4 border border-white/10 rounded-2xl hover:bg-white/7 hover:border-white/20 transition-all group relative flex flex-col gap-3"
+            >
+              {/* Card header */}
+              <div className="flex items-start justify-between">
+                <div className="p-2 rounded-xl" style={{ backgroundColor: link.isPlayable ? 'rgba(167,139,250,0.12)' : 'rgba(255,255,255,0.06)' }}>
+                  {link.embedProvider === 'youtube' ? (
+                    <Youtube className="w-4 h-4 text-[#a78bfa]" />
+                  ) : link.isPlayable ? (
+                    <Play className="w-4 h-4 text-[#a78bfa]" />
+                  ) : (
+                    <Globe className="w-4 h-4 text-zinc-400" />
+                  )}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(link.url);
+                      setCopiedId(link.id);
+                      setTimeout(() => setCopiedId(null), 2000);
+                    }}
+                    className="p-1.5 hover:bg-white/10 rounded-lg transition-all text-zinc-500 hover:text-white cursor-pointer"
+                    title="Copy link"
+                  >
+                    {copiedId === link.id ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 hover:bg-white/10 rounded-lg transition-all text-zinc-500 hover:text-white"
+                    title="Open link"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteLink(link.id)}
+                    className="p-1.5 hover:bg-red-500/20 rounded-lg transition-all text-zinc-500 hover:text-red-500 cursor-pointer"
+                    title="Delete link"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Thumbnail (YouTube) */}
+              {link.embedThumb && (
+                <div className="w-full aspect-video rounded-xl overflow-hidden border border-white/5 bg-black">
+                  <img
+                    src={link.embedThumb}
+                    alt={link.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+
+              {/* Info */}
+              <div className="space-y-1 flex-1">
+                <div className="text-sm font-bold text-white line-clamp-2 group-hover:text-[#a78bfa] transition-colors leading-tight">
+                  {link.title}
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-zinc-500">
+                  <Globe className="w-2.5 h-2.5 flex-shrink-0" />
+                  <span className="truncate">{link.linkHost}</span>
+                </div>
+                <div className="text-[10px] text-zinc-600 flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5" />
+                  {new Date(link.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                </div>
+              </div>
+
+              {/* Play button */}
+              {link.isPlayable && (
+                <button
+                  type="button"
+                  onClick={() => setActivePlayItem(link)}
+                  className="w-full py-2.5 bg-[#a78bfa]/15 text-[#a78bfa] rounded-xl text-xs font-bold hover:bg-[#a78bfa]/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Play className="w-3.5 h-3.5" />
+                  Play Now
+                </button>
+              )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* Video Player Modal */}
       <AnimatePresence>
         {activePlayItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-zinc-900 border border-white/20 rounded-3xl p-4 max-w-4xl w-full shadow-2xl"
+              key="video-modal"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 10 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="bg-zinc-950 border border-white/20 rounded-3xl p-4 sm:p-6 max-w-4xl w-full shadow-2xl"
             >
-              <div className="flex items-center justify-between mb-4 px-2">
-                <h3 className="text-lg font-bold">{activePlayItem.title}</h3>
+              <div className="flex items-center justify-between mb-4">
+                <div className="min-w-0 pr-4">
+                  <div className="text-[10px] text-[#a78bfa] uppercase tracking-widest font-bold mb-0.5">
+                    {activePlayItem.linkHost}
+                  </div>
+                  <h3 className="text-base font-bold text-white truncate">{activePlayItem.title}</h3>
+                </div>
                 <button
+                  type="button"
                   onClick={() => setActivePlayItem(null)}
-                  className="p-2 hover:bg-white/10 rounded-full transition-all"
+                  className="p-2 hover:bg-white/10 rounded-full transition-all text-white/60 hover:text-white cursor-pointer flex-shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <div className="aspect-video w-full bg-black rounded-2xl overflow-hidden border border-white/10">
-                {activePlayItem.embedProvider === 'youtube' &&
-                activePlayItem.embedId ? (
+                {activePlayItem.embedProvider === 'youtube' && activePlayItem.embedId ? (
                   <iframe
-                    src={`https://www.youtube.com/embed/${activePlayItem.embedId}`}
+                    src={`https://www.youtube.com/embed/${activePlayItem.embedId}?autoplay=1`}
+                    title={activePlayItem.title}
                     className="w-full h-full"
                     allowFullScreen
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
-                    title={activePlayItem.title}
+                    allow="autoplay; encrypted-media"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-zinc-500 text-sm">
-                    <ExternalLink className="w-6 h-6 mr-2" />
-                    External content cannot be embedded.
+                  <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500 gap-3">
+                    <ExternalLink className="w-8 h-8" />
+                    <p className="text-sm">Cannot embed this content.</p>
+                    <a
+                      href={activePlayItem.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-white/10 text-white rounded-full text-xs font-bold hover:bg-white/20 transition-all"
+                    >
+                      Open in new tab
+                    </a>
                   </div>
                 )}
               </div>
@@ -328,124 +411,6 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
           </div>
         )}
       </AnimatePresence>
-    </div>
-  );
-};
-
-// YouTube-style link card sub-component
-const LinkCard: React.FC<{
-  link: LinkItem;
-  isSaved: boolean;
-  hasCopied: boolean;
-  onToggleSave: () => void;
-  onCopy: () => void;
-  onDelete: () => void;
-  onPlay: () => void;
-}> = ({ link, isSaved, hasCopied, onToggleSave, onCopy, onDelete, onPlay }) => {
-  const [imgError, setImgError] = useState(false);
-
-  return (
-    <div className="bg-zinc-950/60 border border-white/10 rounded-3xl overflow-hidden hover:border-white/20 transition-all duration-300 cursor-pointer group relative shadow-xl flex flex-col">
-      {/* Thumbnail row (YouTube-style) */}
-      <div className="relative aspect-video bg-black overflow-hidden">
-        {link.embedThumb && !imgError ? (
-          <img
-            src={link.embedThumb}
-            alt={link.title}
-            referrerPolicy="no-referrer"
-            onError={() => setImgError(true)}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-zinc-900">
-            <Film className="w-10 h-10 text-zinc-600" />
-          </div>
-        )}
-
-        {/* Play overlay for playable links */}
-        {link.isPlayable && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onPlay();
-              }}
-              className="p-3 bg-[#d9ad52] rounded-full text-black hover:bg-[#f4dfb0] transition-colors shadow-xl"
-              title="Play"
-            >
-              <Play className="w-5 h-5 fill-current" />
-            </button>
-          </div>
-        )}
-
-        {/* Bookmark save button — YouTube-style */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSave();
-          }}
-          className={`absolute top-2 right-2 p-1.5 rounded-full backdrop-blur-md transition-all ${
-            isSaved
-              ? 'bg-[#d9ad52] text-black'
-              : 'bg-black/30 text-white/70 hover:text-white'
-          }`}
-          title={isSaved ? 'Saved' : 'Save link'}
-        >
-          <Bookmark
-            className={`w-4 h-4 ${isSaved ? 'fill-current' : ''}`}
-          />
-        </button>
-
-        {/* Host badge */}
-        {link.linkHost && (
-          <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-wider bg-black/50 text-white/90 border border-white/10 backdrop-blur-sm">
-            {link.linkHost}
-          </span>
-        )}
-      </div>
-
-      {/* Content below thumbnail — Samsung One UI style */}
-      <div className="p-4 flex-1 flex flex-col">
-        <h3 className="text-sm font-bold text-white line-clamp-2 group-hover:text-[#d9ad52] transition-colors mb-1 leading-snug">
-          {link.title}
-        </h3>
-
-        <p className="text-[10px] text-white/40 line-clamp-1 mb-2">{link.url}</p>
-
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-white/5">
-          <div className="flex items-center gap-1 text-[10px] text-white/40">
-            <Clock className="w-2.5 h-2.5" />
-            {new Date(link.createdAt).toLocaleDateString()}
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onCopy();
-              }}
-              className="p-1 hover:bg-white/10 rounded-md transition-all text-zinc-400 hover:text-white"
-              title="Copy link"
-            >
-              {hasCopied ? (
-                <Check className="w-3 h-3 text-green-400" />
-              ) : (
-                <Copy className="w-3 h-3" />
-              )}
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              className="p-1 hover:bg-[#d9ad52]/20 rounded-md transition-all text-zinc-400 hover:text-[#d9ad52]"
-              title="Remove link"
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { 
   TabType, 
@@ -19,7 +19,6 @@ import { AdminPanel } from './components/AdminPanel';
 
 const AccountDrawer = lazy(() => import('./components/AccountDrawer').then((module) => ({ default: module.AccountDrawer })));
 const LoginPage = lazy(() => import('./components/LoginPage').then((module) => ({ default: module.LoginPage })));
-const WorkspaceAssistant = lazy(() => import('./components/WorkspaceAssistant').then((module) => ({ default: module.WorkspaceAssistant })));
 
 const HomeSection = lazy(() => import('./components/HomeSection').then((module) => ({ default: module.HomeSection })));
 const NotesSection = lazy(() => import('./components/NotesSection').then((module) => ({ default: module.NotesSection })));
@@ -27,18 +26,25 @@ const UploadSection = lazy(() => import('./components/UploadSection').then((modu
 const CameraSection = lazy(() => import('./components/CameraSection').then((module) => ({ default: module.CameraSection })));
 const LinkSection = lazy(() => import('./components/LinkSection').then((module) => ({ default: module.LinkSection })));
 
+// Page transition variants
+const pageVariants = {
+  initial: { opacity: 0, y: 16, scale: 0.99 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -10, scale: 0.99 },
+};
+const pageTransition = { duration: 0.28, ease: "easeOut" };
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [cloudError, setCloudError] = useState('');
+
   const [user, setUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('ownly_user');
     if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return initialUserProfile;
-      }
+      try { return JSON.parse(saved); } catch { return initialUserProfile; }
     }
     return initialUserProfile;
   });
@@ -68,81 +74,65 @@ export default function App() {
   });
 
   const [selectedNoteToEdit, setSelectedNoteToEdit] = useState<NoteItem | null>(null);
-  const [cloudReady, setCloudReady] = useState(false);
-  const [cloudError, setCloudError] = useState('');
 
   // Camera open handler for UploadSection capture button
   const handleOpenCamera = () => {
     setActiveTab('scan');
   };
 
+  // Auth check — never blocks UI if backend unavailable
   useEffect(() => {
     const checkAuth = async () => {
-      try {
-        const saved = localStorage.getItem('ownly_user');
-        const token = localStorage.getItem('ownly_auth_token');
-        if (!token && !saved) {
-          setIsAuthenticated(false);
-          setCloudReady(false);
-          return;
-        }
+      const token = localStorage.getItem('ownly_auth_token');
+      const saved = localStorage.getItem('ownly_user');
+      
+      // If we have local data, let them in immediately
+      if (saved || token) {
+        setIsAuthenticated(true);
+      }
+
+      if (token) {
         try {
           const profile = await api.getUserProfile();
-          setIsAuthenticated(true);
           setUser((prev) => ({ ...prev, ...profile }));
-          setCloudReady(true);
-        } catch (apiErr) {
-          // Backend unavailable — continue in offline mode with localStorage data
-          setIsAuthenticated(true);
-          setCloudReady(false);
+        } catch {
+          // Backend offline — still authenticated locally
           setCloudError('Offline mode — using local workspace data.');
         }
-      } catch (e) {
-        setIsAuthenticated(false);
-        setCloudReady(false);
       }
+      
+      setIsCheckingAuth(false);
     };
     checkAuth();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('ownly_user', JSON.stringify(user));
-  }, [user]);
-
-  useEffect(() => {
-    localStorage.setItem('ownly_notes', JSON.stringify(notes));
-  }, [notes]);
-
-  useEffect(() => {
-    localStorage.setItem('ownly_images', JSON.stringify(images));
-  }, [images]);
-
-  useEffect(() => {
-    localStorage.setItem('ownly_links', JSON.stringify(links));
-  }, [links]);
+  // Persist all state to localStorage
+  useEffect(() => { localStorage.setItem('ownly_user', JSON.stringify(user)); }, [user]);
+  useEffect(() => { localStorage.setItem('ownly_notes', JSON.stringify(notes)); }, [notes]);
+  useEffect(() => { localStorage.setItem('ownly_images', JSON.stringify(images)); }, [images]);
+  useEffect(() => { localStorage.setItem('ownly_links', JSON.stringify(links)); }, [links]);
 
   const handleLoginSuccess = (profile: Partial<UserProfile>) => {
-    setUser((prev) => ({ ...prev, ...profile }));
+    const newUser = { ...user, ...profile };
+    setUser(newUser);
+    localStorage.setItem('ownly_user', JSON.stringify(newUser));
     setIsAuthenticated(true);
     setActiveTab('home');
   };
 
   const handleLogout = async () => {
-    try {
-      await api.logout();
-    } catch (e) {
-      console.warn('Logout error:', e);
-    }
+    try { await api.logout(); } catch {}
+    localStorage.removeItem('ownly_auth_token');
     setIsAuthenticated(false);
     setIsAccountDrawerOpen(false);
   };
 
   const handleUpdateProfile = async (updates: Partial<UserProfile>) => {
-    setUser((previous) => ({ ...previous, ...updates }));
-    try {
-       await api.updateUserProfile(updates);
-    } catch (error) {
-      console.warn('Profile update error:', error);
+    const updated = { ...user, ...updates };
+    setUser(updated);
+    localStorage.setItem('ownly_user', JSON.stringify(updated));
+    try { await api.updateUserProfile(updates); } catch (e) {
+      console.warn('Profile update to backend failed (offline):', e);
     }
   };
 
@@ -187,176 +177,125 @@ export default function App() {
   };
 
   const handleAddLink = (newLink: LinkItem) => {
-    setLinks((prev) => [newLink, ...prev]);
+    // Prevent duplicate URLs
+    setLinks((prev) => {
+      const exists = prev.some((l) => l.url === newLink.url);
+      if (exists) return prev;
+      return [newLink, ...prev];
+    });
   };
 
   const handleDeleteLink = (id: string) => {
     setLinks((prev) => prev.filter((l) => l.id !== id));
   };
 
-  const handleExportData = () => {
-    const backup = {
-      version: '1.0',
-      exportedAt: new Date().toISOString(),
-      user,
-      notes,
-      images,
-      links,
-    };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `OWNLY_Workspace_Backup_${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const handleResetWorkspace = () => {
-    if (confirm('Restore all default sample notes, images, and video links?')) {
-      setNotes(initialNotes);
-      setImages(initialImages);
-      setLinks(initialLinks);
-      setUser(initialUserProfile);
-    }
-  };
-
-  if (!isAuthenticated) {
-    return <Suspense fallback={<div className="ownly-loading min-h-screen" role="status">Loading access…</div>}><LoginPage onLoginSuccess={handleLoginSuccess} /></Suspense>;
-  }
-
-  // Admin route must render immediately — never block with loading screen
-  if (isAdminRoute) {
-    return <AdminPanel />;
-  }
-
-  if (!cloudReady && !cloudError) {
+  // Show spinner only during initial auth check
+  if (isCheckingAuth && !isAuthenticated) {
     return (
-      <div className="ownly-loading min-h-screen" role="status">
-        <div className="text-center px-6">
-          <div className="text-white font-bold mb-2">Connecting to your cloud workspace…</div>
-          <div className="text-white/50 text-xs max-w-sm">Your workspace will appear after loading your data, so another device sees the same content.</div>
-          {cloudError && <div className="mt-4 text-[#d9ad52] text-xs max-w-md">{cloudError}</div>}
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-[#d9ad52]/30 border-t-[#d9ad52] rounded-full animate-spin" />
+          <p className="text-white/40 text-xs tracking-widest uppercase">Loading</p>
         </div>
       </div>
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <Suspense fallback={<div className="ownly-loading min-h-screen" role="status">Loading access…</div>}>
+        <LoginPage onLoginSuccess={handleLoginSuccess} />
+      </Suspense>
+    );
+  }
+
+  // Admin route
+  if (isAdminRoute) {
+    return <AdminPanel />;
+  }
+
   return (
     <div className="min-h-screen bg-black text-white font-sans selection:bg-[#d9ad52]/30">
-      {isAdminRoute ? (
-        <AdminPanel />
-      ) : (
-        <>
-           <Header 
-             user={user} 
-             activeTab={activeTab} 
-             setActiveTab={setActiveTab} 
-             onOpenAccount={() => setIsAccountDrawerOpen(true)}
-           />
+      <Header
+        user={user}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onOpenAccount={() => setIsAccountDrawerOpen(true)}
+      />
 
-           {cloudError && !cloudReady && (
-             <div className="fixed top-16 left-0 right-0 z-40 px-4 py-2 bg-[#d9ad52]/10 border-b border-[#d9ad52]/30 text-xs text-[#d9ad52] text-center backdrop-blur-md">
-               <span className="font-semibold">Offline Mode:</span> {cloudError}
-             </div>
-           )}
-
-            <main className={`pt-20 px-4 pb-12 max-w-7xl mx-auto ${cloudError && !cloudReady ? 'pt-28' : ''}`}>
-            <AnimatePresence mode="wait">
-              {activeTab === 'home' && (
-                <motion.div
-                  key="home"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <HomeSection user={user} notes={notes} images={images} links={links} />
-                </motion.div>
-              )}
-              {activeTab === 'notes' && (
-                <motion.div
-                  key="notes"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <NotesSection 
-                    notes={notes} 
-                    setNotes={setNotes} 
-                    selectedNoteToEdit={selectedNoteToEdit}
-                    setSelectedNoteToEdit={setSelectedNoteToEdit}
-                  />
-                </motion.div>
-              )}
-              {activeTab === 'upload' && (
-                <motion.div
-                  key="upload"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <UploadSection 
-                    images={images} 
-                    setImages={setImages} 
-                    onOpenCamera={handleOpenCamera}
-                  />
-                </motion.div>
-              )}
-              {activeTab === 'scan' && (
-                <motion.div
-                  key="scan"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <CameraSection 
-                    images={images} 
-                    setImages={setImages} 
-                  />
-                </motion.div>
-              )}
-              {activeTab === 'links' && (
-                <motion.div
-                  key="links"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <LinkSection 
-                    links={links} 
-                    setLinks={setLinks} 
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </main>
-
-          <div 
-            className="fixed bottom-4 right-4 opacity-0 hover:opacity-100 transition-opacity cursor-pointer z-50"
-            onClick={() => window.location.href = '/admin'}
-          >
-            <div className="p-2 bg-zinc-900 rounded-full border border-zinc-800 text-[10px] text-zinc-600">
-              Admin
-            </div>
-          </div>
-
-          <AccountDrawer 
-            isOpen={isAccountDrawerOpen} 
-            onClose={() => setIsAccountDrawerOpen(false)} 
-            user={user} 
-            setUser={setUser} 
-            onUpdateProfile={handleUpdateProfile}
-            onLogout={handleLogout}
-          />
-        </>
+      {cloudError && (
+        <div className="sticky top-[72px] z-30 px-4 py-2 bg-[#d9ad52]/10 border-b border-[#d9ad52]/30 text-xs text-[#d9ad52] text-center backdrop-blur-md">
+          <span className="font-semibold">Offline Mode:</span> {cloudError}
+        </div>
       )}
+
+      <main className="pt-4 px-3 sm:px-6 pb-16 max-w-7xl mx-auto">
+        <Suspense fallback={<div className="ownly-loading" role="status" />}>
+          <AnimatePresence mode="wait">
+            {activeTab === 'home' && (
+              <motion.div key="home" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={pageTransition}>
+                <HomeSection user={user} notes={notes} images={images} links={links} setActiveTab={setActiveTab} />
+              </motion.div>
+            )}
+            {activeTab === 'notes' && (
+              <motion.div key="notes" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={pageTransition}>
+                <NotesSection
+                  notes={notes}
+                  setNotes={setNotes}
+                  selectedNoteToEdit={selectedNoteToEdit}
+                  setSelectedNoteToEdit={setSelectedNoteToEdit}
+                />
+              </motion.div>
+            )}
+            {activeTab === 'upload' && (
+              <motion.div key="upload" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={pageTransition}>
+                <UploadSection
+                  images={images}
+                  setImages={setImages}
+                  onOpenCamera={handleOpenCamera}
+                />
+              </motion.div>
+            )}
+            {activeTab === 'scan' && (
+              <motion.div key="scan" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={pageTransition}>
+                <CameraSection
+                  images={images}
+                  setImages={setImages}
+                />
+              </motion.div>
+            )}
+            {activeTab === 'links' && (
+              <motion.div key="links" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={pageTransition}>
+                <LinkSection
+                  links={links}
+                  setLinks={setLinks}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </Suspense>
+      </main>
+
+      {/* Hidden admin portal link */}
+      <div
+        className="fixed bottom-4 right-4 opacity-0 hover:opacity-100 transition-opacity cursor-pointer z-50"
+        onClick={() => window.location.href = '/admin'}
+      >
+        <div className="p-2 bg-zinc-900 rounded-full border border-zinc-800 text-[10px] text-zinc-600">
+          Admin
+        </div>
+      </div>
+
+      <Suspense fallback={null}>
+        <AccountDrawer
+          isOpen={isAccountDrawerOpen}
+          onClose={() => setIsAccountDrawerOpen(false)}
+          user={user}
+          setUser={setUser}
+          onUpdateProfile={handleUpdateProfile}
+          onLogout={handleLogout}
+        />
+      </Suspense>
     </div>
   );
 }

@@ -182,9 +182,9 @@ export function AdminPanel() {
         </div>
 
         {/* Main content — grid on desktop, stacked on mobile */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* User List — Samsung One UI list style */}
-          <div className="xl:col-span-4 bg-zinc-950 rounded-[24px] border border-white/10 overflow-hidden shadow-xl">
+          <div className="lg:col-span-4 lg:sticky lg:top-24 lg:self-start bg-zinc-950 rounded-[24px] border border-white/10 overflow-hidden shadow-xl">
             <div className="p-4 border-b border-white/10 flex justify-between items-center">
               <h2 className="font-bold flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#d9ad52]" />
@@ -239,7 +239,7 @@ export function AdminPanel() {
           </div>
 
           {/* User Details — Samsung One UI card style */}
-          <div className="xl:col-span-8">
+          <div className="lg:col-span-8 min-w-0">
             {selectedUser ? (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
@@ -247,10 +247,10 @@ export function AdminPanel() {
                 className="space-y-6"
               >
                 {/* User Profile Card */}
-                <div className="bg-zinc-950 p-6 rounded-[28px] border border-white/10 shadow-xl">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-2xl bg-[#d9ad52]/10 border border-[#d9ad52]/30 overflow-hidden flex items-center justify-center">
+                <div className="bg-zinc-950 p-4 sm:p-6 rounded-[28px] border border-white/10 shadow-xl overflow-hidden">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 w-full">
+                      <div className="w-16 h-16 rounded-2xl bg-[#d9ad52]/10 border border-[#d9ad52]/30 overflow-hidden flex items-center justify-center shrink-0">
                         {selectedUser.user?.avatar_url ? (
                           <img
                             src={selectedUser.user.avatar_url}
@@ -261,19 +261,19 @@ export function AdminPanel() {
                           <Users className="w-8 h-8 text-[#d9ad52]" />
                         )}
                       </div>
-                      <div>
-                        <h2 className="text-2xl font-bold">
+                      <div className="min-w-0 flex-1 text-center sm:text-left w-full">
+                        <h2 className="text-xl sm:text-2xl font-bold truncate">
                           {selectedUser.user?.name}
                         </h2>
-                        <p className="text-zinc-400 flex items-center gap-1 mt-1">
-                          <Mail className="w-3 h-3" />
-                          {selectedUser.user?.email}
+                        <p className="text-zinc-400 flex items-center justify-center sm:justify-start gap-1 mt-1 truncate">
+                          <Mail className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{selectedUser.user?.email}</span>
                         </p>
-                        <div className="flex gap-3 mt-3">
-                          <span className="text-xs bg-[#d9ad52]/10 text-[#d9ad52] px-3 py-1 rounded-full font-semibold border border-[#d9ad52]/30">
+                        <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
+                          <span className="text-xs bg-[#d9ad52]/10 text-[#d9ad52] px-3 py-1 rounded-full font-semibold border border-[#d9ad52]/30 shrink-0">
                             Plan: {selectedUser.user?.plan || 'N/A'}
                           </span>
-                          <span className="text-xs bg-zinc-800 px-3 py-1 rounded-full">
+                          <span className="text-xs bg-zinc-800 px-3 py-1 rounded-full shrink-0">
                             Storage: {selectedUser.user?.storage_used_mb || 0}MB /{' '}
                             {selectedUser.user?.total_storage_mb || 1024}MB
                           </span>
@@ -282,10 +282,11 @@ export function AdminPanel() {
                     </div>
                     <button
                       onClick={() => deleteUser(selectedUser.user.email)}
-                      className="p-3 bg-[#d9ad52]/10 hover:bg-[#d9ad52]/20 text-[#d9ad52] rounded-2xl transition-all"
+                      className="w-full sm:w-auto p-3 bg-[#d9ad52]/10 hover:bg-[#d9ad52]/20 text-[#d9ad52] rounded-2xl transition-all flex justify-center items-center gap-2"
                       title="Delete User"
                     >
                       <Trash2 className="w-5 h-5" />
+                      <span className="sm:hidden font-bold">Delete User</span>
                     </button>
                   </div>
                 </div>
@@ -293,7 +294,7 @@ export function AdminPanel() {
                 {/* Data Sections — Samsung One UI grid */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {/* Notes */}
-                  <div className="bg-zinc-950 p-4 rounded-[24px] border border-white/10">
+                  <div className="bg-zinc-950 p-4 rounded-[24px] border border-white/10 min-w-0">
                     <h3 className="font-bold mb-4 flex items-center gap-2 text-[#d9ad52]">
                       📝 Notes ({selectedUser.notes.length})
                     </h3>
@@ -304,7 +305,7 @@ export function AdminPanel() {
                         selectedUser.notes.map((note: any) => (
                           <div
                             key={note.id}
-                            className="p-3 bg-black/50 rounded-xl border border-white/5"
+                            className="p-3 bg-black/50 rounded-xl border border-white/5 overflow-hidden"
                           >
                             <p className="text-xs font-bold truncate text-white">
                               {note.title}
@@ -346,7 +347,7 @@ export function AdminPanel() {
                   </div>
 
                   {/* Links */}
-                  <div className="bg-zinc-950 p-4 rounded-[24px] border border-white/10">
+                  <div className="bg-zinc-950 p-4 rounded-[24px] border border-white/10 min-w-0">
                     <h3 className="font-bold mb-4 flex items-center gap-2 text-[#d9ad52]">
                       🔗 Links ({selectedUser.links.length})
                     </h3>
@@ -357,7 +358,7 @@ export function AdminPanel() {
                         selectedUser.links.map((link: any) => (
                           <div
                             key={link.id}
-                            className="p-3 bg-black/50 rounded-xl border border-white/5"
+                            className="p-3 bg-black/50 rounded-xl border border-white/5 overflow-hidden"
                           >
                             <p className="text-xs font-bold truncate text-white">
                               {link.title}
