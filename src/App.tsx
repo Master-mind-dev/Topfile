@@ -25,6 +25,7 @@ const NotesSection = lazy(() => import('./components/NotesSection').then((module
 const UploadSection = lazy(() => import('./components/UploadSection').then((module) => ({ default: module.UploadSection })));
 const CameraSection = lazy(() => import('./components/CameraSection').then((module) => ({ default: module.CameraSection })));
 const LinkSection = lazy(() => import('./components/LinkSection').then((module) => ({ default: module.LinkSection })));
+import { WorkspaceAssistant } from './components/WorkspaceAssistant';
 
 // Page transition variants
 const pageVariants = {
@@ -285,6 +286,13 @@ export default function App() {
           Admin
         </div>
       </div>
+
+      <WorkspaceAssistant
+        notes={notes}
+        images={images}
+        links={links}
+        activeTab={activeTab}
+      />
 
       <Suspense fallback={null}>
         <AccountDrawer

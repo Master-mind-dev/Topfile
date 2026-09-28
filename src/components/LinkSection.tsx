@@ -145,7 +145,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5 pt-2">
         <div>
-          <div className="text-[10px] tracking-[0.25em] text-[#a78bfa] uppercase font-extrabold mb-1">
+          <div className="text-[10px] tracking-[0.25em] text-[#d9ad52] uppercase font-extrabold mb-1">
             LINK LIBRARY
           </div>
           <div className="flex items-center gap-3">
@@ -168,7 +168,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
             <input
               type="text"
               placeholder="Paste URL (YouTube, website, etc.)"
-              className="w-full bg-zinc-900 border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-sm focus:outline-none focus:border-[#a78bfa]/60 transition-all text-white placeholder:text-white/30"
+              className="w-full bg-zinc-900 border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-sm focus:outline-none focus:border-[#d9ad52]/60 transition-all text-white placeholder:text-white/30"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               id="input-link-url"
@@ -177,7 +177,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
           <button
             type="submit"
             disabled={isParsing || !urlInput.trim()}
-            className="px-6 py-3.5 bg-[#a78bfa] text-white rounded-2xl text-sm font-bold hover:bg-[#c4b5fd] transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 min-w-[90px]"
+            className="px-6 py-3.5 bg-[#d9ad52] text-[#20140b] rounded-2xl text-sm font-bold hover:bg-[#f4dfb0] transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap active:scale-95 min-w-[90px]"
             id="btn-add-link"
           >
             {isParsing ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Add Link'}
@@ -270,11 +270,11 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
             >
               {/* Card header */}
               <div className="flex items-start justify-between">
-                <div className="p-2 rounded-xl" style={{ backgroundColor: link.isPlayable ? 'rgba(167,139,250,0.12)' : 'rgba(255,255,255,0.06)' }}>
+                <div className="p-2 rounded-xl" style={{ backgroundColor: link.isPlayable ? 'rgba(217,173,82,0.12)' : 'rgba(255,255,255,0.06)' }}>
                   {link.embedProvider === 'youtube' ? (
-                    <Youtube className="w-4 h-4 text-[#a78bfa]" />
+                    <Youtube className="w-4 h-4 text-[#d9ad52]" />
                   ) : link.isPlayable ? (
-                    <Play className="w-4 h-4 text-[#a78bfa]" />
+                    <Play className="w-4 h-4 text-[#d9ad52]" />
                   ) : (
                     <Globe className="w-4 h-4 text-zinc-400" />
                   )}
@@ -327,7 +327,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
 
               {/* Info */}
               <div className="space-y-1 flex-1">
-                <div className="text-sm font-bold text-white line-clamp-2 group-hover:text-[#a78bfa] transition-colors leading-tight">
+                <div className="text-sm font-bold text-white line-clamp-2 group-hover:text-[#d9ad52] transition-colors leading-tight">
                   {link.title}
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] text-zinc-500">
@@ -345,7 +345,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                 <button
                   type="button"
                   onClick={() => setActivePlayItem(link)}
-                  className="w-full py-2.5 bg-[#a78bfa]/15 text-[#a78bfa] rounded-xl text-xs font-bold hover:bg-[#a78bfa]/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-2.5 bg-[#d9ad52]/15 text-[#d9ad52] rounded-xl text-xs font-bold hover:bg-[#d9ad52]/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Play className="w-3.5 h-3.5" />
                   Play Now
@@ -370,7 +370,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="min-w-0 pr-4">
-                  <div className="text-[10px] text-[#a78bfa] uppercase tracking-widest font-bold mb-0.5">
+                  <div className="text-[10px] text-[#d9ad52] uppercase tracking-widest font-bold mb-0.5">
                     {activePlayItem.linkHost}
                   </div>
                   <h3 className="text-base font-bold text-white truncate">{activePlayItem.title}</h3>
