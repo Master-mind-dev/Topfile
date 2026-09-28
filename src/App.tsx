@@ -33,7 +33,7 @@ const pageVariants = {
   animate: { opacity: 1, y: 0, scale: 1 },
   exit: { opacity: 0, y: -10, scale: 0.99 },
 };
-const pageTransition = { duration: 0.28, ease: "easeOut" };
+const pageTransition = { duration: 0.28, ease: "easeOut" as const };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
