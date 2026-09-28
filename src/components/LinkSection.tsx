@@ -354,71 +354,117 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                 </div>
               </div>
 
-              {/* Play button */}
-              {link.isPlayable && (
-                <button
-                  type="button"
-                  onClick={() => setActivePlayItem(link)}
-                  className="w-full py-2.5 bg-[#d9ad52]/15 text-[#d9ad52] rounded-xl text-xs font-bold hover:bg-[#d9ad52]/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Play className="w-3.5 h-3.5" />
-                  Play Now
-                </button>
-              )}
+              {/* Preview / Play in Website button */}
+              <button
+                type="button"
+                onClick={() => setActivePlayItem(link)}
+                className="w-full py-2.5 bg-[#d9ad52]/15 text-[#d9ad52] hover:bg-[#d9ad52] hover:text-[#20140b] rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {link.embedProvider === 'youtube' ? (
+                  <>
+                    <Play className="w-3.5 h-3.5" />
+                    Watch Video In-App
+                  </>
+                ) : link.isPlayable ? (
+                  <>
+                    <Play className="w-3.5 h-3.5" />
+                    Play Media In-App
+                  </>
+                ) : (
+                  <>
+                    <Globe className="w-3.5 h-3.5" />
+                    Open Website In-App
+                  </>
+                )}
+              </button>
             </motion.div>
           ))}
         </AnimatePresence>
       </div>
 
-      {/* Video Player Modal */}
+      {/* In-App Content / Video / Website Viewer Modal */}
       <AnimatePresence>
         {activePlayItem && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/95 backdrop-blur-xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/95 backdrop-blur-xl">
             <motion.div
               key="video-modal"
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              initial={{ scale: 0.94, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 10 }}
+              exit={{ scale: 0.94, opacity: 0, y: 10 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="bg-zinc-950 border border-white/20 rounded-3xl p-4 sm:p-6 max-w-4xl w-full shadow-2xl"
+              className="bg-zinc-950 border border-white/20 rounded-3xl p-4 sm:p-6 max-w-5xl w-full shadow-2xl flex flex-col max-h-[92vh]"
             >
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
                 <div className="min-w-0 pr-4">
-                  <div className="text-[10px] text-[#d9ad52] uppercase tracking-widest font-bold mb-0.5">
+                  <div className="text-[10px] text-[#d9ad52] uppercase tracking-widest font-extrabold mb-0.5 flex items-center gap-1.5">
+                    {activePlayItem.embedProvider === 'youtube' ? (
+                      <Youtube className="w-3 h-3 text-red-400" />
+                    ) : (
+                      <Globe className="w-3 h-3 text-[#d9ad52]" />
+                    )}
                     {activePlayItem.linkHost}
                   </div>
-                  <h3 className="text-base font-bold text-white truncate">{activePlayItem.title}</h3>
+                  <h3 className="text-sm sm:text-base font-bold text-white truncate">{activePlayItem.title}</h3>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setActivePlayItem(null)}
-                  className="p-2 hover:bg-white/10 rounded-full transition-all text-white/60 hover:text-white cursor-pointer flex-shrink-0"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <a
+                    href={activePlayItem.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 hover:bg-white/10 rounded-xl transition-all text-white/50 hover:text-white flex items-center gap-1 text-xs"
+                    title="Open in new browser tab"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setActivePlayItem(null)}
+                    className="p-2 hover:bg-white/10 rounded-xl transition-all text-white/60 hover:text-white cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-              <div className="aspect-video w-full bg-black rounded-2xl overflow-hidden border border-white/10">
+
+              <div className="flex-1 w-full bg-black rounded-2xl overflow-hidden border border-white/10 min-h-[420px] max-h-[75vh]">
                 {activePlayItem.embedProvider === 'youtube' && activePlayItem.embedId ? (
                   <iframe
-                    src={`https://www.youtube.com/embed/${activePlayItem.embedId}?autoplay=1`}
+                    src={`https://www.youtube.com/embed/${activePlayItem.embedId}?autoplay=1&rel=0`}
                     title={activePlayItem.title}
-                    className="w-full h-full"
+                    className="w-full h-full min-h-[450px] border-none"
                     allowFullScreen
-                    allow="autoplay; encrypted-media"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  />
+                ) : activePlayItem.embedProvider === 'vimeo' && activePlayItem.embedId ? (
+                  <iframe
+                    src={`https://player.vimeo.com/video/${activePlayItem.embedId}?autoplay=1`}
+                    title={activePlayItem.title}
+                    className="w-full h-full min-h-[450px] border-none"
+                    allowFullScreen
+                    allow="autoplay; fullscreen; picture-in-picture"
+                  />
+                ) : activePlayItem.embedProvider === 'dailymotion' && activePlayItem.embedId ? (
+                  <iframe
+                    src={`https://www.dailymotion.com/embed/video/${activePlayItem.embedId}?autoplay=1`}
+                    title={activePlayItem.title}
+                    className="w-full h-full min-h-[450px] border-none"
+                    allowFullScreen
+                    allow="autoplay; fullscreen"
+                  />
+                ) : activePlayItem.embedProvider === 'native_video' ? (
+                  <video
+                    src={activePlayItem.url}
+                    controls
+                    autoPlay
+                    className="w-full h-full max-h-[500px] object-contain bg-black"
                   />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500 gap-3">
-                    <ExternalLink className="w-8 h-8" />
-                    <p className="text-sm">Cannot embed this content.</p>
-                    <a
-                      href={activePlayItem.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-white/10 text-white rounded-full text-xs font-bold hover:bg-white/20 transition-all"
-                    >
-                      Open in new tab
-                    </a>
-                  </div>
+                  <iframe
+                    src={activePlayItem.url}
+                    title={activePlayItem.title}
+                    className="w-full h-full min-h-[480px] border-none bg-white rounded-xl"
+                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+                  />
                 )}
               </div>
             </motion.div>

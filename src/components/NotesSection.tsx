@@ -755,28 +755,73 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
                 </div>
               </div>
 
-              <div className="flex-1 overflow-hidden rounded-2xl bg-black border border-white/10 flex flex-col items-center justify-center min-h-[350px]">
+              <div className="flex-1 overflow-hidden rounded-2xl bg-black border border-white/10 flex flex-col items-center justify-center min-h-[420px] max-h-[70vh]">
                 {previewAttachment.type === 'pdf' ? (
                   <iframe
                     src={previewAttachment.url}
                     title={previewAttachment.name}
-                    className="w-full h-full min-h-[450px] border-none rounded-xl"
+                    className="w-full h-full min-h-[500px] border-none rounded-xl bg-zinc-900"
                   />
+                ) : (previewAttachment.type === 'txt' || previewAttachment.name.endsWith('.txt') || previewAttachment.name.endsWith('.md') || previewAttachment.name.endsWith('.json')) ? (
+                  <div className="w-full h-full p-5 overflow-y-auto bg-zinc-950 font-mono text-xs text-white/85 whitespace-pre-wrap leading-relaxed">
+                    {(() => {
+                      try {
+                        if (previewAttachment.url.startsWith('data:')) {
+                          const base64Content = previewAttachment.url.split(',')[1];
+                          return atob(base64Content);
+                        }
+                        return 'Loading text content...';
+                      } catch (e) {
+                        return 'Unable to render text stream.';
+                      }
+                    })()}
+                  </div>
+                ) : (previewAttachment.type === 'xls' || previewAttachment.name.endsWith('.csv')) && previewAttachment.url.startsWith('data:') ? (
+                  <div className="w-full h-full p-4 overflow-auto bg-zinc-950 text-xs text-white">
+                    <div className="text-[11px] font-bold text-[#d9ad52] uppercase tracking-wider mb-2">CSV / Spreadsheet Preview</div>
+                    {(() => {
+                      try {
+                        const base64 = previewAttachment.url.split(',')[1];
+                        const text = atob(base64);
+                        const rows = text.split('\n').filter(Boolean).map(r => r.split(','));
+                        return (
+                          <div className="overflow-x-auto border border-white/10 rounded-xl">
+                            <table className="w-full border-collapse text-left">
+                              <tbody>
+                                {rows.slice(0, 100).map((row, rIdx) => (
+                                  <tr key={rIdx} className={rIdx === 0 ? 'bg-white/10 font-bold text-[#f4dfb0]' : 'border-t border-white/5 hover:bg-white/5'}>
+                                    {row.map((cell, cIdx) => (
+                                      <td key={cIdx} className="p-2 border-r border-white/5 whitespace-nowrap">{cell}</td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      } catch {
+                        return <div className="p-4 text-white/50">Unable to parse table.</div>;
+                      }
+                    })()}
+                  </div>
                 ) : (
                   <div className="p-8 text-center max-w-md">
                     <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center mx-auto mb-4 text-[#d9ad52]">
                       <FileText className="w-8 h-8" />
                     </div>
                     <h4 className="text-base font-bold text-white mb-1">{previewAttachment.name}</h4>
-                    <p className="text-xs text-white/50 mb-5">
-                      This format ({previewAttachment.type?.toUpperCase() || 'DOCUMENT'}) is saved and synced across all your devices. Click below to download or open it with your native app.
+                    <span className="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/10 text-white/80 border border-white/15 mb-3">
+                      {previewAttachment.type?.toUpperCase() || 'DOCUMENT'}
+                    </span>
+                    <p className="text-xs text-white/50 mb-6">
+                      This document is stored in your secure workspace and synced live across all your devices. Click below to download and open it on your device.
                     </p>
                     <button
                       onClick={() => downloadAttachment(previewAttachment)}
-                      className="px-6 py-2.5 rounded-full bg-[#d9ad52] text-black font-bold text-xs inline-flex items-center gap-2 hover:bg-[#f4dfb0]"
+                      className="px-6 py-2.5 rounded-full bg-[#d9ad52] text-black font-bold text-xs inline-flex items-center gap-2 hover:bg-[#f4dfb0] shadow-lg cursor-pointer"
                     >
                       <Download className="w-4 h-4" />
-                      Download & Open
+                      Download & Open File
                     </button>
                   </div>
                 )}
