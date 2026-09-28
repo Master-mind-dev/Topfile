@@ -56,8 +56,7 @@ export const WorkspaceAssistant: React.FC<WorkspaceAssistantProps> = ({ notes, i
         aria-label="Open Gemini assistant"
         aria-expanded={isOpen}
       >
-        {isOpen ? <X className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
-        <span>Gemini</span>
+        {isOpen ? <X className="h-6 w-6" /> : <Bot className="h-6 w-6" />}
       </button>
 
       {isOpen && (

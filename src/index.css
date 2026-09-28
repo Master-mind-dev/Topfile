@@ -635,7 +635,7 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* Assistant CSS */
-.assistant-launcher { position: fixed; bottom: 1.5rem; left: 1.5rem; background: linear-gradient(135deg, #d9ad52, #f4dfb0); color: #20140b; border: none; border-radius: 9999px; padding: 0.75rem 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; box-shadow: 0 10px 25px -5px rgba(217,173,82,0.4); z-index: 50; transition: transform 0.2s, box-shadow 0.2s; }
+.assistant-launcher { position: fixed; bottom: 1.5rem; left: 1.5rem; background: linear-gradient(135deg, #d9ad52, #f4dfb0); color: #20140b; border: none; border-radius: 50%; width: 3.5rem; height: 3.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 10px 25px -5px rgba(217,173,82,0.4); z-index: 50; transition: transform 0.2s, box-shadow 0.2s; }
 .assistant-launcher:hover { transform: translateY(-2px); box-shadow: 0 15px 30px -5px rgba(217,173,82,0.5); }
 .assistant-panel { position: fixed; bottom: 5rem; left: 1.5rem; width: 340px; max-width: calc(100vw - 3rem); background: rgba(20,20,22,0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.1); border-radius: 1.5rem; overflow: hidden; display: flex; flex-direction: column; z-index: 50; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
