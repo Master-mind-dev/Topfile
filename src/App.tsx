@@ -93,6 +93,10 @@ export default function App() {
       setLinks((prev) => prev.some((l) => l.id === link.id) ? prev : [link, ...prev]),
     onLinkDeleted: (id) =>
       setLinks((prev) => prev.filter((l) => l.id !== id)),
+    onProfileUpdated: (updatedUser) => {
+      setUser((prev) => ({ ...prev, ...updatedUser }));
+      localStorage.setItem('ownly_user', JSON.stringify(updatedUser));
+    },
   });
 
   // Camera open handler for UploadSection capture button

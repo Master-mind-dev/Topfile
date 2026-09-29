@@ -342,8 +342,10 @@ async function startServer() {
     app.put('/api/user/profile', verifyToken, async (req, res) => {
         try {
             const { name, avatarUrl } = req.body;
-            const result = await query('UPDATE users SET name = $1, avatar_url = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *', [name, avatarUrl, req.user.id]);
-            res.json({ success: true, user: result.rows[0] });
+            const result = await query('UPDATE users SET name = $1, avatar_url = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING id, email, name, avatar_url, joined_date, plan, storage_used_mb, total_storage_mb', [name, avatarUrl, req.user.id]);
+            const updatedUser = result.rows[0];
+            res.json({ success: true, user: updatedUser });
+            broadcastToUser(req.user.id, { type: 'profile_updated', user: updatedUser });
         }
         catch (err) {
             console.error('Update profile error:', err);

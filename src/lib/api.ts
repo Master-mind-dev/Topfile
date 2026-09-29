@@ -70,18 +70,32 @@ export async function logout() {
   clearAuthToken();
 }
 
-// ============ USER PROFILE ============
-export async function getUserProfile() {
-  const data = await apiRequest('/user/profile');
-  return data.user;
+// Helper to format DB user profile to frontend UserProfile
+export function formatUserProfile(u: any): UserProfile | null {
+  if (!u) return null;
+  return {
+    name: u.name || '',
+    email: u.email || '',
+    avatarUrl: u.avatar_url || u.avatarUrl || '',
+    joinedDate: u.joined_date ? new Date(u.joined_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : (u.joinedDate || 'Recently'),
+    plan: u.plan || 'Personal Pro',
+    storageUsedMb: Number(u.storage_used_mb ?? u.storageUsedMb ?? 0),
+    totalStorageMb: Number(u.total_storage_mb ?? u.totalStorageMb ?? 1024),
+  };
 }
 
-export async function updateUserProfile(updates: Partial<UserProfile>) {
+// ============ USER PROFILE ============
+export async function getUserProfile(): Promise<UserProfile | null> {
+  const data = await apiRequest('/user/profile');
+  return formatUserProfile(data.user);
+}
+
+export async function updateUserProfile(updates: Partial<UserProfile>): Promise<UserProfile | null> {
   const data = await apiRequest('/user/profile', {
     method: 'PUT',
     body: JSON.stringify(updates),
   });
-  return data.user;
+  return formatUserProfile(data.user);
 }
 
 // Helper to format DB note to frontend NoteItem

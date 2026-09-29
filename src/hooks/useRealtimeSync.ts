@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { NoteItem, UploadedImageItem, LinkItem } from '../types';
-import { formatNote, formatImage, formatLink } from '../lib/api';
+import { NoteItem, UploadedImageItem, LinkItem, UserProfile } from '../types';
+import { formatNote, formatImage, formatLink, formatUserProfile } from '../lib/api';
 
 export interface SyncHandlers {
   onNoteCreated?: (note: NoteItem) => void;
@@ -10,6 +10,7 @@ export interface SyncHandlers {
   onImageDeleted?: (id: string) => void;
   onLinkCreated?: (link: LinkItem) => void;
   onLinkDeleted?: (id: string) => void;
+  onProfileUpdated?: (user: UserProfile) => void;
 }
 
 export function useRealtimeSync(
@@ -77,6 +78,11 @@ export function useRealtimeSync(
             case 'link_deleted':
               handlersRef.current.onLinkDeleted?.(msg.id);
               break;
+            case 'profile_updated': {
+              const formatted = formatUserProfile(msg.user);
+              if (formatted) handlersRef.current.onProfileUpdated?.(formatted);
+              break;
+            }
           }
         } catch { /* ignore parse errors */ }
       };
