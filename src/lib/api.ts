@@ -213,10 +213,3 @@ export async function parseLink(url: string) {
     body: JSON.stringify({ url }),
   });
 }
-
-export async function askAssistant(prompt: string, context: any) {
-  return apiRequest('/assistant', {
-    method: 'POST',
-    body: JSON.stringify({ prompt, context }),
-  });
-}

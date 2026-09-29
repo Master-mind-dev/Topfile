@@ -458,34 +458,7 @@ async function startServer() {
             timestamp: new Date().toISOString()
         });
     });
-    app.post('/api/assistant', async (req, res) => {
-        const apiKey = process.env.GEMINI_API_KEY;
-        const { prompt, context } = req.body || {};
-        if (!apiKey)
-            return res.status(503).json({ success: false, error: 'Gemini is not configured on the server.' });
-        if (!prompt || typeof prompt !== 'string')
-            return res.status(400).json({ success: false, error: 'A prompt is required.' });
-        try {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    systemInstruction: { parts: [{ text: 'You are OWNLY AI, a concise workspace assistant. Help users understand and organize their notes, images, and links. Never claim to have changed files or data unless the application explicitly reports that action.' }] },
-                    contents: [{ parts: [{ text: `Workspace context:\n${JSON.stringify(context || {})}\n\nUser request:\n${prompt}` }] }],
-                    generationConfig: { temperature: 0.35, maxOutputTokens: 700 },
-                }),
-            });
-            const data = await response.json();
-            if (!response.ok)
-                return res.status(response.status).json({ success: false, error: data.error?.message || 'Gemini request failed.' });
-            const answer = data.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('') || 'No answer was returned.';
-            return res.json({ success: true, answer });
-        }
-        catch (error) {
-            console.error('Gemini assistant error:', error.message);
-            return res.status(502).json({ success: false, error: 'The Gemini assistant could not be reached.' });
-        }
-    });
+
     // API Endpoint to securely parse any link
     app.post('/api/parse-link', async (req, res) => {
         let { url } = req.body;
