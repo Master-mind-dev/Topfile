@@ -88,6 +88,20 @@ export async function logout() {
   clearAuthToken();
 }
 
+export async function forgotPassword(email: string) {
+  return apiRequest('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  return apiRequest('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
+  });
+}
+
 // Helper to format DB user profile to frontend UserProfile
 export function formatUserProfile(u: any): UserProfile | null {
   if (!u) return null;

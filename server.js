@@ -117,7 +117,7 @@ async function startServer() {
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-password', 'x-admin-secret']
     }));
-    app.use(express.json({ limit: '10mb' }));
+    app.use(express.json({ limit: '50mb' }));
     // ============ ADMIN MIDDLEWARE ============
     const verifyAdmin = (req, res, next) => {
         const adminPassword = req.headers['x-admin-password'];
@@ -170,6 +170,49 @@ async function startServer() {
         catch (err) {
             console.error('Login error:', err);
             res.status(500).json({ success: false, error: 'Login failed' });
+        }
+    });
+    // Forgot password — generate reset token and log it (email requires SMTP setup)
+    app.post('/api/auth/forgot-password', async (req, res) => {
+        try {
+            const { email } = req.body;
+            if (!email) return res.status(400).json({ success: false, error: 'Email required' });
+            const result = await query('SELECT id FROM users WHERE email = $1', [email]);
+            if (result.rows.length === 0) {
+                // Don't reveal whether email exists
+                return res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
+            }
+            const userId = result.rows[0].id;
+            const token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+            const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+            await query(`UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3`, [token, expires, userId]);
+            // Log the reset link (replace with email provider like SendGrid/Resend/Nodemailer)
+            const resetUrl = `${req.headers.origin || 'https://topfile.onrender.com'}/?reset=${token}`;
+            console.log(`🔑 Password reset link for ${email}: ${resetUrl}`);
+            // If SMTP is configured, send email here
+            res.json({ success: true, message: 'If that email exists, a reset link has been sent.', debug_reset_url: process.env.NODE_ENV !== 'production' ? resetUrl : undefined });
+        } catch (err) {
+            console.error('Forgot password error:', err);
+            res.status(500).json({ success: false, error: 'Failed to process request' });
+        }
+    });
+    // Reset password using token
+    app.post('/api/auth/reset-password', async (req, res) => {
+        try {
+            const { token, newPassword } = req.body;
+            if (!token || !newPassword) return res.status(400).json({ success: false, error: 'Token and new password required' });
+            if (newPassword.length < 6) return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+            const result = await query(`SELECT id FROM users WHERE reset_token = $1 AND reset_token_expires > NOW()`, [token]);
+            if (result.rows.length === 0) {
+                return res.status(400).json({ success: false, error: 'Invalid or expired reset token' });
+            }
+            const { hashPassword: hp } = await import('./auth.js');
+            const passwordHash = await hp(newPassword);
+            await query(`UPDATE users SET password_hash = $1, reset_token = NULL, reset_token_expires = NULL WHERE id = $2`, [passwordHash, result.rows[0].id]);
+            res.json({ success: true, message: 'Password updated successfully' });
+        } catch (err) {
+            console.error('Reset password error:', err);
+            res.status(500).json({ success: false, error: 'Failed to reset password' });
         }
     });
     // ============ NOTES ENDPOINTS ============
@@ -280,6 +323,19 @@ async function startServer() {
         catch (err) {
             console.error('Delete image error:', err);
             res.status(500).json({ success: false, error: 'Failed to delete image' });
+        }
+    });
+    // Get single image by id (for preview)
+    app.get('/api/images/:id', verifyToken, async (req, res) => {
+        try {
+            const result = await query('SELECT * FROM images WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+            if (result.rows.length === 0) {
+                return res.status(404).json({ success: false, error: 'Image not found' });
+            }
+            res.json({ success: true, image: result.rows[0] });
+        } catch (err) {
+            console.error('Get image error:', err);
+            res.status(500).json({ success: false, error: 'Failed to fetch image' });
         }
     });
     // ============ LINKS ENDPOINTS ============

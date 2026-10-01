@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Mail, KeyRound, CheckCircle2 } from 'lucide-react';
 import { UserProfile } from '../types';
 import * as api from '../lib/api';
 
@@ -9,60 +9,96 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'reset'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [name, setName] = useState('');
+  const [resetToken, setResetToken] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Detect reset token in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('reset');
+    if (token) {
+      setResetToken(token);
+      setMode('reset');
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
+
+  const switchMode = (m: typeof mode) => {
+    setMode(m);
+    setError('');
+    setSuccess('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    const cleanEmail = email.trim();
-    const cleanPass = password.trim();
-
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-    if (!cleanPass || cleanPass.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-
+    setSuccess('');
     setIsLoading(true);
 
     try {
-      if (isSignUp) {
-        const user = await api.register(cleanEmail, cleanPass, name.trim() || cleanEmail.split('@')[0]);
-        onLoginSuccess({
-          email: user.email || cleanEmail,
-          name: user.name || name.trim(),
-        });
-      } else {
+      if (mode === 'login') {
+        const cleanEmail = email.trim();
+        const cleanPass = password.trim();
+        if (!cleanEmail.includes('@')) throw new Error('Please enter a valid email address.');
+        if (cleanPass.length < 6) throw new Error('Password must be at least 6 characters.');
         const user = await api.login(cleanEmail, cleanPass);
-        onLoginSuccess({
-          email: user.email || cleanEmail,
-          name: user.name || cleanEmail.split('@')[0],
-        });
+        onLoginSuccess({ email: user.email || cleanEmail, name: user.name || cleanEmail.split('@')[0] });
+
+      } else if (mode === 'signup') {
+        const cleanEmail = email.trim();
+        const cleanPass = password.trim();
+        if (!cleanEmail.includes('@')) throw new Error('Please enter a valid email address.');
+        if (cleanPass.length < 6) throw new Error('Password must be at least 6 characters.');
+        const user = await api.register(cleanEmail, cleanPass, name.trim() || cleanEmail.split('@')[0]);
+        onLoginSuccess({ email: user.email || cleanEmail, name: user.name || name.trim() });
+
+      } else if (mode === 'forgot') {
+        const cleanEmail = email.trim();
+        if (!cleanEmail.includes('@')) throw new Error('Please enter a valid email address.');
+        await api.forgotPassword(cleanEmail);
+        setSuccess('If that email is registered, a reset link has been sent. Check your inbox!');
+
+      } else if (mode === 'reset') {
+        if (newPassword.length < 6) throw new Error('New password must be at least 6 characters.');
+        await api.resetPassword(resetToken, newPassword);
+        setSuccess('Password updated! You can now log in.');
+        setTimeout(() => switchMode('login'), 2000);
       }
     } catch (err: any) {
-      console.warn('Auth error:', err);
-      setError(err.message || 'Authentication failed. Please check your credentials and try again.');
+      setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  const title = {
+    login: 'WELCOME BACK',
+    signup: 'CREATE ACCOUNT',
+    forgot: 'RESET PASSWORD',
+    reset: 'NEW PASSWORD',
+  }[mode];
+
+  const subtitle = {
+    login: 'Login',
+    signup: 'Sign Up',
+    forgot: "Enter your email and we'll send a reset link",
+    reset: 'Enter your new password',
+  }[mode];
 
   return (
     <div
       className="min-h-screen w-full text-white flex flex-col justify-center items-center px-4 py-8 relative overflow-hidden"
       id="figma-auth-screen"
     >
-      {/* Background */}
       <div className="ambient-glow-mesh">
         <div className="ambient-glow-1" />
         <div className="ambient-glow-2" />
@@ -70,22 +106,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        key={mode}
+        initial={{ opacity: 0, y: 16, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.35 }}
         className="w-full max-w-[492px] z-10 space-y-6"
       >
         {/* Brand */}
         <div className="text-center space-y-2">
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white">
-            OWNLY
-          </h1>
-          <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
-            {isSignUp ? 'CREATE ACCOUNT' : 'WELCOME BACK'}
-          </h2>
-          <p className="text-lg font-bold text-white/70">
-            {isSignUp ? 'Sign Up' : 'Login'}
-          </p>
+          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white">OWNLY</h1>
+          <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">{title}</h2>
+          <p className="text-base font-bold text-white/70">{subtitle}</p>
         </div>
 
         {/* Form */}
@@ -95,18 +126,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               {error}
             </div>
           )}
+          {success && (
+            <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 text-xs text-center font-medium flex items-center justify-center gap-2">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              {success}
+            </div>
+          )}
 
+          {/* Name — signup only */}
           <AnimatePresence>
-            {isSignUp && (
+            {mode === 'signup' && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 className="space-y-1.5 overflow-hidden"
               >
-                <label className="text-xs font-black uppercase tracking-wider text-white/80">
-                  FULL NAME
-                </label>
+                <label className="text-xs font-black uppercase tracking-wider text-white/80">FULL NAME</label>
                 <input
                   type="text"
                   value={name}
@@ -119,54 +155,68 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </AnimatePresence>
 
           {/* Email */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-black uppercase tracking-wider text-white/80">
-              EMAIL
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="alex@workspace.io"
-              required
-              className="w-full h-[58px] px-5 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.14] border border-white/20 focus:border-white/50 rounded-2xl text-white placeholder-white/40 font-medium focus:outline-none transition-all"
-            />
-          </div>
+          {(mode === 'login' || mode === 'signup' || mode === 'forgot') && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-black uppercase tracking-wider text-white/80">EMAIL</label>
+              <div className="relative">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="alex@workspace.io"
+                  required
+                  className="w-full h-[58px] px-5 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.14] border border-white/20 focus:border-white/50 rounded-2xl text-white placeholder-white/40 font-medium focus:outline-none transition-all"
+                />
+              </div>
+            </div>
+          )}
 
-          {/* Password */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-black uppercase tracking-wider text-white/80">
-                PASSWORD
-              </label>
-              {!isSignUp && (
-                <button
-                  type="button"
-                  onClick={() => alert('Please contact workspace support or create a new test account.')}
-                  className="text-xs font-bold text-white/60 hover:text-white transition-colors"
-                >
-                  Forgot password?
+          {/* Password — login and signup */}
+          {(mode === 'login' || mode === 'signup') && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black uppercase tracking-wider text-white/80">PASSWORD</label>
+                {mode === 'login' && (
+                  <button type="button" onClick={() => switchMode('forgot')} className="text-xs font-bold text-white/60 hover:text-white transition-colors">
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  className="w-full h-[58px] pl-5 pr-12 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.14] border border-white/20 focus:border-white/50 rounded-2xl text-white placeholder-white/40 font-medium focus:outline-none transition-all"
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1">
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
-              )}
+              </div>
             </div>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full h-[58px] pl-5 pr-12 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.14] border border-white/20 focus:border-white/50 rounded-2xl text-white placeholder-white/40 font-medium focus:outline-none transition-all"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1"
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
+          )}
+
+          {/* New password — reset mode */}
+          {mode === 'reset' && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-black uppercase tracking-wider text-white/80">NEW PASSWORD</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  required
+                  className="w-full h-[58px] pl-5 pr-12 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.14] border border-white/20 focus:border-white/50 rounded-2xl text-white placeholder-white/40 font-medium focus:outline-none transition-all"
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1">
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Submit */}
           <div className="flex justify-center pt-2">
@@ -175,20 +225,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
               disabled={isLoading}
               className="w-[204px] h-[58px] bg-white text-zinc-950 font-black text-base rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              <span>{isLoading ? 'Processing…' : isSignUp ? 'Sign up' : 'Log in'}</span>
-              <ArrowRight className="w-4 h-4" />
+              {mode === 'forgot' ? <Mail className="w-4 h-4" /> : mode === 'reset' ? <KeyRound className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+              <span>
+                {isLoading ? 'Processing…'
+                  : mode === 'login' ? 'Log in'
+                  : mode === 'signup' ? 'Sign up'
+                  : mode === 'forgot' ? 'Send reset link'
+                  : 'Set new password'}
+              </span>
             </button>
           </div>
 
-          {/* Toggle */}
-          <div className="text-center pt-2">
-            <button
-              type="button"
-              onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
-              className="text-xs font-bold text-white/70 hover:text-white transition-colors cursor-pointer"
-            >
-              {isSignUp ? 'Already have an account? Log in' : 'No account? Sign up'}
-            </button>
+          {/* Bottom links */}
+          <div className="text-center pt-2 space-y-2">
+            {(mode === 'login' || mode === 'signup') && (
+              <button type="button" onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')} className="text-xs font-bold text-white/70 hover:text-white transition-colors cursor-pointer block w-full">
+                {mode === 'login' ? 'No account? Sign up' : 'Already have an account? Log in'}
+              </button>
+            )}
+            {(mode === 'forgot' || mode === 'reset') && (
+              <button type="button" onClick={() => switchMode('login')} className="text-xs font-bold text-white/50 hover:text-white transition-colors cursor-pointer">
+                ← Back to login
+              </button>
+            )}
           </div>
         </form>
       </motion.div>

@@ -47,10 +47,17 @@ export async function initializeDatabase() {
         plan VARCHAR(50) DEFAULT 'Personal Pro',
         storage_used_mb FLOAT DEFAULT 0,
         total_storage_mb FLOAT DEFAULT 1024,
+        reset_token VARCHAR(255),
+        reset_token_expires TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Migration: add reset token columns if missing (for existing deployments)
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255)`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMP`);
+
 
     // Notes table
     await client.query(`
