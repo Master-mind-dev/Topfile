@@ -92,7 +92,8 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
     setIsParsing(false);
 
     try {
-      await api.createLink(newItem);
+      const created = await api.createLink(newItem);
+      setLinks((prev) => prev.map((l) => l.id === newItem.id ? created : l));
     } catch (err) {
       console.warn('Sync link failed:', err);
     }
@@ -226,7 +227,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                 return (
                   <div
                     key={link.id}
-                    className={`p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex ${viewMode === 'grid' ? 'flex-col gap-3' : 'items-start gap-4'} transition-all group`}
+                    className={`p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex ${(viewMode === 'grid' || isYoutube) ? 'flex-col gap-3' : 'items-start gap-4'} transition-all group`}
                   >
                     <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 text-white mt-0.5">
                       {isYoutube ? (
@@ -281,7 +282,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                         }
                         if (isYt && yId) {
                           return (
-                            <div className="mt-4 aspect-video rounded-xl overflow-hidden border border-white/10 bg-black">
+                            <div className="mt-4 w-full aspect-video rounded-xl overflow-hidden border border-white/10 bg-black">
                               <iframe
                                 width="100%"
                                 height="100%"

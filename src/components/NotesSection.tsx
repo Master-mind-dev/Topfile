@@ -86,7 +86,13 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
     };
     setNotes((prev) => [newNote, ...prev]);
     openEditor(newNote);
-    try { await api.createNote(newNote); } catch (e) { console.warn(e); }
+    try {
+      const created = await api.createNote(newNote);
+      setNotes((prev) => prev.map((n) => n.id === newNote.id ? created : n));
+      setActiveNote((prev) => prev?.id === newNote.id ? created : prev);
+    } catch (e) {
+      console.warn(e);
+    }
   };
 
   const deleteNote = async (id: string) => {
