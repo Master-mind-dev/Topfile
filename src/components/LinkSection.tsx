@@ -66,7 +66,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
       id: `link-${Date.now()}`,
       url: trimmed,
       title: title,
-      description: `Saved from ${host} to your ${topicInput} collection.`,
+      description: '',
       embedThumb: embedThumb,
       linkHost: host,
       embedProvider: isYoutube ? 'youtube' : 'generic',
@@ -251,12 +251,9 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                         {link.description || 'Saved reference link'}
                       </p>
 
-                      <div className="flex items-center justify-between mt-2 pt-1">
+                    <div className="flex items-center justify-between mt-2">
                         <span className="text-[10px] text-white/40">
                           {new Date(link.createdAt).toLocaleDateString()}
-                        </span>
-                        <span className="text-[10px] font-semibold text-white/50">
-                          #Reference
                         </span>
                       </div>
                     </div>
@@ -318,43 +315,32 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
             </button>
           </form>
 
-          {/* Topic Collections */}
+          {/* Topic Collections - dynamic from actual links */}
           <div className="figma-glass-card p-5 space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold text-white">
-              <span>Topics</span>
-              <span className="text-white/40 text-[10px] cursor-pointer hover:text-white">Manage</span>
-            </div>
-
+            <div className="text-xs font-bold text-white">Topics</div>
             <div className="space-y-2 text-xs">
-              {[
-                { name: 'Biology', count: 5, color: '#1bd9ff' },
-                { name: 'Chemistry', count: 4, color: '#facc15' },
-                { name: 'History', count: 4, color: '#f61111' },
-                { name: 'Calculus', count: 3, color: '#4ade80' },
-              ].map((t) => (
-                <div key={t.name} className="flex items-center justify-between p-2 rounded-lg bg-white/5">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
-                    <span className="text-white font-semibold">{t.name}</span>
+              {(() => {
+                const topicMap: Record<string, number> = {};
+                links.forEach((l) => {
+                  const topic = (l as any).topic || '';
+                  if (topic) topicMap[topic] = (topicMap[topic] || 0) + 1;
+                });
+                const entries = Object.entries(topicMap);
+                if (entries.length === 0) {
+                  return (
+                    <p className="text-[11px] text-white/30">
+                      No topics yet. Assign topics when you save links.
+                    </p>
+                  );
+                }
+                return entries.map(([name, count]) => (
+                  <div key={name} className="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                    <span className="text-white font-semibold">{name}</span>
+                    <span className="text-white/40 font-medium">{count}</span>
                   </div>
-                  <span className="text-white/40 font-medium">{t.count}</span>
-                </div>
-              ))}
+                ));
+              })()}
             </div>
-          </div>
-
-          {/* Reading Goal Progress */}
-          <div className="figma-glass-card p-5 space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold text-white">
-              <span>Weekly reading</span>
-              <span className="text-white/60">4 / 6</span>
-            </div>
-            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-white rounded-full w-[66%]" />
-            </div>
-            <p className="text-[11px] text-white/40">
-              Two more saved sources to review before Sunday.
-            </p>
           </div>
         </div>
       </div>

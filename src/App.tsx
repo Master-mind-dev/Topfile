@@ -131,17 +131,13 @@ export default function App() {
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('ownly_auth_token');
-      const saved = localStorage.getItem('ownly_user');
       
-      if (saved || token) {
-        setIsAuthenticated(true);
-      }
-
       if (token) {
+        setIsAuthenticated(true);
         try {
           await loadUserData();
         } catch {
-          setCloudError('Offline mode — using local workspace data.');
+          setCloudError('Offline — using cached data. Some changes may not sync.');
         }
       }
       

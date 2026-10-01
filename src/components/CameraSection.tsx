@@ -1,18 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion } from 'motion/react';
-import { 
-  Camera, 
-  RefreshCw, 
-  Check, 
-  Scan,
-  Sun,
-  Focus,
-  Crop,
-  Sparkles,
-  Languages,
-  Files,
-  Plus
-} from 'lucide-react';
+import { Camera, RefreshCw } from 'lucide-react';
 import { UploadedImageItem } from '../types';
 import * as api from '../lib/api';
 
@@ -21,10 +8,7 @@ interface CameraSectionProps {
   setImages: React.Dispatch<React.SetStateAction<UploadedImageItem[]>>;
 }
 
-export const CameraSection: React.FC<CameraSectionProps> = ({
-  images,
-  setImages,
-}) => {
+export const CameraSection: React.FC<CameraSectionProps> = ({ images, setImages }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -33,57 +17,45 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [activeTab, setActiveTab] = useState<'live' | 'import'>('live');
   const [flashOverlay, setFlashOverlay] = useState(false);
+
+  // Camera scans (source === 'camera')
+  const scans = images.filter((img) => img.source === 'camera');
 
   const stopCamera = useCallback(() => {
     if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
+      stream.getTracks().forEach((t) => t.stop());
       setStream(null);
     }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
-    }
+    if (videoRef.current) videoRef.current.srcObject = null;
     setIsCameraActive(false);
   }, [stream]);
 
   const startCamera = useCallback(async (mode: 'user' | 'environment') => {
     setErrorMsg('');
     setIsStarting(true);
-
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
-      setStream(null);
-    }
+    if (stream) { stream.getTracks().forEach((t) => t.stop()); setStream(null); }
 
     try {
       if (!navigator?.mediaDevices?.getUserMedia) {
         setErrorMsg('Camera not supported in this browser.');
-        setIsCameraActive(false);
         setIsStarting(false);
         return;
       }
-
       const newStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: mode,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
+        video: { facingMode: mode, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: false,
       });
-
       setStream(newStream);
       setFacingMode(mode);
       setIsCameraActive(true);
-
       if (videoRef.current) {
         videoRef.current.srcObject = newStream;
         await videoRef.current.play();
       }
-    } catch (err: any) {
+    } catch {
       setIsCameraActive(false);
-      setErrorMsg('Camera access unavailable. Check permissions and try again.');
+      setErrorMsg('Camera access denied. Please allow camera permissions and try again.');
     } finally {
       setIsStarting(false);
     }
@@ -91,9 +63,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
 
   useEffect(() => {
     startCamera(facingMode);
-    return () => {
-      stopCamera();
-    };
+    return () => { stopCamera(); };
   }, []);
 
   const handleCapture = async () => {
@@ -104,7 +74,6 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
     canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
@@ -113,95 +82,74 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
 
     const newScan: UploadedImageItem = {
       id: `scan-${Date.now()}`,
-      name: `Document_Scan_${new Date().toLocaleTimeString().replace(/:/g, '-')}.jpg`,
+      name: `Scan_${new Date().toLocaleTimeString().replace(/:/g, '-')}.jpg`,
       dataUrl,
       fileSize: '1.4 MB',
       source: 'camera',
       createdAt: new Date().toISOString(),
-      notes: 'Captured via OWNLY Scanner',
+      notes: '',
     };
 
     setImages((prev) => [newScan, ...prev]);
-    try {
-      await api.createImage(newScan);
-    } catch (e) {
-      console.warn(e);
-    }
+    try { await api.createImage(newScan); } catch (e) { console.warn(e); }
+  };
+
+  const flipCamera = () => {
+    const next = facingMode === 'environment' ? 'user' : 'environment';
+    startCamera(next);
   };
 
   return (
     <div className="space-y-6 pb-20 md:pb-12" id="figma-camera-screen">
-      {/* ── Header (Exact Figma Desktop Capture and Scan) ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-        <div>
-          <span className="text-xs font-bold text-white/50 tracking-wider uppercase">
-            Camera workspace
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Capture</h1>
-          <p className="text-xs sm:text-sm text-white/60 font-normal">
-            Scan handwritten pages and turn them into searchable notes.
-          </p>
-        </div>
-
-        <button
-          onClick={handleCapture}
-          className="figma-btn-dark px-5 py-2.5 flex items-center gap-2 cursor-pointer shadow-lg hover:border-white/40 active:scale-95 text-xs sm:text-sm"
-        >
-          <Camera className="w-4 h-4 text-white" />
-          <span>New scan</span>
-        </button>
+      {/* Header */}
+      <div className="pt-2">
+        <span className="text-xs font-bold text-white/50 tracking-wider uppercase">Camera</span>
+        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Scan</h1>
+        <p className="text-xs sm:text-sm text-white/50 mt-1">
+          Capture documents and add them to your workspace.
+        </p>
       </div>
 
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* ── Main Capture Workspace: Viewfinder (Left 65%) + Settings & Session (Right 35%) ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left: Camera Preview Viewfinder */}
-        <div className="lg:col-span-8 figma-glass-card p-5 sm:p-7 space-y-4 flex flex-col justify-between">
-          {/* Viewfinder Controls Bar */}
+        {/* Viewfinder */}
+        <div className="lg:col-span-8 figma-glass-card p-4 sm:p-5 flex flex-col gap-4">
+          {/* Status bar */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setActiveTab('live')}
-                className={`figma-chip ${
-                  activeTab === 'live' ? 'figma-chip-active' : 'figma-chip-inactive'
-                }`}
-              >
-                Live camera
-              </button>
-              <button
-                onClick={() => setActiveTab('import')}
-                className={`figma-chip ${
-                  activeTab === 'import' ? 'figma-chip-active' : 'figma-chip-inactive'
-                }`}
-              >
-                Import image
-              </button>
-            </div>
-
             <div className="flex items-center gap-2 text-xs text-white/70">
               <span className={`w-2 h-2 rounded-full ${isCameraActive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-              <span>{isCameraActive ? 'Camera connected' : 'Camera standby'}</span>
+              <span>{isStarting ? 'Starting…' : isCameraActive ? 'Live' : 'Standby'}</span>
             </div>
+            <button
+              onClick={flipCamera}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-white/70 hover:text-white transition-all"
+              title="Flip camera"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
           </div>
 
-          {/* Viewfinder View Window with Document Guides */}
+          {/* Video viewfinder */}
           <div className="relative aspect-[16/10] bg-black/60 rounded-2xl overflow-hidden border border-white/10 flex items-center justify-center">
-            {flashOverlay && <div className="absolute inset-0 bg-white z-30 transition-opacity duration-200" />}
+            {flashOverlay && <div className="absolute inset-0 bg-white z-30" />}
+            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
 
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
+            {/* Scan guide corners */}
+            {isCameraActive && (
+              <div className="absolute inset-8 sm:inset-12 pointer-events-none">
+                <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#1bd9ff] rounded-tl-sm" />
+                <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#1bd9ff] rounded-tr-sm" />
+                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-[#1bd9ff] rounded-bl-sm" />
+                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#1bd9ff] rounded-br-sm" />
+              </div>
+            )}
 
             {!isCameraActive && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-black/80 z-10">
-                <Camera className="w-12 h-12 text-white/40 mb-3" />
-                <p className="text-sm font-semibold text-white/70 max-w-sm mb-4">
-                  {errorMsg || 'Camera is paused. Click below to start live scanning.'}
+                <Camera className="w-10 h-10 text-white/40 mb-3" />
+                <p className="text-sm font-semibold text-white/60 mb-4 max-w-xs">
+                  {errorMsg || 'Camera not started.'}
                 </p>
                 <button
                   onClick={() => startCamera(facingMode)}
@@ -211,104 +159,53 @@ export const CameraSection: React.FC<CameraSectionProps> = ({
                 </button>
               </div>
             )}
-
-            {/* Document Boundary Guide Corners (Figma Scan boundary) */}
-            {isCameraActive && (
-              <div className="absolute inset-8 sm:inset-12 border border-white/20 rounded-xl pointer-events-none flex flex-col justify-between p-2">
-                <div className="flex justify-between">
-                  <div className="w-6 h-6 border-t-2 border-l-2 border-[#1bd9ff]" />
-                  <div className="w-6 h-6 border-t-2 border-r-2 border-[#1bd9ff]" />
-                </div>
-                <div className="flex items-center justify-center">
-                  <div className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-[11px] font-bold text-white flex items-center gap-2">
-                    <Scan className="w-3.5 h-3.5 text-[#1bd9ff]" />
-                    <span>Document detected • Hold steady</span>
-                  </div>
-                </div>
-                <div className="flex justify-between">
-                  <div className="w-6 h-6 border-b-2 border-l-2 border-[#1bd9ff]" />
-                  <div className="w-6 h-6 border-b-2 border-r-2 border-[#1bd9ff]" />
-                </div>
-              </div>
-            )}
           </div>
+
+          {/* Capture button */}
+          <button
+            onClick={handleCapture}
+            disabled={!isCameraActive}
+            className="w-full py-3.5 bg-white text-zinc-950 font-black rounded-full flex items-center justify-center gap-2 hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer shadow-lg disabled:opacity-40"
+          >
+            <Camera className="w-5 h-5" />
+            <span>Capture</span>
+          </button>
         </div>
 
-        {/* Right Sidebar: Quality Status, Capture Controls, Scan Settings */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* Ready to Capture Panel */}
-          <div className="figma-glass-card p-6 space-y-5">
-            <h3 className="text-base font-black text-white">Ready to capture</h3>
-
-            {/* Quality Checklist */}
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-white/5">
-                <div className="flex items-center gap-2 text-white/70">
-                  <Sun className="w-4 h-4 text-amber-400" />
-                  <span>Lighting</span>
-                </div>
-                <span className="font-bold text-emerald-400">Good</span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-white/5">
-                <div className="flex items-center gap-2 text-white/70">
-                  <Focus className="w-4 h-4 text-cyan-400" />
-                  <span>Focus</span>
-                </div>
-                <span className="font-bold text-white">Sharp</span>
-              </div>
-
-              <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-white/5">
-                <div className="flex items-center gap-2 text-white/70">
-                  <Crop className="w-4 h-4 text-purple-400" />
-                  <span>Edges</span>
-                </div>
-                <span className="font-bold text-white">4 detected</span>
-              </div>
-            </div>
-
-            {/* Big Capture Button */}
-            <button
-              onClick={handleCapture}
-              disabled={!isCameraActive}
-              className="w-full py-3 bg-white text-zinc-950 font-black rounded-full flex items-center justify-center gap-2 hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer shadow-lg disabled:opacity-50"
-            >
-              <Camera className="w-4 h-4" />
-              <span>Capture page</span>
-            </button>
-            <p className="text-[11px] text-white/40 text-center font-normal">
-              Press space to capture
-            </p>
+        {/* Right: recent scans */}
+        <div className="lg:col-span-4 figma-glass-card p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-white">Recent Scans</h3>
+            <span className="text-xs text-white/40">{scans.length}</span>
           </div>
 
-          {/* Scan Settings */}
-          <div className="figma-glass-card p-5 space-y-3">
-            <h4 className="text-xs font-bold text-white">Scan settings</h4>
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between p-2 rounded-lg bg-white/5">
-                <div className="flex items-center gap-2 text-white/70">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Auto enhance</span>
-                </div>
-                <span className="font-bold text-white">On</span>
+          <div className="flex-1 space-y-2.5 overflow-y-auto">
+            {scans.length === 0 ? (
+              <div className="py-10 flex flex-col items-center gap-2 text-center">
+                <Camera className="w-8 h-8 text-white/20" />
+                <p className="text-xs text-white/30">No scans yet</p>
               </div>
-
-              <div className="flex items-center justify-between p-2 rounded-lg bg-white/5">
-                <div className="flex items-center gap-2 text-white/70">
-                  <Languages className="w-3.5 h-3.5 text-blue-300" />
-                  <span>Text language</span>
+            ) : (
+              scans.map((scan) => (
+                <div key={scan.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/5">
+                  <div className="w-12 h-12 rounded-lg bg-black/40 overflow-hidden flex-shrink-0">
+                    {scan.dataUrl ? (
+                      <img src={scan.dataUrl} alt={scan.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Camera className="w-4 h-4 text-white/30" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-white truncate">{scan.name}</div>
+                    <div className="text-[10px] text-white/40 mt-0.5">
+                      {new Date(scan.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
                 </div>
-                <span className="font-bold text-white">English</span>
-              </div>
-
-              <div className="flex items-center justify-between p-2 rounded-lg bg-white/5">
-                <div className="flex items-center gap-2 text-white/70">
-                  <Files className="w-3.5 h-3.5 text-emerald-300" />
-                  <span>Output</span>
-                </div>
-                <span className="font-bold text-white">Searchable PDF</span>
-              </div>
-            </div>
+              ))
+            )}
           </div>
         </div>
       </div>

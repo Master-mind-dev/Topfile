@@ -46,8 +46,8 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
   // Editor fields
   const [editorTitle, setEditorTitle] = useState('');
   const [editorContent, setEditorContent] = useState('');
-  const [editorCategory, setEditorCategory] = useState('Biology');
-  const [editorColor, setEditorColor] = useState('#1bd9ff');
+  const [editorCategory, setEditorCategory] = useState('');
+  const [editorColor, setEditorColor] = useState('#ffffff');
   const [isPinned, setIsPinned] = useState(false);
   const [saveStatus, setSaveStatus] = useState('Saved');
   const [copied, setCopied] = useState(false);
@@ -64,8 +64,8 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
     setActiveNote(note);
     setEditorTitle(note.title);
     setEditorContent(note.content);
-    setEditorCategory(note.category || 'Biology');
-    setEditorColor(note.colorTag || '#1bd9ff');
+    setEditorCategory(note.category || '');
+    setEditorColor(note.colorTag || '#ffffff');
     setIsPinned(note.isPinned || false);
     setSaveStatus('Saved');
   };
@@ -75,8 +75,8 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
       id: `note-${Date.now()}`,
       title: 'Untitled Note',
       content: '',
-      category: 'Biology',
-      colorTag: '#1bd9ff',
+      category: '',
+      colorTag: '#ffffff',
       isPinned: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -122,7 +122,9 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
     return matchesSearch && matchesCat;
   });
 
-  const categories = ['All', 'Pinned', 'Biology', 'History', 'Chemistry', 'Calculus'];
+  // Dynamic categories built from actual user notes
+  const userCategories = Array.from(new Set(notes.map((n) => n.category).filter(Boolean)));
+  const categories = ['All', 'Pinned', ...userCategories];
 
   // Word count & read time calculation
   const wordsCount = editorContent.trim() ? editorContent.trim().split(/\s+/).length : 0;
@@ -174,9 +176,9 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
             </button>
 
             <div>
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-[#1bd9ff]">
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-white/60">
                 <FileText className="w-3.5 h-3.5" />
-                <span>{editorCategory.toUpperCase()} NOTE</span>
+                <span>{editorCategory ? `${editorCategory.toUpperCase()} NOTE` : 'UNTITLED NOTE'}</span>
               </div>
               <h2 className="text-lg font-black text-white mt-1">{editorTitle || 'Untitled Note'}</h2>
             </div>
@@ -196,34 +198,22 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
               </div>
             </div>
 
-            {/* Subject Tag Selector */}
+            {/* Subject / Topic assignment — user types their own topic */}
             <div className="pt-4 border-t border-white/10">
               <div className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-3">
-                SUBJECT ACCENT
+                TOPIC
               </div>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { name: 'Biology', color: '#1bd9ff' },
-                  { name: 'History', color: '#f61111' },
-                  { name: 'Chemistry', color: '#facc15' },
-                  { name: 'Calculus', color: '#4ade80' },
-                ].map((s) => (
-                  <button
-                    key={s.name}
-                    onClick={() => {
-                      setEditorCategory(s.name);
-                      setEditorColor(s.color);
-                      saveActiveNote({ category: s.name, colorTag: s.color });
-                    }}
-                    className={`px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                      editorCategory === s.name ? 'ring-2 ring-white text-white' : 'opacity-60 hover:opacity-100'
-                    }`}
-                    style={{ backgroundColor: `${s.color}33`, color: s.color }}
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
+              <input
+                type="text"
+                value={editorCategory}
+                onChange={(e) => {
+                  setEditorCategory(e.target.value);
+                  saveActiveNote({ category: e.target.value });
+                }}
+                placeholder="e.g. Biology, History…"
+                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/30 focus:outline-none focus:border-white/30 transition-all"
+              />
+              <p className="text-[10px] text-white/30 mt-1.5">Assign any topic name you like</p>
             </div>
 
             <div className="pt-4 border-t border-white/10">
@@ -401,14 +391,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
             </div>
           ) : (
             filteredNotes.map((note) => {
-              const accentColor =
-                note.category === 'Biology'
-                  ? '#1bd9ff'
-                  : note.category === 'History'
-                  ? '#f61111'
-                  : note.category === 'Chemistry'
-                  ? '#facc15'
-                  : '#4ade80';
+              const accentColor = note.colorTag || 'rgba(255,255,255,0.4)';
 
               return (
                 <div

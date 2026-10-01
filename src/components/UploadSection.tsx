@@ -250,7 +250,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
             </div>
             <h3 className="text-base font-black text-white">Drop files here</h3>
             <p className="text-xs text-white/50 mt-1 max-w-[220px]">
-              PDF, PNG, JPG, DOCX or PAGES • Up to 25 MB each
+              PDF, PNG, JPG, DOCX • Up to 25 MB each
             </p>
             <button className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/15 rounded-full text-xs font-bold text-white flex items-center gap-2">
               <FolderOpen className="w-3.5 h-3.5" />
@@ -258,23 +258,9 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
             </button>
           </div>
 
-          {/* Storage Box */}
+          {/* Upload status */}
           <div className="figma-glass-card p-5 space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold text-white">
-              <span>Storage</span>
-              <span className="text-white/60">1.8 / 5 GB</span>
-            </div>
-            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-white rounded-full w-[36%]" />
-            </div>
-            <p className="text-[11px] text-white/40">
-              {images.length} uploads • 7 scans • 36% used
-            </p>
-          </div>
-
-          {/* Activity item */}
-          <div className="figma-glass-card p-5 space-y-3">
-            <div className="text-xs font-bold text-white">Today</div>
+            <div className="text-xs font-bold text-white">Status</div>
             <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
               <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 mt-0.5">
                 <Check className="w-3.5 h-3.5" />
@@ -282,7 +268,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
               <div>
                 <div className="text-xs font-bold text-white">Ready for search</div>
                 <div className="text-[10px] text-white/40 mt-0.5">
-                  Text indexed and ready to search across your workspace.
+                  {images.length} {images.length === 1 ? 'file' : 'files'} in your workspace
                 </div>
               </div>
             </div>
