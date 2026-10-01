@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Camera, RefreshCw } from 'lucide-react';
+import { Camera, RefreshCw, Trash2 } from 'lucide-react';
 import { UploadedImageItem } from '../types';
 import * as api from '../lib/api';
 
@@ -18,8 +18,8 @@ export const CameraSection: React.FC<CameraSectionProps> = ({ images, setImages 
   const [isStarting, setIsStarting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [flashOverlay, setFlashOverlay] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
 
-  // Camera scans (source === 'camera')
   const scans = images.filter((img) => img.source === 'camera');
 
   const stopCamera = useCallback(() => {
@@ -55,7 +55,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({ images, setImages 
       }
     } catch {
       setIsCameraActive(false);
-      setErrorMsg('Camera access denied. Please allow camera permissions and try again.');
+      setErrorMsg('Camera access denied. Please allow camera permissions.');
     } finally {
       setIsStarting(false);
     }
@@ -78,7 +78,7 @@ export const CameraSection: React.FC<CameraSectionProps> = ({ images, setImages 
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
     setFlashOverlay(true);
-    setTimeout(() => setFlashOverlay(false), 200);
+    setTimeout(() => setFlashOverlay(false), 180);
 
     const newScan: UploadedImageItem = {
       id: `scan-${Date.now()}`,
@@ -94,121 +94,146 @@ export const CameraSection: React.FC<CameraSectionProps> = ({ images, setImages 
     try { await api.createImage(newScan); } catch (e) { console.warn(e); }
   };
 
-  const flipCamera = () => {
-    const next = facingMode === 'environment' ? 'user' : 'environment';
-    startCamera(next);
+  const handleDeleteScan = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setImages((prev) => prev.filter((img) => img.id !== id));
+    try { await api.deleteImage(id); } catch (e) { console.warn(e); }
   };
 
   return (
-    <div className="space-y-6 pb-20 md:pb-12" id="figma-camera-screen">
-      {/* Header */}
-      <div className="pt-2">
-        <span className="text-xs font-bold text-white/50 tracking-wider uppercase">Camera</span>
-        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Scan</h1>
-        <p className="text-xs sm:text-sm text-white/50 mt-1">
-          Capture documents and add them to your workspace.
-        </p>
-      </div>
-
+    <div className="pb-24 md:pb-6" id="figma-camera-screen">
       <canvas ref={canvasRef} className="hidden" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Viewfinder */}
-        <div className="lg:col-span-8 figma-glass-card p-4 sm:p-5 flex flex-col gap-4">
-          {/* Status bar */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs text-white/70">
-              <span className={`w-2 h-2 rounded-full ${isCameraActive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
-              <span>{isStarting ? 'Starting…' : isCameraActive ? 'Live' : 'Standby'}</span>
+      {/* Full-height camera viewfinder — Samsung/Apple style */}
+      <div className="relative w-full rounded-2xl overflow-hidden bg-black" style={{ minHeight: '75vh' }}>
+
+        {/* Video feed */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover"
+          style={{ minHeight: '75vh' }}
+        />
+
+        {/* Flash white overlay */}
+        {flashOverlay && (
+          <div className="absolute inset-0 bg-white z-30 pointer-events-none" />
+        )}
+
+        {/* Scan guide corners (visible when live) */}
+        {isCameraActive && (
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div className="relative w-3/4 aspect-[3/4] max-h-[60%]">
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-[3px] border-l-[3px] border-white/80 rounded-tl-md" />
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-[3px] border-r-[3px] border-white/80 rounded-tr-md" />
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-[3px] border-l-[3px] border-white/80 rounded-bl-md" />
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-[3px] border-r-[3px] border-white/80 rounded-br-md" />
             </div>
-            <button
-              onClick={flipCamera}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-white/70 hover:text-white transition-all"
-              title="Flip camera"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
           </div>
+        )}
 
-          {/* Video viewfinder */}
-          <div className="relative aspect-[16/10] bg-black/60 rounded-2xl overflow-hidden border border-white/10 flex items-center justify-center">
-            {flashOverlay && <div className="absolute inset-0 bg-white z-30" />}
-            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-
-            {/* Scan guide corners */}
-            {isCameraActive && (
-              <div className="absolute inset-8 sm:inset-12 pointer-events-none">
-                <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-[#1bd9ff] rounded-tl-sm" />
-                <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-[#1bd9ff] rounded-tr-sm" />
-                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-[#1bd9ff] rounded-bl-sm" />
-                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-[#1bd9ff] rounded-br-sm" />
-              </div>
-            )}
-
-            {!isCameraActive && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-black/80 z-10">
-                <Camera className="w-10 h-10 text-white/40 mb-3" />
-                <p className="text-sm font-semibold text-white/60 mb-4 max-w-xs">
-                  {errorMsg || 'Camera not started.'}
-                </p>
-                <button
-                  onClick={() => startCamera(facingMode)}
-                  className="figma-btn-primary px-5 py-2 text-xs"
-                >
-                  Start Camera
-                </button>
-              </div>
+        {/* Camera unavailable state */}
+        {!isCameraActive && (
+          <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center gap-4 z-10">
+            <Camera className="w-14 h-14 text-white/30" />
+            <p className="text-white/50 text-sm text-center max-w-xs px-4">
+              {isStarting ? 'Starting camera…' : (errorMsg || 'Camera not active')}
+            </p>
+            {!isStarting && (
+              <button
+                onClick={() => startCamera(facingMode)}
+                className="px-6 py-2.5 bg-white text-zinc-950 font-bold rounded-full text-sm"
+              >
+                Start Camera
+              </button>
             )}
           </div>
+        )}
 
-          {/* Capture button */}
+        {/* Top bar: status + flip */}
+        <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-20">
+          <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-full">
+            <span className={`w-2 h-2 rounded-full ${isCameraActive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+            <span className="text-white text-xs font-semibold">
+              {isStarting ? 'Starting…' : isCameraActive ? 'Live' : 'Standby'}
+            </span>
+          </div>
           <button
-            onClick={handleCapture}
-            disabled={!isCameraActive}
-            className="w-full py-3.5 bg-white text-zinc-950 font-black rounded-full flex items-center justify-center gap-2 hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer shadow-lg disabled:opacity-40"
+            onClick={() => startCamera(facingMode === 'environment' ? 'user' : 'environment')}
+            className="p-2.5 bg-black/50 backdrop-blur-sm rounded-full text-white border border-white/20 cursor-pointer"
           >
-            <Camera className="w-5 h-5" />
-            <span>Capture</span>
+            <RefreshCw className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Right: recent scans */}
-        <div className="lg:col-span-4 figma-glass-card p-5 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-white">Recent Scans</h3>
-            <span className="text-xs text-white/40">{scans.length}</span>
-          </div>
-
-          <div className="flex-1 space-y-2.5 overflow-y-auto">
-            {scans.length === 0 ? (
-              <div className="py-10 flex flex-col items-center gap-2 text-center">
-                <Camera className="w-8 h-8 text-white/20" />
-                <p className="text-xs text-white/30">No scans yet</p>
-              </div>
+        {/* Bottom controls: gallery thumbnail + capture + scan count */}
+        <div className="absolute bottom-0 left-0 right-0 p-5 pb-8 flex items-center justify-between z-20 bg-gradient-to-t from-black/70 to-transparent">
+          {/* Last scan thumbnail */}
+          <button
+            onClick={() => setShowGallery(!showGallery)}
+            className="w-14 h-14 rounded-xl overflow-hidden border-2 border-white/40 bg-white/10 flex-shrink-0"
+          >
+            {scans[0]?.dataUrl ? (
+              <img src={scans[0].dataUrl} alt="Last scan" className="w-full h-full object-cover" />
             ) : (
-              scans.map((scan) => (
-                <div key={scan.id} className="flex items-center gap-3 p-2.5 rounded-xl bg-white/5">
-                  <div className="w-12 h-12 rounded-lg bg-black/40 overflow-hidden flex-shrink-0">
-                    {scan.dataUrl ? (
-                      <img src={scan.dataUrl} alt={scan.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Camera className="w-4 h-4 text-white/30" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-bold text-white truncate">{scan.name}</div>
-                    <div className="text-[10px] text-white/40 mt-0.5">
-                      {new Date(scan.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </div>
-                </div>
-              ))
+              <div className="w-full h-full flex items-center justify-center">
+                <Camera className="w-5 h-5 text-white/40" />
+              </div>
             )}
+          </button>
+
+          {/* Big shutter button */}
+          <button
+            onClick={handleCapture}
+            disabled={!isCameraActive}
+            className="w-20 h-20 rounded-full border-4 border-white bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-xl active:scale-90 transition-transform cursor-pointer disabled:opacity-40"
+          >
+            <div className="w-14 h-14 rounded-full bg-white" />
+          </button>
+
+          {/* Scan count */}
+          <div className="w-14 h-14 rounded-xl bg-black/40 border border-white/20 flex flex-col items-center justify-center">
+            <span className="text-white font-black text-lg leading-none">{scans.length}</span>
+            <span className="text-white/50 text-[9px] leading-none mt-0.5">scans</span>
           </div>
         </div>
       </div>
+
+      {/* Gallery strip (shows when thumbnail tapped) */}
+      {showGallery && scans.length > 0 && (
+        <div className="mt-4 figma-glass-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-black text-white">Captured ({scans.length})</h3>
+            <button onClick={() => setShowGallery(false)} className="text-xs text-white/40 hover:text-white cursor-pointer">Close</button>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            {scans.map((scan) => (
+              <div key={scan.id} className="relative aspect-square rounded-xl overflow-hidden bg-white/5 group">
+                {scan.dataUrl ? (
+                  <img src={scan.dataUrl} alt={scan.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Camera className="w-5 h-5 text-white/30" />
+                  </div>
+                )}
+                <button
+                  onClick={(e) => handleDeleteScan(scan.id, e)}
+                  className="absolute top-1 right-1 p-1 bg-red-500/80 rounded-md text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+                <div className="absolute bottom-0 left-0 right-0 bg-black/50 px-1 py-0.5">
+                  <span className="text-[8px] text-white/70">
+                    {new Date(scan.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

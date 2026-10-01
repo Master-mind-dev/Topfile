@@ -86,7 +86,13 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
         .toUpperCase()
     : 'AR';
 
-  const storagePercent = Math.min(100, Math.round((user.storageUsedMb / user.totalStorageMb) * 100)) || 36;
+  const storageUsedMb = user.storageUsedMb || 0;
+  const totalStorageMb = user.totalStorageMb || 5 * 1024;
+  const storagePercent = Math.min(100, Math.round((storageUsedMb / totalStorageMb) * 100));
+  const storageUsedDisplay = storageUsedMb >= 1024
+    ? `${(storageUsedMb / 1024).toFixed(1)} GB`
+    : `${storageUsedMb.toFixed(0)} MB`;
+  const storageTotalDisplay = `${(totalStorageMb / 1024).toFixed(0)} GB`;
 
   return (
     <AnimatePresence>
@@ -211,7 +217,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                     <HardDrive className="w-4 h-4 text-[#1bd9ff]" />
                     <span>Cloud Storage</span>
                   </div>
-                  <span className="text-white/60">1.8 / 5.0 GB</span>
+                  <span className="text-white/60">{storageUsedDisplay} / {storageTotalDisplay}</span>
                 </div>
                 <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                   <div
@@ -220,8 +226,8 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                   />
                 </div>
                 <div className="flex justify-between text-[11px] text-white/40">
-                  <span>{storagePercent}% allocated</span>
-                  <span>Unlimited bandwidth</span>
+                  <span>{storagePercent}% used</span>
+                  <span>{storagePercent === 0 ? 'No files yet' : 'Unlimited bandwidth'}</span>
                 </div>
               </div>
 

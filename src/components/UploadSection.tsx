@@ -207,12 +207,12 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                  <div className="flex items-center gap-1">
                     {img.dataUrl && (
                       <a
                         href={img.dataUrl}
                         download={img.name}
-                        className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white"
+                        className="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white"
                         title="Download"
                       >
                         <Download className="w-4 h-4" />
@@ -220,7 +220,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
                     )}
                     <button
                       onClick={() => handleDelete(img.id)}
-                      className="p-2 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400"
+                      className="p-2 rounded-lg hover:bg-red-500/20 text-white/40 hover:text-red-400 cursor-pointer transition-all"
                       title="Delete"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -234,44 +234,28 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
 
         {/* Right Sidebar: Drop Zone + Storage (Figma Frame 73:266) */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Drop Zone Box */}
+          {/* Drop Zone only */}
           <div
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`figma-glass-card p-6 border-dashed flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
+            className={`figma-glass-card p-8 border-dashed flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
               dragActive ? 'border-white bg-white/15 scale-[1.02]' : 'hover:border-white/40'
             }`}
           >
-            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white mb-3">
-              <UploadCloud className="w-6 h-6" />
+            <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center text-white mb-4">
+              <UploadCloud className="w-7 h-7" />
             </div>
             <h3 className="text-base font-black text-white">Drop files here</h3>
-            <p className="text-xs text-white/50 mt-1 max-w-[220px]">
+            <p className="text-xs text-white/45 mt-1.5 max-w-[200px]">
               PDF, PNG, JPG, DOCX • Up to 25 MB each
             </p>
             <button className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/15 rounded-full text-xs font-bold text-white flex items-center gap-2">
               <FolderOpen className="w-3.5 h-3.5" />
               <span>Choose files</span>
             </button>
-          </div>
-
-          {/* Upload status */}
-          <div className="figma-glass-card p-5 space-y-3">
-            <div className="text-xs font-bold text-white">Status</div>
-            <div className="flex items-start gap-3 p-3 rounded-xl bg-white/5">
-              <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 mt-0.5">
-                <Check className="w-3.5 h-3.5" />
-              </div>
-              <div>
-                <div className="text-xs font-bold text-white">Ready for search</div>
-                <div className="text-[10px] text-white/40 mt-0.5">
-                  {images.length} {images.length === 1 ? 'file' : 'files'} in your workspace
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

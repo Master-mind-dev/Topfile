@@ -1,39 +1,26 @@
-import React, { lazy, Suspense, useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useMemo } from 'react';
 import { Header } from './components/Header';
-import { 
-  TabType, 
-  UserProfile, 
-  NoteItem, 
-  UploadedImageItem, 
-  LinkItem 
-} from './types';
-import { 
-  initialUserProfile, 
-  initialNotes, 
-  initialImages, 
-  initialLinks 
-} from './data/mockData';
+import { TabType, UserProfile, NoteItem, UploadedImageItem, LinkItem } from './types';
+import { initialUserProfile, initialNotes, initialImages, initialLinks } from './data/mockData';
 import { AnimatePresence, motion } from 'motion/react';
 import * as api from './lib/api';
 import { AdminPanel } from './components/AdminPanel';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
 
-const AccountDrawer = lazy(() => import('./components/AccountDrawer').then((module) => ({ default: module.AccountDrawer })));
-const LoginPage = lazy(() => import('./components/LoginPage').then((module) => ({ default: module.LoginPage })));
+const AccountDrawer = lazy(() => import('./components/AccountDrawer').then((m) => ({ default: m.AccountDrawer })));
+const LoginPage = lazy(() => import('./components/LoginPage').then((m) => ({ default: m.LoginPage })));
+const HomeSection = lazy(() => import('./components/HomeSection').then((m) => ({ default: m.HomeSection })));
+const NotesSection = lazy(() => import('./components/NotesSection').then((m) => ({ default: m.NotesSection })));
+const UploadSection = lazy(() => import('./components/UploadSection').then((m) => ({ default: m.UploadSection })));
+const CameraSection = lazy(() => import('./components/CameraSection').then((m) => ({ default: m.CameraSection })));
+const LinkSection = lazy(() => import('./components/LinkSection').then((m) => ({ default: m.LinkSection })));
 
-const HomeSection = lazy(() => import('./components/HomeSection').then((module) => ({ default: module.HomeSection })));
-const NotesSection = lazy(() => import('./components/NotesSection').then((module) => ({ default: module.NotesSection })));
-const UploadSection = lazy(() => import('./components/UploadSection').then((module) => ({ default: module.UploadSection })));
-const CameraSection = lazy(() => import('./components/CameraSection').then((module) => ({ default: module.CameraSection })));
-const LinkSection = lazy(() => import('./components/LinkSection').then((module) => ({ default: module.LinkSection })));
-
-// Page transition variants
 const pageVariants = {
-  initial: { opacity: 0, y: 12, scale: 0.99 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -8, scale: 0.99 },
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -4 },
 };
-const pageTransition = { duration: 0.22, ease: "easeOut" as const };
+const pageTransition = { duration: 0.18, ease: 'easeOut' as const };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -44,9 +31,7 @@ export default function App() {
 
   const [user, setUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('ownly_user');
-    if (saved) {
-      try { return JSON.parse(saved); } catch { return initialUserProfile; }
-    }
+    if (saved) { try { return JSON.parse(saved); } catch { return initialUserProfile; } }
     return initialUserProfile;
   });
 
@@ -54,17 +39,13 @@ export default function App() {
 
   const [notes, setNotes] = useState<NoteItem[]>(() => {
     const saved = localStorage.getItem('ownly_notes');
-    if (saved) {
-      try { return JSON.parse(saved); } catch { return initialNotes; }
-    }
+    if (saved) { try { return JSON.parse(saved); } catch { return initialNotes; } }
     return initialNotes;
   });
 
   const [images, setImages] = useState<UploadedImageItem[]>(() => {
     const saved = localStorage.getItem('ownly_images');
-    if (saved) {
-      try { return JSON.parse(saved); } catch { return initialImages; }
-    }
+    if (saved) { try { return JSON.parse(saved); } catch { return initialImages; } }
     return initialImages;
   });
 
@@ -76,7 +57,24 @@ export default function App() {
 
   const [selectedNoteToEdit, setSelectedNoteToEdit] = useState<NoteItem | null>(null);
 
-  // ── Real-time sync: update state when another device makes a change ──
+  // Compute real storage from actual image data
+  const realStorageMb = useMemo(() => {
+    return images.reduce((total, img) => {
+      if (img.fileSize) {
+        const match = img.fileSize.match(/^([\d.]+)\s*(MB|KB|GB)/i);
+        if (match) {
+          const val = parseFloat(match[1]);
+          const unit = match[2].toUpperCase();
+          if (unit === 'GB') return total + val * 1024;
+          if (unit === 'KB') return total + val / 1024;
+          return total + val;
+        }
+      }
+      return total;
+    }, 0);
+  }, [images]);
+
+  // ── Real-time sync ──
   useRealtimeSync(isAuthenticated, {
     onNoteCreated: (note) =>
       setNotes((prev) => prev.some((n) => n.id === note.id) ? prev : [note, ...prev]),
@@ -98,55 +96,35 @@ export default function App() {
     },
   });
 
-  // Load data from backend when authenticated
   const loadUserData = async () => {
     const token = localStorage.getItem('ownly_auth_token');
     if (!token) return;
     try {
       const [fetchedNotes, fetchedImages, fetchedLinks, profile] = await Promise.allSettled([
-        api.getNotes(),
-        api.getImages(),
-        api.getLinks(),
-        api.getUserProfile(),
+        api.getNotes(), api.getImages(), api.getLinks(), api.getUserProfile(),
       ]);
-
-      if (fetchedNotes.status === 'fulfilled' && Array.isArray(fetchedNotes.value)) {
-        setNotes(fetchedNotes.value);
-      }
-      if (fetchedImages.status === 'fulfilled' && Array.isArray(fetchedImages.value)) {
-        setImages(fetchedImages.value);
-      }
-      if (fetchedLinks.status === 'fulfilled' && Array.isArray(fetchedLinks.value)) {
-        setLinks(fetchedLinks.value);
-      }
-      if (profile.status === 'fulfilled' && profile.value) {
-        setUser((prev) => ({ ...prev, ...profile.value }));
-      }
+      if (fetchedNotes.status === 'fulfilled' && Array.isArray(fetchedNotes.value)) setNotes(fetchedNotes.value);
+      if (fetchedImages.status === 'fulfilled' && Array.isArray(fetchedImages.value)) setImages(fetchedImages.value);
+      if (fetchedLinks.status === 'fulfilled' && Array.isArray(fetchedLinks.value)) setLinks(fetchedLinks.value);
+      if (profile.status === 'fulfilled' && profile.value) setUser((prev) => ({ ...prev, ...profile.value! }));
     } catch (err) {
-      console.warn('Failed to load user workspace data from server:', err);
+      console.warn('Failed to load workspace data:', err);
     }
   };
 
-  // Auth check
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('ownly_auth_token');
-      
       if (token) {
         setIsAuthenticated(true);
-        try {
-          await loadUserData();
-        } catch {
-          setCloudError('Offline — using cached data. Some changes may not sync.');
-        }
+        try { await loadUserData(); }
+        catch { setCloudError('Offline — using cached data.'); }
       }
-      
       setIsCheckingAuth(false);
     };
     checkAuth();
   }, []);
 
-  // Persist all state to localStorage
   useEffect(() => { localStorage.setItem('ownly_user', JSON.stringify(user)); }, [user]);
   useEffect(() => { localStorage.setItem('ownly_notes', JSON.stringify(notes)); }, [notes]);
   useEffect(() => { localStorage.setItem('ownly_images', JSON.stringify(images)); }, [images]);
@@ -164,6 +142,13 @@ export default function App() {
   const handleLogout = async () => {
     try { await api.logout(); } catch {}
     localStorage.removeItem('ownly_auth_token');
+    localStorage.removeItem('ownly_user');
+    localStorage.removeItem('ownly_notes');
+    localStorage.removeItem('ownly_images');
+    localStorage.removeItem('ownly_links');
+    setNotes([]);
+    setImages([]);
+    setLinks([]);
     setIsAuthenticated(false);
     setIsAccountDrawerOpen(false);
   };
@@ -172,9 +157,7 @@ export default function App() {
     const updated = { ...user, ...updates };
     setUser(updated);
     localStorage.setItem('ownly_user', JSON.stringify(updated));
-    try { await api.updateUserProfile(updates); } catch (e) {
-      console.warn('Profile update fallback:', e);
-    }
+    try { await api.updateUserProfile(updates); } catch (e) { console.warn(e); }
   };
 
   if (isCheckingAuth && !isAuthenticated) {
@@ -190,26 +173,22 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <Suspense fallback={<div className="min-h-screen bg-[#0d0608] flex items-center justify-center text-white/50 text-xs">Loading…</div>}>
+      <Suspense fallback={<div className="min-h-screen bg-[#0d0608]" />}>
         <LoginPage onLoginSuccess={handleLoginSuccess} />
       </Suspense>
     );
   }
 
-  if (isAdminRoute) {
-    return <AdminPanel />;
-  }
+  if (isAdminRoute) return <AdminPanel />;
 
   return (
     <div className="min-h-screen bg-[#0d0608] text-white font-['Outfit'] relative selection:bg-red-500/30">
-      {/* Figma Ambient Glow Mesh (Exact from Figma spec) */}
       <div className="ambient-glow-mesh">
         <div className="ambient-glow-1" />
         <div className="ambient-glow-2" />
         <div className="ambient-glow-cyan" />
       </div>
 
-      {/* Main Header (Desktop + Mobile Navigation) */}
       <Header
         user={user}
         activeTab={activeTab}
@@ -218,14 +197,13 @@ export default function App() {
       />
 
       {cloudError && (
-        <div className="sticky top-[78px] z-30 px-4 py-1.5 bg-red-500/10 border-b border-red-500/20 text-xs text-red-200 text-center backdrop-blur-md">
-          <span className="font-semibold">Notice:</span> {cloudError}
+        <div className="sticky top-[78px] z-30 px-4 py-1.5 bg-amber-500/10 border-b border-amber-500/20 text-xs text-amber-200 text-center backdrop-blur-md">
+          {cloudError}
         </div>
       )}
 
-      {/* Main Page Content Container */}
       <main className="relative z-10 pt-4 px-4 sm:px-6 md:px-8 max-w-[1280px] mx-auto">
-        <Suspense fallback={<div className="py-20 text-center text-white/40 text-sm">Loading workspace…</div>}>
+        <Suspense fallback={<div className="py-20 text-center text-white/30 text-sm">Loading…</div>}>
           <AnimatePresence mode="wait">
             {activeTab === 'home' && (
               <motion.div key="home" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={pageTransition}>
@@ -235,10 +213,7 @@ export default function App() {
                   images={images}
                   links={links}
                   setActiveTab={setActiveTab}
-                  onOpenNote={(note) => {
-                    setSelectedNoteToEdit(note);
-                    setActiveTab('notes');
-                  }}
+                  onOpenNote={(note) => { setSelectedNoteToEdit(note); setActiveTab('notes'); }}
                 />
               </motion.div>
             )}
@@ -254,39 +229,28 @@ export default function App() {
             )}
             {activeTab === 'upload' && (
               <motion.div key="upload" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={pageTransition}>
-                <UploadSection
-                  images={images}
-                  setImages={setImages}
-                  onOpenCamera={() => setActiveTab('scan')}
-                />
+                <UploadSection images={images} setImages={setImages} onOpenCamera={() => setActiveTab('scan')} />
               </motion.div>
             )}
             {activeTab === 'scan' && (
               <motion.div key="scan" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={pageTransition}>
-                <CameraSection
-                  images={images}
-                  setImages={setImages}
-                />
+                <CameraSection images={images} setImages={setImages} />
               </motion.div>
             )}
             {activeTab === 'links' && (
               <motion.div key="links" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={pageTransition}>
-                <LinkSection
-                  links={links}
-                  setLinks={setLinks}
-                />
+                <LinkSection links={links} setLinks={setLinks} />
               </motion.div>
             )}
           </AnimatePresence>
         </Suspense>
       </main>
 
-      {/* Account Profile Drawer */}
       <Suspense fallback={null}>
         <AccountDrawer
           isOpen={isAccountDrawerOpen}
           onClose={() => setIsAccountDrawerOpen(false)}
-          user={user}
+          user={{ ...user, storageUsedMb: realStorageMb, totalStorageMb: 5 * 1024 }}
           setUser={setUser}
           onUpdateProfile={handleUpdateProfile}
           onLogout={handleLogout}

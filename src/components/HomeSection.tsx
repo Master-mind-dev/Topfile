@@ -336,63 +336,40 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
           </div>
         </div>
 
-        {/* ── Right Column: Quick Actions + Weekly Activity ── */}
-        <div className="lg:col-span-3 space-y-5">
+        {/* ── Right Column: Weekly Activity ── */}
+        <div className="lg:col-span-3">
           <div className="figma-glass-card p-5">
-            <h2 className="text-base sm:text-lg font-black text-white tracking-tight mb-3">Quick Actions</h2>
-            <div className="space-y-2">
-              {[
-                { label: 'New Note', sub: 'Start writing', tab: 'notes' as TabType, Icon: FileText },
-                { label: 'Upload File', sub: 'PDF, image, doc', tab: 'upload' as TabType, Icon: UploadCloud },
-                { label: 'Scan Doc', sub: 'Capture with camera', tab: 'scan' as TabType, Icon: Camera },
-                { label: 'Save Link', sub: 'Paste any URL', tab: 'links' as TabType, Icon: LinkIcon },
-              ].map(({ label, sub, tab, Icon }) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className="w-full p-2.5 rounded-xl bg-white/5 hover:bg-white/12 border border-white/10 flex items-center gap-3 transition-all cursor-pointer text-left group"
-                >
-                  <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                    <Icon className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-white">{label}</div>
-                    <div className="text-[10px] text-white/40">{sub}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Weekly Activity – 100% real data */}
-            <div className="mt-5 pt-4 border-t border-white/10">
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-xs font-bold text-white">Weekly Activity</div>
-                {weeklyTotal > 0 && (
-                  <span className="text-[10px] text-white/50">{weeklyTotal} items</span>
-                )}
-              </div>
-              <div className="flex items-end justify-between gap-2 h-20 px-1">
-                {weeklyActivity.map((bar, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
-                    <motion.div
-                      className="w-full rounded-t-md"
-                      initial={{ height: 0 }}
-                      animate={{ height: `${Math.max(bar.pct, bar.count > 0 ? 10 : 4)}%` }}
-                      transition={{ duration: 0.5, delay: i * 0.05, ease: 'easeOut' }}
-                      style={{
-                        backgroundColor: bar.count > 0 ? '#ffffff' : 'rgba(255,255,255,0.12)',
-                      }}
-                    />
-                    <span className="text-[10px] text-white/40 font-medium">{bar.day}</span>
-                  </div>
-                ))}
-              </div>
-              {weeklyTotal === 0 && (
-                <p className="text-[11px] text-white/30 text-center mt-2 font-normal">
-                  No activity this week yet
-                </p>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-black text-white tracking-tight">Weekly Activity</h2>
+              {weeklyTotal > 0 && (
+                <span className="text-[10px] text-white/50">{weeklyTotal} items</span>
               )}
             </div>
+            <div className="flex items-end justify-between gap-2 h-28 px-1">
+              {weeklyActivity.map((bar, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                  <motion.div
+                    className="w-full rounded-t-sm"
+                    initial={{ height: 0 }}
+                    animate={{ height: `${Math.max(bar.pct, bar.count > 0 ? 8 : 3)}%` }}
+                    transition={{ duration: 0.5, delay: i * 0.06, ease: 'easeOut' }}
+                    style={{
+                      backgroundColor: bar.count > 0 ? '#ffffff' : 'rgba(255,255,255,0.1)',
+                    }}
+                  />
+                  <span className="text-[10px] text-white/35 font-medium">{bar.day}</span>
+                </div>
+              ))}
+            </div>
+            {weeklyTotal === 0 ? (
+              <p className="text-[11px] text-white/25 text-center mt-3">
+                No activity this week
+              </p>
+            ) : (
+              <p className="text-[11px] text-white/40 text-center mt-3">
+                {weeklyTotal} item{weeklyTotal !== 1 ? 's' : ''} added this week
+              </p>
+            )}
           </div>
         </div>
       </div>

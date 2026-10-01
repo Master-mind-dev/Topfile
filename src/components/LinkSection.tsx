@@ -27,7 +27,6 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
   setLinks,
 }) => {
   const [urlInput, setUrlInput] = useState('');
-  const [topicInput, setTopicInput] = useState('Biology');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All links');
   const [isParsing, setIsParsing] = useState(false);
@@ -47,12 +46,19 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
     let isYoutube = false;
     let embedThumb = '';
 
+    let embedId = null;
+
     try {
       const parsed = new URL(trimmed);
       host = parsed.hostname.replace(/^www\./, '');
       if (host.includes('youtube.com') || host.includes('youtu.be')) {
         isYoutube = true;
         title = 'YouTube Video';
+        if (host.includes('youtu.be')) {
+          embedId = parsed.pathname.slice(1);
+        } else {
+          embedId = parsed.searchParams.get('v');
+        }
       } else if (host.includes('khanacademy.org')) {
         title = 'Khan Academy Resource';
       } else if (host.includes('wikipedia.org')) {
@@ -70,7 +76,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
       embedThumb: embedThumb,
       linkHost: host,
       embedProvider: isYoutube ? 'youtube' : 'generic',
-      embedId: null,
+      embedId: embedId,
       isPlayable: isYoutube,
       createdAt: new Date().toISOString(),
     };
@@ -237,7 +243,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                         </a>
                         <button
                           onClick={() => handleDelete(link.id)}
-                          className="p-1 rounded-md text-white/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                          className="p-1.5 rounded-md text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer flex-shrink-0"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -247,15 +253,24 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                         {link.linkHost || 'web'}
                       </div>
 
-                      <p className="text-xs text-white/60 line-clamp-1 mt-1 font-normal">
-                        {link.description || 'Saved reference link'}
-                      </p>
-
-                    <div className="flex items-center justify-between mt-2">
-                        <span className="text-[10px] text-white/40">
+                      <div className="flex items-center mt-2">
+                        <span className="text-[10px] text-white/35">
                           {new Date(link.createdAt).toLocaleDateString()}
                         </span>
                       </div>
+                      {link.isPlayable && link.embedProvider === 'youtube' && link.embedId && (
+                        <div className="mt-4 aspect-video rounded-xl overflow-hidden border border-white/10 bg-black">
+                          <iframe
+                            width="100%"
+                            height="100%"
+                            src={`https://www.youtube.com/embed/${link.embedId}`}
+                            title="YouTube video player"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -266,16 +281,11 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
 
         {/* Right Sidebar: Quick Add Link + Topics + Weekly Reading */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Quick Add Form */}
-          <form onSubmit={handleAddLink} className="figma-glass-card p-6 space-y-4">
-            <div>
-              <div className="flex items-center gap-2 text-xs font-bold text-white">
-                <LinkIcon className="w-4 h-4 text-[#1bd9ff]" />
-                <span>Save a link</span>
-              </div>
-              <p className="text-[11px] text-white/50 mt-0.5">
-                OWNLY fetches the title and preview
-              </p>
+          {/* Quick Add Form - no topic dropdown */}
+          <form onSubmit={handleAddLink} className="figma-glass-card p-5 space-y-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-white">
+              <LinkIcon className="w-4 h-4 text-[#1bd9ff]" />
+              <span>Save a link</span>
             </div>
 
             <div className="relative">
@@ -287,22 +297,8 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                 onChange={(e) => setUrlInput(e.target.value)}
                 placeholder="Paste a URL…"
                 required
-                className="w-full pl-10 pr-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/40 focus:outline-none focus:border-white/30"
+                className="w-full pl-10 pr-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/35 focus:outline-none focus:border-white/30"
               />
-            </div>
-
-            <div className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/10 text-xs">
-              <span className="text-white/60">Topic:</span>
-              <select
-                value={topicInput}
-                onChange={(e) => setTopicInput(e.target.value)}
-                className="bg-transparent text-white font-bold focus:outline-none cursor-pointer"
-              >
-                <option value="Biology" className="bg-zinc-900">Biology</option>
-                <option value="Chemistry" className="bg-zinc-900">Chemistry</option>
-                <option value="History" className="bg-zinc-900">History</option>
-                <option value="Calculus" className="bg-zinc-900">Calculus</option>
-              </select>
             </div>
 
             <button
