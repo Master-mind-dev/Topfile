@@ -64,8 +64,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       } else if (mode === 'forgot') {
         const cleanEmail = email.trim();
         if (!cleanEmail.includes('@')) throw new Error('Please enter a valid email address.');
-        await api.forgotPassword(cleanEmail);
-        setSuccess('If that email is registered, a reset link has been sent. Check your inbox!');
+        const res = await api.forgotPassword(cleanEmail);
+        if (res.debug_email_preview) {
+            setSuccess(`Test email sent! Click here to view it: ${res.debug_email_preview}`);
+        } else {
+            setSuccess('If that email is registered, a reset link has been sent. Check your inbox!');
+        }
 
       } else if (mode === 'reset') {
         if (newPassword.length < 6) throw new Error('New password must be at least 6 characters.');
@@ -129,7 +133,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           {success && (
             <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 text-xs text-center font-medium flex items-center justify-center gap-2">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              {success}
+              {success.includes('http') ? (
+                  <span dangerouslySetInnerHTML={{ __html: success.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="underline hover:text-white">$1</a>') }} />
+              ) : (
+                  <span>{success}</span>
+              )}
             </div>
           )}
 

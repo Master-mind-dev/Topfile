@@ -153,25 +153,38 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
 
   // Open viewer — fetch full dataUrl from backend if not in memory
   const openViewer = useCallback(async (img: UploadedImageItem) => {
-    if (img.dataUrl) {
-      setViewingFile(img);
-      return;
-    }
-    // No dataUrl in memory (stripped from localStorage) — fetch from backend
-    setViewingFile(img); // open modal with loading state
+    let targetImg = img;
     setViewerLoading(true);
-    try {
-      const full = await api.getImage(img.id);
-      if (full && full.dataUrl) {
-        setViewingFile(full);
-        // Also update the main list so future opens are instant
-        setImages((prev) => prev.map((i) => i.id === img.id ? { ...i, dataUrl: full.dataUrl } : i));
+    setViewingFile(img); // open modal immediately
+
+    // Fetch full dataUrl from backend if missing
+    if (!targetImg.dataUrl) {
+      try {
+        const full = await api.getImage(img.id);
+        if (full && full.dataUrl) {
+          targetImg = { ...img, dataUrl: full.dataUrl };
+          // Also update the main list so future opens are instant
+          setImages((prev) => prev.map((i) => i.id === img.id ? { ...i, dataUrl: full.dataUrl } : i));
+        }
+      } catch (e) {
+        console.warn('Could not fetch image for preview:', e);
       }
-    } catch (e) {
-      console.warn('Could not fetch image for preview:', e);
-    } finally {
-      setViewerLoading(false);
     }
+
+    // For PDFs, create a blob URL because modern browsers block data: URIs in iframes
+    const ext = (targetImg.name || '').split('.').pop()?.toLowerCase();
+    if (targetImg.dataUrl && (ext === 'pdf' || targetImg.dataUrl.startsWith('data:application/pdf'))) {
+      try {
+        const res = await fetch(targetImg.dataUrl);
+        const blob = await res.blob();
+        targetImg = { ...targetImg, dataUrl: URL.createObjectURL(blob) };
+      } catch (e) {
+        console.warn('Could not create PDF blob URL:', e);
+      }
+    }
+    
+    setViewingFile(targetImg);
+    setViewerLoading(false);
   }, [setImages]);
 
   // Determine how to view a file inline
@@ -181,11 +194,11 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
     const dataUrl = img.dataUrl || '';
 
     // Images — show directly
-    if (dataUrl.startsWith('data:image') || ['jpg','jpeg','png','gif','webp','svg','bmp'].includes(ext)) {
+    if (dataUrl.startsWith('data:image') || dataUrl.startsWith('blob:') || ['jpg','jpeg','png','gif','webp','svg','bmp'].includes(ext)) {
       return { type: 'image', src: dataUrl || img.dataUrl };
     }
     // PDF — use browser iframe (works natively)
-    if (ext === 'pdf' || dataUrl.startsWith('data:application/pdf')) {
+    if (ext === 'pdf' || dataUrl.startsWith('data:application/pdf') || dataUrl.startsWith('blob:')) {
       return { type: 'pdf', src: dataUrl };
     }
     // Word / Excel / PPT — use Google Docs Viewer

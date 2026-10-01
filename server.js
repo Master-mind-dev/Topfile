@@ -11,6 +11,7 @@ import { fileURLToPath } from "url";
 import { createServer as createViteServer } from "vite";
 import { initializeDatabase, query } from "./db.js";
 import { verifyToken, generateToken, hashPassword, comparePassword } from "./auth.js";
+import nodemailer from "nodemailer";
 
 // ============ WEBSOCKET BROADCAST MAP ============
 // userClients: Map<userId, Set<WebSocket>>
@@ -189,8 +190,34 @@ async function startServer() {
             // Log the reset link (replace with email provider like SendGrid/Resend/Nodemailer)
             const resetUrl = `${req.headers.origin || 'https://topfile.onrender.com'}/?reset=${token}`;
             console.log(`🔑 Password reset link for ${email}: ${resetUrl}`);
-            // If SMTP is configured, send email here
-            res.json({ success: true, message: 'If that email exists, a reset link has been sent.', debug_reset_url: process.env.NODE_ENV !== 'production' ? resetUrl : undefined });
+            
+            // Send email using Ethereal Email (free test SMTP)
+            try {
+                let testAccount = await nodemailer.createTestAccount();
+                let transporter = nodemailer.createTransport({
+                    host: "smtp.ethereal.email",
+                    port: 587,
+                    secure: false,
+                    auth: { user: testAccount.user, pass: testAccount.pass },
+                });
+                let info = await transporter.sendMail({
+                    from: '"Ownly Workspace" <noreply@ownly.com>',
+                    to: email,
+                    subject: "Reset your Ownly password",
+                    text: `Click here to reset your password: ${resetUrl}`,
+                    html: `<b>Click here to reset your password:</b> <a href="${resetUrl}">${resetUrl}</a>`
+                });
+                console.log(`📧 Test Email sent! Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
+                res.json({ 
+                    success: true, 
+                    message: 'If that email exists, a reset link has been sent.', 
+                    debug_reset_url: resetUrl,
+                    debug_email_preview: nodemailer.getTestMessageUrl(info)
+                });
+            } catch (emailErr) {
+                console.warn('Failed to send test email, but token is created.', emailErr);
+                res.json({ success: true, message: 'Reset link generated (check server console)', debug_reset_url: resetUrl });
+            }
         } catch (err) {
             console.error('Forgot password error:', err);
             res.status(500).json({ success: false, error: 'Failed to process request' });
@@ -285,10 +312,10 @@ async function startServer() {
         }
     });
     // ============ IMAGES ENDPOINTS ============
-    // Get all images for user
+    // Get all images for user (metadata only, no data_url to save bandwidth)
     app.get('/api/images', verifyToken, async (req, res) => {
         try {
-            const result = await query('SELECT * FROM images WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
+            const result = await query('SELECT id, user_id, name, file_size, dimensions, source, notes, created_at FROM images WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
             res.json({ success: true, images: result.rows });
         }
         catch (err) {
