@@ -25,7 +25,7 @@ export function clearAuthToken() {
   localStorage.removeItem('ownly_auth_token');
 }
 
-// Generic API request
+// Generic API request - safe version that never propagates parse errors
 async function apiRequest(endpoint: string, options: RequestInit = {}) {
   const url = `${API_BASE}${endpoint}`;
   const headers: Record<string, string> = {
@@ -37,15 +37,33 @@ async function apiRequest(endpoint: string, options: RequestInit = {}) {
     headers.Authorization = `Bearer ${authToken}`;
   }
 
-  const response = await fetch(url, { ...options, headers });
-  const data = await response.json();
+  let response: Response;
+  try {
+    response = await fetch(url, { ...options, headers });
+  } catch (networkErr) {
+    console.warn(`[API] Network error on ${endpoint}:`, networkErr);
+    throw new Error('Network unavailable');
+  }
+
+  let data: any = {};
+  try {
+    const text = await response.text();
+    if (text) data = JSON.parse(text);
+  } catch {
+    // Server returned non-JSON (e.g., 413 Too Large, 504 Gateway Timeout)
+    if (!response.ok) {
+      throw new Error(`Server error ${response.status}`);
+    }
+    return data;
+  }
 
   if (!response.ok) {
-    throw new Error(data.error || 'API request failed');
+    throw new Error(data.error || `Server error ${response.status}`);
   }
 
   return data;
 }
+
 
 // ============ AUTH ============
 export async function register(email: string, password: string, name: string) {
