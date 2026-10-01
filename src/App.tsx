@@ -61,7 +61,7 @@ export default function App() {
   const realStorageMb = useMemo(() => {
     return images.reduce((total, img) => {
       if (img.fileSize) {
-        const match = img.fileSize.match(/^([\d.]+)\s*(MB|KB|GB)/i);
+        const match = String(img.fileSize).match(/^([\d.]+)\s*(MB|KB|GB)/i);
         if (match) {
           const val = parseFloat(match[1]);
           const unit = match[2].toUpperCase();

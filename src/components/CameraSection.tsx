@@ -91,7 +91,12 @@ export const CameraSection: React.FC<CameraSectionProps> = ({ images, setImages 
     };
 
     setImages((prev) => [newScan, ...prev]);
-    try { await api.createImage(newScan); } catch (e) { console.warn(e); }
+    try { 
+      const created = await api.createImage(newScan);
+      setImages((prev) => prev.map((i) => i.id === newScan.id ? created : i));
+    } catch (e) { 
+      console.warn(e); 
+    }
   };
 
   const handleDeleteScan = async (id: string, e: React.MouseEvent) => {

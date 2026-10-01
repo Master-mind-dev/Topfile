@@ -61,7 +61,8 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
           setImages((prev) => [...newItems, ...prev]);
           for (const img of newItems) {
             try {
-              await api.createImage(img);
+              const created = await api.createImage(img);
+              setImages((prev) => prev.map((i) => i.id === img.id ? created : i));
             } catch (err) {
               console.warn('Sync image create failed:', err);
             }
@@ -98,7 +99,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
   };
 
   const filteredImages = images.filter((img) =>
-    img.name.toLowerCase().includes(searchQuery.toLowerCase())
+    (img.name || '').toLowerCase().includes((searchQuery || '').toLowerCase())
   );
 
   return (
