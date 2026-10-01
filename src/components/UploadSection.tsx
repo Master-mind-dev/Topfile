@@ -51,6 +51,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
   const [dragActive, setDragActive] = useState(false);
   const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]);
   const [viewingFile, setViewingFile] = useState<UploadedImageItem | null>(null);
+  const [viewerLoading, setViewerLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const updateStatus = useCallback((id: string, patch: Partial<UploadStatus>) => {
@@ -149,6 +150,29 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
   const dismissStatus = (id: string) => {
     setUploadStatuses((prev) => prev.filter((s) => s.id !== id));
   };
+
+  // Open viewer — fetch full dataUrl from backend if not in memory
+  const openViewer = useCallback(async (img: UploadedImageItem) => {
+    if (img.dataUrl) {
+      setViewingFile(img);
+      return;
+    }
+    // No dataUrl in memory (stripped from localStorage) — fetch from backend
+    setViewingFile(img); // open modal with loading state
+    setViewerLoading(true);
+    try {
+      const full = await api.getImage(img.id);
+      if (full && full.dataUrl) {
+        setViewingFile(full);
+        // Also update the main list so future opens are instant
+        setImages((prev) => prev.map((i) => i.id === img.id ? { ...i, dataUrl: full.dataUrl } : i));
+      }
+    } catch (e) {
+      console.warn('Could not fetch image for preview:', e);
+    } finally {
+      setViewerLoading(false);
+    }
+  }, [setImages]);
 
   // Determine how to view a file inline
   const getViewerContent = (img: UploadedImageItem) => {
@@ -322,7 +346,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => setViewingFile(img)}
+                        onClick={() => openViewer(img)}
                         className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-cyan-400 cursor-pointer transition-all"
                         title="View file"
                       >
@@ -409,6 +433,9 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
                   {getFileIcon(viewingFile.name || '', viewingFile.dataUrl)}
                   <span className="text-sm font-bold text-white truncate">{viewingFile.name}</span>
                   <span className="text-[11px] text-white/30">{viewingFile.fileSize}</span>
+                  {viewerLoading && (
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-cyan-400 rounded-full animate-spin flex-shrink-0" />
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   {viewingFile.dataUrl && (

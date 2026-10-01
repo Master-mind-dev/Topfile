@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { OwnlyLogo } from './OwnlyLogo';
 import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { UserProfile } from '../types';
 import * as api from '../lib/api';
@@ -13,7 +12,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('Alex Rivera');
+  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +37,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
     try {
       if (isSignUp) {
-        const user = await api.register(cleanEmail, cleanPass, name.trim());
+        const user = await api.register(cleanEmail, cleanPass, name.trim() || cleanEmail.split('@')[0]);
         onLoginSuccess({
           email: user.email || cleanEmail,
           name: user.name || name.trim(),
@@ -60,39 +59,36 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
   return (
     <div
-      className="min-h-screen w-full text-white flex flex-col justify-center items-center px-4 py-8 relative overflow-hidden font-['Inter',sans-serif]"
+      className="min-h-screen w-full text-white flex flex-col justify-center items-center px-4 py-8 relative overflow-hidden"
       id="figma-auth-screen"
     >
-      {/* Background Animated Gradient Mesh */}
+      {/* Background */}
       <div className="ambient-glow-mesh">
         <div className="ambient-glow-1" />
         <div className="ambient-glow-2" />
         <div className="ambient-glow-cyan" />
       </div>
 
-      {/* Frame 3: Auth Center Box (Figma Frame 1 specs: 1113x840 centered card) */}
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-[460px] z-10"
+        className="w-full max-w-[492px] z-10 space-y-6"
       >
-        {/* Glass card */}
-        <div className="bg-white/[0.05] border border-white/10 backdrop-blur-2xl rounded-3xl p-8 sm:p-10 space-y-6 shadow-2xl">
         {/* Brand */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/8 border border-white/12 mb-2 shadow-lg">
-            <span className="text-2xl font-black text-white tracking-tighter">O</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white">
             OWNLY
           </h1>
-          <h2 className="text-lg font-bold text-white/70">
-            {isSignUp ? 'Create your account' : 'Welcome back'}
+          <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
+            {isSignUp ? 'CREATE ACCOUNT' : 'WELCOME BACK'}
           </h2>
+          <p className="text-lg font-bold text-white/70">
+            {isSignUp ? 'Sign Up' : 'Login'}
+          </p>
         </div>
 
-        {/* Form Card (Figma Rectangles 1, 2, 3) */}
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
           {error && (
             <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-200 text-xs text-center font-medium">
@@ -100,22 +96,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
           )}
 
-          {isSignUp && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-black uppercase tracking-wider text-white/80">
-                FULL NAME
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Alex Rivera"
-                className="w-full h-[58px] px-5 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.14] border border-white/20 focus:border-white/50 rounded-2xl text-white placeholder-white/40 font-medium focus:outline-none transition-all"
-              />
-            </div>
-          )}
+          <AnimatePresence>
+            {isSignUp && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-1.5 overflow-hidden"
+              >
+                <label className="text-xs font-black uppercase tracking-wider text-white/80">
+                  FULL NAME
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  className="w-full h-[58px] px-5 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.14] border border-white/20 focus:border-white/50 rounded-2xl text-white placeholder-white/40 font-medium focus:outline-none transition-all"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          {/* Email Field (Rectangle 1) */}
+          {/* Email */}
           <div className="space-y-1.5">
             <label className="text-xs font-black uppercase tracking-wider text-white/80">
               EMAIL
@@ -130,7 +133,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             />
           </div>
 
-          {/* Password Field (Rectangle 2) */}
+          {/* Password */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-black uppercase tracking-wider text-white/80">
@@ -165,30 +168,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {/* Action Submit Button (Rectangle 3: 204x70 in Figma center) */}
+          {/* Submit */}
           <div className="flex justify-center pt-2">
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-[54px] bg-gradient-to-r from-white to-zinc-100 text-zinc-950 font-black text-base rounded-2xl hover:from-zinc-100 hover:to-white active:scale-95 transition-all cursor-pointer shadow-xl shadow-white/10 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-[204px] h-[58px] bg-white text-zinc-950 font-black text-base rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              <span>{isLoading ? 'Processing…' : isSignUp ? 'Create account' : 'Log in'}</span>
+              <span>{isLoading ? 'Processing…' : isSignUp ? 'Sign up' : 'Log in'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Toggle sign up / login */}
-          <div className="text-center pt-4">
+          {/* Toggle */}
+          <div className="text-center pt-2">
             <button
               type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
+              onClick={() => { setIsSignUp(!isSignUp); setError(''); }}
               className="text-xs font-bold text-white/70 hover:text-white transition-colors cursor-pointer"
             >
               {isSignUp ? 'Already have an account? Log in' : 'No account? Sign up'}
             </button>
           </div>
         </form>
-        </div>{/* end glass card */}
       </motion.div>
     </div>
   );

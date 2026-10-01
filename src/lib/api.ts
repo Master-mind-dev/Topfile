@@ -204,6 +204,11 @@ export async function getImages() {
   return (data.images || []).map(formatImage);
 }
 
+export async function getImage(id: string) {
+  const data = await apiRequest(`/images/${id}`);
+  return formatImage(data.image);
+}
+
 export async function createImage(image: any) {
   const data = await apiRequest('/images', {
     method: 'POST',
