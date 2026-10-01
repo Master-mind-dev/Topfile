@@ -60,6 +60,9 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
         } else {
           embedId = parsed.searchParams.get('v');
         }
+        if (embedId) {
+          embedThumb = `https://img.youtube.com/vi/${embedId}/mqdefault.jpg`;
+        }
       } else if (host.includes('khanacademy.org')) {
         title = 'Khan Academy Resource';
       } else if (host.includes('wikipedia.org')) {
@@ -235,15 +238,20 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-sm font-bold text-white hover:text-cyan-300 transition-colors truncate flex items-center gap-1.5"
-                        >
-                          <span>{link.title}</span>
-                          <ExternalLink className="w-3 h-3 text-white/40 flex-shrink-0" />
-                        </a>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs text-cyan-400/80 font-bold truncate">
+                            {link.topic || 'General'}
+                          </span>
+                          <a
+                            href={link.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm font-bold text-white hover:text-cyan-300 transition-colors truncate flex items-center gap-1.5"
+                          >
+                            <span>{link.title}</span>
+                            <ExternalLink className="w-3 h-3 text-white/40 flex-shrink-0" />
+                          </a>
+                        </div>
                         <button
                           onClick={() => handleDelete(link.id)}
                           className="p-1.5 rounded-md text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all cursor-pointer flex-shrink-0"
@@ -261,6 +269,20 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                           {new Date(link.createdAt).toLocaleDateString()}
                         </span>
                       </div>
+                      {link.embedThumb && (
+                        <div className="mt-3 aspect-video rounded-xl overflow-hidden border border-white/10 bg-zinc-900 relative group/thumb">
+                          <img 
+                            src={link.embedThumb} 
+                            alt={link.title} 
+                            className="w-full h-full object-cover opacity-80 group-hover/thumb:opacity-100 transition-opacity" 
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-xl">
+                              <Play className="w-5 h-5 fill-white ml-1" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       {link.isPlayable && link.embedProvider === 'youtube' && link.embedId && (
                         <div className="mt-4 aspect-video rounded-xl overflow-hidden border border-white/10 bg-black">
                           <iframe

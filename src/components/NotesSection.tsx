@@ -117,6 +117,8 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
       (selectedCategory === 'Pinned' ? n.isPinned : n.category === selectedCategory);
     return matchesSearch && matchesCat;
   }).sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
     const dateA = new Date(a.updatedAt).getTime();
     const dateB = new Date(b.updatedAt).getTime();
     return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;

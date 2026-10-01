@@ -29,10 +29,10 @@ function useGreeting(): string {
   useEffect(() => {
     const update = () => {
       const hour = new Date().getHours();
-      if (hour < 4) setGreeting('Good night');
-      else if (hour < 12) setGreeting('Good morning');
-      else if (hour < 17) setGreeting('Good afternoon');
-      else setGreeting('Good evening');
+      if (hour >= 5 && hour < 12) setGreeting('Good morning');
+      else if (hour >= 12 && hour < 17) setGreeting('Good afternoon');
+      else if (hour >= 17 && hour < 21) setGreeting('Good evening');
+      else setGreeting('Good night');
     };
     update();
     const interval = setInterval(update, 60000);
