@@ -45,7 +45,13 @@ export default function App() {
 
   const [images, setImages] = useState<UploadedImageItem[]>(() => {
     const saved = localStorage.getItem('ownly_images');
-    if (saved) { try { return JSON.parse(saved); } catch { return initialImages; } }
+    if (saved) {
+      try {
+        // Strip any cached dataUrls from old format to free up space
+        const parsed = JSON.parse(saved);
+        return parsed.map((img: UploadedImageItem) => ({ ...img, dataUrl: img.dataUrl?.startsWith('blob:') ? img.dataUrl : '' }));
+      } catch { return initialImages; }
+    }
     return initialImages;
   });
 
@@ -132,7 +138,13 @@ export default function App() {
     localStorage.setItem('ownly_notes', JSON.stringify(notes)); 
   }, [notes]);
   useEffect(() => { 
-    localStorage.setItem('ownly_images', JSON.stringify(images)); 
+    // Strip dataUrl before caching — base64 images can be many MB, blowing the 5MB localStorage limit
+    try {
+      const slim = images.map(({ dataUrl: _stripped, ...meta }) => meta);
+      localStorage.setItem('ownly_images', JSON.stringify(slim));
+    } catch (e) {
+      console.warn('localStorage images cache skipped:', e);
+    }
   }, [images]);
   useEffect(() => { 
     localStorage.setItem('ownly_links', JSON.stringify(links)); 
