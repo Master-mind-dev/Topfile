@@ -115,13 +115,6 @@ export const UploadSection: React.FC<UploadSectionProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="figma-btn-dark px-5 py-2.5 flex items-center gap-2 cursor-pointer shadow-lg hover:border-white/40 active:scale-95 text-xs sm:text-sm"
-        >
-          <UploadCloud className="w-4 h-4 text-white" />
-          <span>Upload files</span>
-        </button>
       </div>
 
       <input

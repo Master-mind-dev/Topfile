@@ -23,6 +23,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [activeNote, setActiveNote] = useState<NoteItem | null>(null);
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
   const [editorTitle, setEditorTitle] = useState('');
   const [editorContent, setEditorContent] = useState('');
@@ -115,6 +116,10 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
       selectedCategory === 'All' ||
       (selectedCategory === 'Pinned' ? n.isPinned : n.category === selectedCategory);
     return matchesSearch && matchesCat;
+  }).sort((a, b) => {
+    const dateA = new Date(a.updatedAt).getTime();
+    const dateB = new Date(b.updatedAt).getTime();
+    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
   });
 
   const userCategories = Array.from(new Set(notes.map((n) => n.category).filter(Boolean)));
@@ -393,10 +398,13 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
         {/* List header */}
         <div className="flex items-center justify-between text-xs text-white/50 border-b border-white/10 pb-3">
           <span>{filteredNotes.length} note{filteredNotes.length !== 1 ? 's' : ''}</span>
-          <div className="flex items-center gap-1">
-            <span>Last edited</span>
-            <ChevronDown className="w-3.5 h-3.5" />
-          </div>
+          <button
+            onClick={() => setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')}
+            className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors"
+          >
+            <span>{sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${sortOrder === 'oldest' ? 'rotate-180' : ''}`} />
+          </button>
         </div>
 
         {/* Note rows */}

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   FileText, 
@@ -23,11 +23,23 @@ interface HomeSectionProps {
   onOpenNote?: (note: NoteItem) => void;
 }
 
-function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+function useGreeting(): string {
+  const [greeting, setGreeting] = useState('');
+  
+  useEffect(() => {
+    const update = () => {
+      const hour = new Date().getHours();
+      if (hour < 4) setGreeting('Good night');
+      else if (hour < 12) setGreeting('Good morning');
+      else if (hour < 17) setGreeting('Good afternoon');
+      else setGreeting('Good evening');
+    };
+    update();
+    const interval = setInterval(update, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return greeting;
 }
 
 export const HomeSection: React.FC<HomeSectionProps> = ({
@@ -46,7 +58,7 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
   const totalLinks = links.length;
 
   const firstName = user.name ? user.name.split(' ')[0] : 'there';
-  const greeting = getGreeting();
+  const greeting = useGreeting();
 
   // Weekly activity: count items created in the last 7 days per day of week
   const weeklyActivity = useMemo(() => {

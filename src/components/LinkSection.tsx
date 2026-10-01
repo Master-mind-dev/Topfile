@@ -27,6 +27,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
   setLinks,
 }) => {
   const [urlInput, setUrlInput] = useState('');
+  const [topicInput, setTopicInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All links');
   const [isParsing, setIsParsing] = useState(false);
@@ -72,6 +73,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
       id: `link-${Date.now()}`,
       url: trimmed,
       title: title,
+      topic: topicInput.trim() || undefined,
       description: '',
       embedThumb: embedThumb,
       linkHost: host,
@@ -83,6 +85,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
 
     setLinks((prev) => [newItem, ...prev]);
     setUrlInput('');
+    setTopicInput('');
     setIsParsing(false);
 
     try {
@@ -208,7 +211,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
           </div>
 
           {/* Saved Link Items */}
-          <div className="space-y-3">
+          <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : "space-y-3"}>
             {filteredLinks.length === 0 ? (
               <div className="text-center py-12 text-white/40 text-sm">
                 No links saved yet. Paste a link on the right to start building your reading list.
@@ -220,7 +223,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                 return (
                   <div
                     key={link.id}
-                    className="p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex items-start gap-4 transition-all group"
+                    className={`p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 flex ${viewMode === 'grid' ? 'flex-col gap-3' : 'items-start gap-4'} transition-all group`}
                   >
                     <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 text-white mt-0.5">
                       {isYoutube ? (
@@ -298,6 +301,16 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                 placeholder="Paste a URL…"
                 required
                 className="w-full pl-10 pr-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/35 focus:outline-none focus:border-white/30"
+              />
+            </div>
+
+            <div className="relative">
+              <input
+                type="text"
+                value={topicInput}
+                onChange={(e) => setTopicInput(e.target.value)}
+                placeholder="Topic (e.g. Biology)…"
+                className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/35 focus:outline-none focus:border-white/30"
               />
             </div>
 

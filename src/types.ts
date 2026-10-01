@@ -45,6 +45,7 @@ export interface LinkItem {
   id: string;
   url: string;
   title: string;
+  topic?: string;
   description: string;
   embedThumb: string;
   linkHost: string;
