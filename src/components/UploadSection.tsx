@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
+  Eye,
+  ExternalLink,
 } from 'lucide-react';
 import { UploadedImageItem } from '../types';
 import * as api from '../lib/api';
@@ -48,6 +50,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
   const [searchQuery, setSearchQuery] = useState('');
   const [dragActive, setDragActive] = useState(false);
   const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]);
+  const [viewingFile, setViewingFile] = useState<UploadedImageItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const updateStatus = useCallback((id: string, patch: Partial<UploadStatus>) => {
@@ -145,6 +148,28 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
 
   const dismissStatus = (id: string) => {
     setUploadStatuses((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  // Determine how to view a file inline
+  const getViewerContent = (img: UploadedImageItem) => {
+    const name = img.name || '';
+    const ext = name.split('.').pop()?.toLowerCase() || '';
+    const dataUrl = img.dataUrl || '';
+
+    // Images — show directly
+    if (dataUrl.startsWith('data:image') || ['jpg','jpeg','png','gif','webp','svg','bmp'].includes(ext)) {
+      return { type: 'image', src: dataUrl || img.dataUrl };
+    }
+    // PDF — use browser iframe (works natively)
+    if (ext === 'pdf' || dataUrl.startsWith('data:application/pdf')) {
+      return { type: 'pdf', src: dataUrl };
+    }
+    // Word / Excel / PPT — use Google Docs Viewer
+    if (['doc','docx','xls','xlsx','ppt','pptx'].includes(ext)) {
+      // If we have a dataUrl we can't use Google Docs Viewer, open directly
+      return { type: 'download', src: dataUrl, ext };
+    }
+    return { type: 'download', src: dataUrl, ext };
   };
 
   const filteredImages = images.filter((img) =>
@@ -296,6 +321,13 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
                       </div>
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => setViewingFile(img)}
+                        className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-cyan-400 cursor-pointer transition-all"
+                        title="View file"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                       {img.dataUrl && (
                         <a
                           href={img.dataUrl}
@@ -357,6 +389,92 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
           </div>
         </div>
       </div>
+
+      {/* ── Inline File Viewer Modal ── */}
+      <AnimatePresence>
+        {viewingFile && (() => {
+          const viewer = getViewerContent(viewingFile);
+          return (
+            <motion.div
+              key="file-viewer"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col"
+              onClick={(e) => { if (e.target === e.currentTarget) setViewingFile(null); }}
+            >
+              {/* Viewer header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 bg-black/60 flex-shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  {getFileIcon(viewingFile.name || '', viewingFile.dataUrl)}
+                  <span className="text-sm font-bold text-white truncate">{viewingFile.name}</span>
+                  <span className="text-[11px] text-white/30">{viewingFile.fileSize}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {viewingFile.dataUrl && (
+                    <a
+                      href={viewingFile.dataUrl}
+                      download={viewingFile.name || 'file'}
+                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-bold text-white flex items-center gap-1.5 transition-all"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Download
+                    </a>
+                  )}
+                  <button
+                    onClick={() => setViewingFile(null)}
+                    className="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white cursor-pointer transition-all"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Viewer content */}
+              <div className="flex-1 overflow-auto flex items-center justify-center p-4">
+                {viewer.type === 'image' && (
+                  <motion.img
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    src={viewer.src}
+                    alt={viewingFile.name}
+                    className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                  />
+                )}
+                {viewer.type === 'pdf' && viewer.src && (
+                  <iframe
+                    src={viewer.src}
+                    className="w-full h-full rounded-xl border border-white/10"
+                    title={viewingFile.name}
+                    style={{ minHeight: '70vh' }}
+                  />
+                )}
+                {viewer.type === 'download' && (
+                  <div className="text-center space-y-4">
+                    <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto">
+                      {getFileIcon(viewingFile.name || '', viewingFile.dataUrl)}
+                    </div>
+                    <p className="text-white font-bold">{viewingFile.name}</p>
+                    <p className="text-white/40 text-sm max-w-xs">
+                      This file type can't be previewed in the browser. You can download it to view it.
+                    </p>
+                    {viewingFile.dataUrl && (
+                      <a
+                        href={viewingFile.dataUrl}
+                        download={viewingFile.name || 'file'}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-white text-[#0d0608] font-black rounded-full text-sm hover:bg-white/90 active:scale-95 transition-all"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download file
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 };

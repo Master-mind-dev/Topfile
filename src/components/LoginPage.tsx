@@ -63,10 +63,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       className="min-h-screen w-full text-white flex flex-col justify-center items-center px-4 py-8 relative overflow-hidden font-['Inter',sans-serif]"
       id="figma-auth-screen"
     >
-      {/* Background Animated Gradient Mesh from Figma Frame 1 */}
+      {/* Background Animated Gradient Mesh */}
       <div className="ambient-glow-mesh">
         <div className="ambient-glow-1" />
         <div className="ambient-glow-2" />
+        <div className="ambient-glow-cyan" />
       </div>
 
       {/* Frame 3: Auth Center Box (Figma Frame 1 specs: 1113x840 centered card) */}
@@ -74,19 +75,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.4 }}
-        className="w-full max-w-[492px] z-10 space-y-6"
+        className="w-full max-w-[460px] z-10"
       >
-        {/* Brand Logo & Welcome Heading */}
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white font-['Inter']">
+        {/* Glass card */}
+        <div className="bg-white/[0.05] border border-white/10 backdrop-blur-2xl rounded-3xl p-8 sm:p-10 space-y-6 shadow-2xl">
+        {/* Brand */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/8 border border-white/12 mb-2 shadow-lg">
+            <span className="text-2xl font-black text-white tracking-tighter">O</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
             OWNLY
           </h1>
-          <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
-            {isSignUp ? 'CREATE ACCOUNT' : 'WELCOME BACK'}
+          <h2 className="text-lg font-bold text-white/70">
+            {isSignUp ? 'Create your account' : 'Welcome back'}
           </h2>
-          <p className="text-lg font-bold text-white/70">
-            {isSignUp ? 'Sign Up' : 'Login'}
-          </p>
         </div>
 
         {/* Form Card (Figma Rectangles 1, 2, 3) */}
@@ -167,9 +170,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-[204px] h-[58px] bg-white text-zinc-950 font-black text-base rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full h-[54px] bg-gradient-to-r from-white to-zinc-100 text-zinc-950 font-black text-base rounded-2xl hover:from-zinc-100 hover:to-white active:scale-95 transition-all cursor-pointer shadow-xl shadow-white/10 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              <span>{isLoading ? 'Processing…' : isSignUp ? 'Sign up' : 'Log in'}</span>
+              <span>{isLoading ? 'Processing…' : isSignUp ? 'Create account' : 'Log in'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -185,6 +188,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </button>
           </div>
         </form>
+        </div>{/* end glass card */}
       </motion.div>
     </div>
   );
