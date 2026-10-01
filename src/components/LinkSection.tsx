@@ -296,15 +296,15 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                         }
                         if (link.embedThumb) {
                           return (
-                            <div className="mt-3 aspect-video rounded-xl overflow-hidden border border-white/10 bg-zinc-900 relative group/thumb">
+                            <div className="mt-3 aspect-video rounded-xl overflow-hidden border border-white/10 bg-zinc-900 relative group/thumb w-full">
                               <img 
                                 src={link.embedThumb} 
                                 alt={link.title} 
                                 className="w-full h-full object-cover opacity-80 group-hover/thumb:opacity-100 transition-opacity" 
                               />
                               <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-xl">
-                                  <Play className="w-5 h-5 fill-white ml-1" />
+                                <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center text-white shadow-xl">
+                                  <Play className="w-6 h-6 fill-white ml-1" />
                                 </div>
                               </div>
                             </div>

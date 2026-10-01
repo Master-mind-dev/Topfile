@@ -52,16 +52,15 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
   const saveNote = useCallback(async (updates: Partial<NoteItem>, noteId: string) => {
     setSaveStatus('Saving…');
     
-    let updatedNote: NoteItem | null = null;
-    
     setNotes((prev) => {
-      return prev.map((n) => {
+      const next = prev.map((n) => {
         if (n.id === noteId) {
-          updatedNote = { ...n, ...updates, updatedAt: new Date().toISOString() };
-          return updatedNote;
+          return { ...n, ...updates, updatedAt: new Date().toISOString() };
         }
         return n;
       });
+      localStorage.setItem('ownly_notes', JSON.stringify(next));
+      return next;
     });
 
     setActiveNote((prev) => prev && prev.id === noteId ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : prev);

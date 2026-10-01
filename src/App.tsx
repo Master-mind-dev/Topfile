@@ -125,10 +125,18 @@ export default function App() {
     checkAuth();
   }, []);
 
-  useEffect(() => { localStorage.setItem('ownly_user', JSON.stringify(user)); }, [user]);
-  useEffect(() => { localStorage.setItem('ownly_notes', JSON.stringify(notes)); }, [notes]);
-  useEffect(() => { localStorage.setItem('ownly_images', JSON.stringify(images)); }, [images]);
-  useEffect(() => { localStorage.setItem('ownly_links', JSON.stringify(links)); }, [links]);
+  useEffect(() => { 
+    localStorage.setItem('ownly_user', JSON.stringify(user)); 
+  }, [user]);
+  useEffect(() => { 
+    localStorage.setItem('ownly_notes', JSON.stringify(notes)); 
+  }, [notes]);
+  useEffect(() => { 
+    localStorage.setItem('ownly_images', JSON.stringify(images)); 
+  }, [images]);
+  useEffect(() => { 
+    localStorage.setItem('ownly_links', JSON.stringify(links)); 
+  }, [links]);
 
   const handleLoginSuccess = (profile: Partial<UserProfile>) => {
     const newUser = { ...user, ...profile };
