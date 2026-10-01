@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   FileText, Plus, Search, Pin, Trash2, Check, X, ArrowLeft, Share2,
-  Bold, Italic, Underline, Heading2, List, ListOrdered, Quote, ChevronDown
+  Bold, Italic, Underline, Heading2, List, ListOrdered, Quote, ChevronDown, Save
 } from 'lucide-react';
 import { NoteItem } from '../types';
 import * as api from '../lib/api';
@@ -194,6 +194,23 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
             >
               <Trash2 className="w-4 h-4" />
             </button>
+            {/* Save */}
+            <button
+              onClick={() => {
+                if (activeNote) {
+                  saveNote({
+                    title: editorTitle,
+                    content: editorContent,
+                    category: editorCategory
+                  }, activeNote.id);
+                }
+              }}
+              className="px-4 py-2 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 text-xs font-bold text-cyan-300 flex items-center gap-2 cursor-pointer transition-all"
+              title="Save note manually"
+            >
+              <Save className="w-3.5 h-3.5" />
+              <span>Save</span>
+            </button>
             {/* Share */}
             <button
               onClick={() => {
@@ -243,10 +260,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
               <input
                 type="text"
                 value={editorCategory}
-                onChange={(e) => {
-                  setEditorCategory(e.target.value);
-                  if (activeNote) saveNote({ category: e.target.value }, activeNote.id);
-                }}
+                onChange={(e) => setEditorCategory(e.target.value)}
                 placeholder="e.g. Biology, Physics…"
                 className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/25 focus:outline-none focus:border-white/30 transition-all"
               />
@@ -324,10 +338,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
               <input
                 type="text"
                 value={editorCategory}
-                onChange={(e) => {
-                  setEditorCategory(e.target.value);
-                  if (activeNote) saveNote({ category: e.target.value }, activeNote.id);
-                }}
+                onChange={(e) => setEditorCategory(e.target.value)}
                 placeholder="Topic (e.g. Biology)…"
                 className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/25 focus:outline-none focus:border-white/30"
               />
@@ -337,10 +348,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
             <input
               type="text"
               value={editorTitle}
-              onChange={(e) => {
-                setEditorTitle(e.target.value);
-                if (activeNote) saveNote({ title: e.target.value }, activeNote.id);
-              }}
+              onChange={(e) => setEditorTitle(e.target.value)}
               placeholder="Note title…"
               className="w-full bg-transparent text-2xl sm:text-3xl font-black text-white focus:outline-none placeholder-white/20 mb-3"
             />
@@ -349,10 +357,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
             <textarea
               ref={contentRef}
               value={editorContent}
-              onChange={(e) => {
-                setEditorContent(e.target.value);
-                if (activeNote) saveNote({ content: e.target.value }, activeNote.id);
-              }}
+              onChange={(e) => setEditorContent(e.target.value)}
               placeholder="Start writing…"
               className="flex-1 w-full bg-transparent text-sm sm:text-base text-white/85 focus:outline-none placeholder-white/20 resize-none font-normal leading-relaxed"
               style={{ minHeight: '400px' }}

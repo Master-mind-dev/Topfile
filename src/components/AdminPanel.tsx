@@ -211,10 +211,13 @@ export function AdminPanel() {
               { icon: Wifi, label: 'Live Users', value: stats.liveUsers, color: '#4ade80' },
               { icon: Wifi, label: 'Connections', value: stats.liveConnections, color: '#4ade80' },
             ].map(({ icon: Icon, label, value, color }) => (
-              <div key={label} className="bg-zinc-950 border border-white/10 rounded-2xl p-3 flex flex-col gap-1">
-                <Icon className="w-4 h-4" style={{ color }} />
-                <p className="text-xl font-bold">{value}</p>
-                <p className="text-[11px] text-white/40">{label}</p>
+              <div key={label} className="relative group overflow-hidden bg-black border border-white/10 hover:border-white/20 rounded-2xl p-4 flex flex-col gap-1.5 transition-all cursor-default shadow-lg">
+                <div className="absolute inset-0 opacity-5 group-hover:opacity-15 transition-opacity" style={{ backgroundColor: color }} />
+                <div className="flex items-center justify-between mb-1">
+                  <Icon className="w-5 h-5 relative z-10" style={{ color }} />
+                </div>
+                <p className="text-2xl font-black relative z-10 tracking-tight">{value}</p>
+                <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider relative z-10">{label}</p>
               </div>
             ))}
           </div>
@@ -241,7 +244,7 @@ export function AdminPanel() {
                 <Users className="w-4 h-4 text-[#d9ad52]" />
                 Registered Users
               </h2>
-              <span className="text-xs bg-[#d9ad52]/10 text-[#d9ad52] px-2.5 py-1 rounded-full font-bold">
+              <span className="text-xs bg-[#d9ad52]/20 text-[#d9ad52] px-3 py-1 rounded-full font-black border border-[#d9ad52]/30">
                 {filteredUsers.length}
               </span>
             </div>
@@ -301,8 +304,8 @@ export function AdminPanel() {
           <div className="lg:col-span-8 min-w-0">
             {selectedUser ? (
               <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
                 className="space-y-6"
               >
                 {/* User Profile Card */}
