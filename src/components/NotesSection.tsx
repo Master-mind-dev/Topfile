@@ -49,13 +49,25 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
     setSaveStatus('Saved');
   };
 
-  const saveNote = useCallback(async (updates: Partial<NoteItem>, note: NoteItem) => {
+  const saveNote = useCallback(async (updates: Partial<NoteItem>, noteId: string) => {
     setSaveStatus('Saving…');
-    const updated = { ...note, ...updates, updatedAt: new Date().toISOString() };
-    setActiveNote(updated);
-    setNotes((prev) => prev.map((n) => n.id === updated.id ? updated : n));
+    
+    let updatedNote: NoteItem | null = null;
+    
+    setNotes((prev) => {
+      return prev.map((n) => {
+        if (n.id === noteId) {
+          updatedNote = { ...n, ...updates, updatedAt: new Date().toISOString() };
+          return updatedNote;
+        }
+        return n;
+      });
+    });
+
+    setActiveNote((prev) => prev && prev.id === noteId ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : prev);
+
     try {
-      await api.updateNote(updated.id, updates);
+      await api.updateNote(noteId, updates);
       setSaveStatus('Saved');
     } catch {
       setSaveStatus('Saved locally');
@@ -228,7 +240,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
                 value={editorCategory}
                 onChange={(e) => {
                   setEditorCategory(e.target.value);
-                  if (activeNote) saveNote({ category: e.target.value }, activeNote);
+                  if (activeNote) saveNote({ category: e.target.value }, activeNote.id);
                 }}
                 placeholder="e.g. Biology, Physics…"
                 className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/25 focus:outline-none focus:border-white/30 transition-all"
@@ -309,7 +321,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
                 value={editorCategory}
                 onChange={(e) => {
                   setEditorCategory(e.target.value);
-                  if (activeNote) saveNote({ category: e.target.value }, activeNote);
+                  if (activeNote) saveNote({ category: e.target.value }, activeNote.id);
                 }}
                 placeholder="Topic (e.g. Biology)…"
                 className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/25 focus:outline-none focus:border-white/30"
@@ -322,7 +334,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
               value={editorTitle}
               onChange={(e) => {
                 setEditorTitle(e.target.value);
-                if (activeNote) saveNote({ title: e.target.value }, activeNote);
+                if (activeNote) saveNote({ title: e.target.value }, activeNote.id);
               }}
               placeholder="Note title…"
               className="w-full bg-transparent text-2xl sm:text-3xl font-black text-white focus:outline-none placeholder-white/20 mb-3"
@@ -334,7 +346,7 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
               value={editorContent}
               onChange={(e) => {
                 setEditorContent(e.target.value);
-                if (activeNote) saveNote({ content: e.target.value }, activeNote);
+                if (activeNote) saveNote({ content: e.target.value }, activeNote.id);
               }}
               placeholder="Start writing…"
               className="flex-1 w-full bg-transparent text-sm sm:text-base text-white/85 focus:outline-none placeholder-white/20 resize-none font-normal leading-relaxed"
