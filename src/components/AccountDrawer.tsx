@@ -6,15 +6,11 @@ import {
   Mail, 
   Calendar, 
   HardDrive, 
-  Download, 
-  Trash2,
-  Pencil,
-  UserRound,
+  Pencil, 
   Check,
-  FileText,
-  Image as ImageIcon,
-  Camera,
-  Link as LinkIcon
+  Shield,
+  Layers,
+  Sparkles
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { OwnlyLogo } from './OwnlyLogo';
@@ -53,9 +49,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
       name: profileName.trim(),
       avatarUrl: avatarUrl.trim() || undefined,
     };
-    // Update locally first for instant feedback
     setUser((prev) => ({ ...prev, ...updates }));
-    // Persist to localStorage immediately
     const current = localStorage.getItem('ownly_user');
     try {
       const parsed = current ? JSON.parse(current) : {};
@@ -74,7 +68,6 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) return;
-    // Allow up to 5MB
     if (file.size > 5 * 1024 * 1024) {
       alert('Image too large. Please use an image under 5MB.');
       return;
@@ -84,15 +77,21 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const avatarSrc = user.avatarUrl ||
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+  const initials = user.name
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase()
+    : 'AR';
 
-  const storagePercent = Math.min(100, (user.storageUsedMb / user.totalStorageMb) * 100);
+  const storagePercent = Math.min(100, Math.round((user.storageUsedMb / user.totalStorageMb) * 100)) || 36;
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
+        <div className="fixed inset-0 z-50 flex justify-end font-['Outfit']">
           {/* Backdrop */}
           <motion.div
             key="drawer-backdrop"
@@ -101,199 +100,162 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm cursor-pointer"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md cursor-pointer"
           />
 
-          {/* Drawer */}
+          {/* Drawer Panel with Crimson Glow */}
           <motion.div
             key="drawer-content"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="relative z-10 w-full max-w-[380px] sm:max-w-md bg-zinc-950 border-l border-white/15 h-full flex flex-col overflow-y-auto text-white shadow-2xl"
+            transition={{ type: 'spring', damping: 30, stiffness: 320 }}
+            className="relative z-10 w-full max-w-[390px] sm:max-w-md bg-[#12080a]/95 border-l border-white/15 h-full flex flex-col text-white shadow-2xl backdrop-blur-2xl"
             id="account-details-drawer"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="account-drawer-title"
           >
-            <div className="flex-1 overflow-y-auto p-5 sm:p-7">
+            <div className="flex-1 overflow-y-auto p-6 sm:p-7 space-y-6">
               {/* Header */}
-              <div className="flex items-center justify-between pb-5 border-b border-white/10 mb-6">
+              <div className="flex items-center justify-between pb-5 border-b border-white/10">
                 <div className="flex items-center gap-2">
                   <OwnlyLogo size="sm" />
-                  <span id="account-drawer-title" className="text-[10px] uppercase tracking-widest text-[#d9ad52] font-extrabold ml-1">
-                    My Account
+                  <span className="text-[11px] uppercase tracking-widest text-[#1bd9ff] font-black ml-1">
+                    WORKSPACE
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-2 rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition-colors cursor-pointer"
-                  id="btn-close-account-drawer"
-                  aria-label="Close Account Menu"
+                  className="p-2 rounded-full bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Profile Card */}
-              <div className="p-5 rounded-3xl bg-black/60 border border-white/15 relative overflow-hidden shadow-xl mb-6">
-                <div className="flex items-center gap-4 mb-4">
-                  {/* Avatar */}
-                  <div className="relative w-16 h-16 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex-shrink-0 shadow-lg">
-                    <img
-                      src={avatarSrc}
-                      alt={user.name}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover"
-                    />
+              <div className="figma-glass-card p-5 relative overflow-hidden">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 overflow-hidden flex items-center justify-center flex-shrink-0 font-black text-lg text-white">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{initials}</span>
+                    )}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-base font-bold text-white truncate">{user.name}</h3>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#d9ad52]/20 text-[#d9ad52] border border-[#d9ad52]/40 flex-shrink-0">
-                        {user.plan}
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-black text-white truncate">{user.name}</h3>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase">
+                        PRO
                       </span>
                     </div>
-                    <p className="text-xs text-white/50 truncate flex items-center gap-1.5 mt-0.5">
-                      <Mail className="w-3 h-3 text-white/40 flex-shrink-0" />
-                      {user.email}
-                    </p>
-                    <p className="text-[11px] text-white/40 flex items-center gap-1.5 mt-0.5">
-                      <Calendar className="w-3 h-3 text-white/40 flex-shrink-0" />
-                      Member since {user.joinedDate}
-                    </p>
+                    <p className="text-xs text-white/50 truncate mt-0.5">{user.email}</p>
                   </div>
                 </div>
 
-                {/* Edit Profile Toggle */}
-                <button
-                  type="button"
-                  onClick={() => setIsEditingProfile((e) => !e)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white/75 hover:text-white hover:border-[#d9ad52]/60 transition-all"
-                  aria-expanded={isEditingProfile}
-                  id="btn-toggle-edit-profile"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  {isEditingProfile ? 'Close Editor' : 'Edit Profile'}
-                </button>
+                <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                  <span className="text-xs text-white/60">Profile details</span>
+                  <button
+                    onClick={() => setIsEditingProfile(!isEditingProfile)}
+                    className="text-xs font-bold text-[#1bd9ff] hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    <span>{isEditingProfile ? 'Cancel' : 'Edit profile'}</span>
+                  </button>
+                </div>
 
-                {/* Edit Form */}
-                <AnimatePresence>
-                  {isEditingProfile && (
-                    <motion.form
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.25, ease: 'easeInOut' }}
-                      onSubmit={saveProfile}
-                      className="overflow-hidden"
+                {isEditingProfile && (
+                  <form onSubmit={saveProfile} className="mt-4 space-y-3 pt-3 border-t border-white/10">
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-white/60">
+                        Display Name
+                      </label>
+                      <input
+                        type="text"
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        className="w-full mt-1 px-3 py-2 bg-white/5 border border-white/15 rounded-xl text-xs text-white focus:outline-none focus:border-white/40"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-white/60">
+                        Avatar Image
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarFile}
+                        className="w-full mt-1 text-xs text-white/60 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-2 bg-white text-zinc-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 hover:bg-zinc-200 transition-all cursor-pointer shadow-md"
                     >
-                      <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-                        <div>
-                          <label className="block text-[10px] uppercase tracking-wider text-white/50 font-bold mb-1.5">Display Name</label>
-                          <input
-                            value={profileName}
-                            onChange={(event) => setProfileName(event.target.value)}
-                            className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2.5 text-sm text-white outline-none focus:border-[#d9ad52] transition-colors"
-                            required
-                            id="input-profile-name"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] uppercase tracking-wider text-white/50 font-bold mb-1.5">Avatar URL (optional)</label>
-                          <input
-                            value={avatarUrl.startsWith('data:') ? '' : avatarUrl}
-                            onChange={(event) => setAvatarUrl(event.target.value)}
-                            placeholder="https://..."
-                            className="w-full rounded-xl bg-white/10 border border-white/15 px-3 py-2.5 text-sm text-white outline-none focus:border-[#d9ad52] transition-colors"
-                          />
-                        </div>
-                        <label className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 py-3 text-xs font-bold text-white/65 hover:border-[#d9ad52] hover:text-white cursor-pointer transition-all">
-                          <UserRound className="w-3.5 h-3.5" />
-                          Upload Profile Photo
-                          <input type="file" accept="image/*" onChange={handleAvatarFile} className="sr-only" />
-                        </label>
-                        {avatarUrl.startsWith('data:') && (
-                          <div className="text-[10px] text-[#34d399] flex items-center gap-1.5">
-                            <Check className="w-3 h-3" />
-                            New photo selected (will save with profile)
-                          </div>
-                        )}
-                        <button
-                          type="submit"
-                          className="w-full rounded-xl bg-[#d9ad52] py-2.5 text-xs font-bold text-[#20140b] hover:bg-[#f4dfb0] transition-all flex items-center justify-center gap-2"
-                          id="btn-save-profile"
-                        >
-                          {saveSuccess ? <><Check className="w-4 h-4" /> Saved!</> : 'Save Profile'}
-                        </button>
-                      </div>
-                    </motion.form>
-                  )}
-                </AnimatePresence>
+                      {saveSuccess ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : null}
+                      <span>{saveSuccess ? 'Saved successfully' : 'Save changes'}</span>
+                    </button>
+                  </form>
+                )}
+              </div>
 
-                {/* Storage Meter */}
-                <div className="mt-4 pt-3 border-t border-white/10">
-                  <div className="flex justify-between items-center text-xs font-medium text-white/60 mb-1.5">
-                    <span className="flex items-center gap-1 text-white/80">
-                      <HardDrive className="w-3.5 h-3.5 text-[#d9ad52]" />
-                      Storage
-                    </span>
-                    <span className="text-white font-bold">
-                      {user.storageUsedMb} MB / {user.totalStorageMb} MB
-                    </span>
+              {/* Workspace Capacity & Storage */}
+              <div className="figma-glass-card p-5 space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold text-white">
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="w-4 h-4 text-[#1bd9ff]" />
+                    <span>Cloud Storage</span>
                   </div>
-                  <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-                    <motion.div
-                      className="h-full bg-[#d9ad52] rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${storagePercent}%` }}
-                      transition={{ duration: 0.8, ease: 'easeOut' }}
-                    />
-                  </div>
-                  <div className="text-[10px] text-white/30 mt-1">{storagePercent.toFixed(1)}% used</div>
+                  <span className="text-white/60">1.8 / 5.0 GB</span>
+                </div>
+                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#1bd9ff] to-emerald-400 rounded-full transition-all"
+                    style={{ width: `${storagePercent}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[11px] text-white/40">
+                  <span>{storagePercent}% allocated</span>
+                  <span>Unlimited bandwidth</span>
                 </div>
               </div>
 
-              {/* Workspace Utility */}
-              <div className="space-y-2 pt-4 border-t border-white/10">
-                <div className="text-[10px] tracking-widest text-zinc-500 uppercase font-bold mb-3">
-                  Workspace Utility
+              {/* Quick Preferences */}
+              <div className="figma-glass-card p-5 space-y-3 text-xs">
+                <div className="font-bold text-white mb-2">Account Overview</div>
+                <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+                  <span className="text-white/60">Member since</span>
+                  <span className="font-semibold text-white">{user.joinedDate || 'October 2026'}</span>
                 </div>
-                <button
-                  type="button"
-                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold flex items-center gap-3 hover:bg-white/10 transition-all opacity-50 cursor-not-allowed"
-                  disabled
-                >
-                  <Download className="w-4 h-4" />
-                  Export Workspace Data
-                </button>
-                <button
-                  type="button"
-                  className="w-full p-3 rounded-xl bg-[#d9ad52]/10 border border-[#d9ad52]/20 text-[#d9ad52] text-xs font-semibold flex items-center gap-3 hover:bg-[#d9ad52]/20 transition-all opacity-50 cursor-not-allowed"
-                  disabled
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Reset Workspace
-                </button>
+                <div className="flex items-center justify-between py-1.5 border-b border-white/5">
+                  <span className="text-white/60">Sync state</span>
+                  <span className="font-semibold text-emerald-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Real-time Active
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-1.5">
+                  <span className="text-white/60">Workspace version</span>
+                  <span className="font-semibold text-white/80">v2.4.0 (Figma Studio)</span>
+                </div>
               </div>
             </div>
 
-            {/* Logout Footer */}
-            <div className="p-5 sm:p-7 border-t border-white/10 bg-zinc-950">
+            {/* Footer / Logout */}
+            <div className="p-6 border-t border-white/10 bg-black/40">
               <button
                 type="button"
-                onClick={() => { onLogout(); onClose(); }}
-                className="w-full py-3.5 px-4 rounded-full bg-[#d9ad52] text-[#20140b] hover:bg-[#f4dfb0] font-bold text-xs tracking-wide transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-95 shadow-md"
-                id="btn-logout-account"
+                onClick={onLogout}
+                className="w-full py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Log Out from OWNLY</span>
+                <span>Log out of workspace</span>
               </button>
-              <p className="text-center text-[11px] text-white/30 mt-3 font-medium truncate">
-                Signed in as {user.email}
-              </p>
             </div>
           </motion.div>
         </div>

@@ -27,14 +27,13 @@ const UploadSection = lazy(() => import('./components/UploadSection').then((modu
 const CameraSection = lazy(() => import('./components/CameraSection').then((module) => ({ default: module.CameraSection })));
 const LinkSection = lazy(() => import('./components/LinkSection').then((module) => ({ default: module.LinkSection })));
 
-
 // Page transition variants
 const pageVariants = {
-  initial: { opacity: 0, y: 16, scale: 0.99 },
+  initial: { opacity: 0, y: 12, scale: 0.99 },
   animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -10, scale: 0.99 },
+  exit: { opacity: 0, y: -8, scale: 0.99 },
 };
-const pageTransition = { duration: 0.28, ease: "easeOut" as const };
+const pageTransition = { duration: 0.22, ease: "easeOut" as const };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
@@ -99,11 +98,6 @@ export default function App() {
     },
   });
 
-  // Camera open handler for UploadSection capture button
-  const handleOpenCamera = () => {
-    setActiveTab('scan');
-  };
-
   // Load data from backend when authenticated
   const loadUserData = async () => {
     const token = localStorage.getItem('ownly_auth_token');
@@ -133,13 +127,12 @@ export default function App() {
     }
   };
 
-  // Auth check — never blocks UI if backend unavailable
+  // Auth check
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('ownly_auth_token');
       const saved = localStorage.getItem('ownly_user');
       
-      // If we have local data, let them in immediately
       if (saved || token) {
         setIsAuthenticated(true);
       }
@@ -148,7 +141,6 @@ export default function App() {
         try {
           await loadUserData();
         } catch {
-          // Backend offline — still authenticated locally
           setCloudError('Offline mode — using local workspace data.');
         }
       }
@@ -185,70 +177,16 @@ export default function App() {
     setUser(updated);
     localStorage.setItem('ownly_user', JSON.stringify(updated));
     try { await api.updateUserProfile(updates); } catch (e) {
-      console.warn('Profile update to backend failed (offline):', e);
+      console.warn('Profile update fallback:', e);
     }
   };
 
-  const handleAddNote = (newNote: Omit<NoteItem, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const note: NoteItem = {
-      ...newNote,
-      id: `note-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setNotes((prev) => [note, ...prev]);
-  };
-
-  const handleUpdateNote = (id: string, updates: Partial<NoteItem>) => {
-    setNotes((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, ...updates, updatedAt: new Date().toISOString() } : n))
-    );
-  };
-
-  const handleDeleteNote = (id: string) => {
-    setNotes((prev) => prev.filter((n) => n.id !== id));
-  };
-
-  const handleUploadImages = (newImages: UploadedImageItem[]) => {
-    setImages((prev) => [...newImages, ...prev]);
-    setUser((prev) => ({
-      ...prev,
-      storageUsedMb: Number((prev.storageUsedMb + newImages.length * 0.8).toFixed(1)),
-    }));
-  };
-
-  const handleDeleteImage = (id: string) => {
-    setImages((prev) => prev.filter((img) => img.id !== id));
-  };
-
-  const handleSaveCapturedImage = (capturedImg: UploadedImageItem) => {
-    setImages((prev) => [capturedImg, ...prev]);
-    setUser((prev) => ({
-      ...prev,
-      storageUsedMb: Number((prev.storageUsedMb + 0.7).toFixed(1)),
-    }));
-  };
-
-  const handleAddLink = (newLink: LinkItem) => {
-    // Prevent duplicate URLs
-    setLinks((prev) => {
-      const exists = prev.some((l) => l.url === newLink.url);
-      if (exists) return prev;
-      return [newLink, ...prev];
-    });
-  };
-
-  const handleDeleteLink = (id: string) => {
-    setLinks((prev) => prev.filter((l) => l.id !== id));
-  };
-
-  // Show spinner only during initial auth check
   if (isCheckingAuth && !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-[#0d0608] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-[#d9ad52]/30 border-t-[#d9ad52] rounded-full animate-spin" />
-          <p className="text-white/40 text-xs tracking-widest uppercase">Loading</p>
+          <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+          <p className="text-white/40 text-xs tracking-widest uppercase font-bold">OWNLY</p>
         </div>
       </div>
     );
@@ -256,19 +194,26 @@ export default function App() {
 
   if (!isAuthenticated) {
     return (
-      <Suspense fallback={<div className="ownly-loading min-h-screen" role="status">Loading access…</div>}>
+      <Suspense fallback={<div className="min-h-screen bg-[#0d0608] flex items-center justify-center text-white/50 text-xs">Loading…</div>}>
         <LoginPage onLoginSuccess={handleLoginSuccess} />
       </Suspense>
     );
   }
 
-  // Admin route
   if (isAdminRoute) {
     return <AdminPanel />;
   }
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-[#d9ad52]/30">
+    <div className="min-h-screen bg-[#0d0608] text-white font-['Outfit'] relative selection:bg-red-500/30">
+      {/* Figma Ambient Glow Mesh (Exact from Figma spec) */}
+      <div className="ambient-glow-mesh">
+        <div className="ambient-glow-1" />
+        <div className="ambient-glow-2" />
+        <div className="ambient-glow-cyan" />
+      </div>
+
+      {/* Main Header (Desktop + Mobile Navigation) */}
       <Header
         user={user}
         activeTab={activeTab}
@@ -277,17 +222,28 @@ export default function App() {
       />
 
       {cloudError && (
-        <div className="sticky top-[72px] z-30 px-4 py-2 bg-[#d9ad52]/10 border-b border-[#d9ad52]/30 text-xs text-[#d9ad52] text-center backdrop-blur-md">
-          <span className="font-semibold">Offline Mode:</span> {cloudError}
+        <div className="sticky top-[78px] z-30 px-4 py-1.5 bg-red-500/10 border-b border-red-500/20 text-xs text-red-200 text-center backdrop-blur-md">
+          <span className="font-semibold">Notice:</span> {cloudError}
         </div>
       )}
 
-      <main className="pt-4 px-3 sm:px-6 pb-16 max-w-7xl mx-auto">
-        <Suspense fallback={<div className="ownly-loading" role="status" />}>
+      {/* Main Page Content Container */}
+      <main className="relative z-10 pt-4 px-4 sm:px-6 md:px-8 max-w-[1280px] mx-auto">
+        <Suspense fallback={<div className="py-20 text-center text-white/40 text-sm">Loading workspace…</div>}>
           <AnimatePresence mode="wait">
             {activeTab === 'home' && (
               <motion.div key="home" variants={pageVariants} initial="initial" animate="animate" exit="exit" transition={pageTransition}>
-                <HomeSection user={user} notes={notes} images={images} links={links} setActiveTab={setActiveTab} />
+                <HomeSection
+                  user={user}
+                  notes={notes}
+                  images={images}
+                  links={links}
+                  setActiveTab={setActiveTab}
+                  onOpenNote={(note) => {
+                    setSelectedNoteToEdit(note);
+                    setActiveTab('notes');
+                  }}
+                />
               </motion.div>
             )}
             {activeTab === 'notes' && (
@@ -305,7 +261,7 @@ export default function App() {
                 <UploadSection
                   images={images}
                   setImages={setImages}
-                  onOpenCamera={handleOpenCamera}
+                  onOpenCamera={() => setActiveTab('scan')}
                 />
               </motion.div>
             )}
@@ -329,18 +285,7 @@ export default function App() {
         </Suspense>
       </main>
 
-      {/* Hidden admin portal link */}
-      <div
-        className="fixed bottom-4 right-4 opacity-0 hover:opacity-100 transition-opacity cursor-pointer z-50"
-        onClick={() => window.location.href = '/admin'}
-      >
-        <div className="p-2 bg-zinc-900 rounded-full border border-zinc-800 text-[10px] text-zinc-600">
-          Admin
-        </div>
-      </div>
-
-
-
+      {/* Account Profile Drawer */}
       <Suspense fallback={null}>
         <AccountDrawer
           isOpen={isAccountDrawerOpen}

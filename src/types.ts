@@ -13,7 +13,7 @@ export interface UserProfile {
 export interface NoteAttachment {
   id: string;
   name: string;
-  url: string; // base64 data url or hosted link
+  url: string;
   size?: string;
   type?: 'pdf' | 'doc' | 'ppt' | 'xls' | 'txt' | 'other';
 }
@@ -22,7 +22,7 @@ export interface NoteItem {
   id: string;
   title: string;
   content: string;
-  category: 'General' | 'Work' | 'Personal' | 'Ideas' | 'Urgent';
+  category: string;
   colorTag: string;
   isPinned?: boolean;
   attachments?: NoteAttachment[];
@@ -48,7 +48,7 @@ export interface LinkItem {
   description: string;
   embedThumb: string;
   linkHost: string;
-  embedProvider: string; // 'youtube' | 'vimeo' | 'dailymotion' | 'native_video' | 'generic'
+  embedProvider: string;
   embedId: string | null;
   isPlayable: boolean;
   createdAt: string;

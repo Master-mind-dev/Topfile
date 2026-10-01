@@ -1,7 +1,7 @@
 import React from 'react';
 import { OwnlyLogo } from './OwnlyLogo';
 import { TabType, UserProfile } from '../types';
-import { Home, FileText, Image as ImageIcon, Camera, Link as LinkIcon } from 'lucide-react';
+import { LayoutDashboard, FileText, UploadCloud, Camera, Link as LinkIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface HeaderProps {
@@ -18,97 +18,151 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAccount,
 }) => {
   const navItems: { id: TabType; label: string; icon: React.FC<{ className?: string }> }[] = [
-    { id: 'home', label: 'Dashboard', icon: Home },
+    { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'notes', label: 'Notes', icon: FileText },
-    { id: 'upload', label: 'Uploads', icon: ImageIcon },
+    { id: 'upload', label: 'Uploads', icon: UploadCloud },
     { id: 'scan', label: 'Capture', icon: Camera },
     { id: 'links', label: 'Links', icon: LinkIcon },
   ];
 
+  const initials = user.name
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase()
+    : 'AR';
+
   return (
-    <header
-      className="sticky top-0 z-40 w-full border-b border-white/10"
-      id="app-main-header"
-      style={{ background: 'rgba(8,8,12,0.92)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
-    >
-      <div className="max-w-7xl mx-auto w-full flex items-center justify-between gap-2 sm:gap-4 px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5">
-
-        {/* Left: Brand Logo */}
-        <div
-          className="flex items-center gap-2 cursor-pointer select-none group"
-          onClick={() => setActiveTab('home')}
-        >
-          <OwnlyLogo size="md" />
-        </div>
-
-        {/* Center: Desktop Navigation Pill */}
-        <nav
-          className="hidden md:flex items-center rounded-2xl px-1.5 py-1 shadow-2xl relative"
-          id="center-pill-nav"
-          style={{ background: 'rgba(10,10,16,0.85)', border: '1px solid rgba(255,255,255,0.13)' }}
-        >
-          {navItems.map((item) => {
-            const isActive = activeTab === item.id;
-            const Icon = item.icon;
-
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                aria-current={isActive ? 'page' : undefined}
-                className={`relative px-3.5 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold tracking-tight rounded-xl flex items-center gap-2 cursor-pointer transition-colors duration-150 ${
-                  isActive
-                    ? 'text-[#20140b]'
-                    : 'text-white/65 hover:text-[#f4dfb0] hover:bg-[#d9ad52]/12'
-                }`}
-                id={`nav-pill-${item.id}`}
-              >
-                {/* Active background with motion */}
-                {isActive && (
-                  <motion.div
-                    layoutId="nav-active-pill"
-                    className="absolute inset-0 rounded-xl bg-[#d9ad52] shadow-md"
-                    transition={{ type: 'spring', damping: 26, stiffness: 380 }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center gap-2">
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-zinc-950' : 'text-current'}`} />
-                  <span>{item.label}</span>
-                </span>
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Right: Account Menu Button */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* User avatar (if set) */}
-          <button
-            onClick={onOpenAccount}
-            className="p-2 sm:p-2.5 rounded-2xl bg-white/5 border border-white/15 text-white hover:bg-[#d9ad52]/18 hover:border-[#d9ad52]/40 active:scale-95 transition-all duration-200 cursor-pointer flex items-center justify-center shadow-md"
-            id="btn-three-bar-menu"
-            aria-label="Open Account and Workspace Menu"
-            title="Account & Settings"
+    <>
+      {/* ── Desktop Navigation Bar (Exact Figma Frame 4 & Desktop Screens) ── */}
+      <header
+        className="hidden md:block sticky top-0 z-40 w-full border-b border-white/[0.08]"
+        id="app-desktop-header"
+        style={{
+          background: 'rgba(20, 10, 13, 0.82)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+        }}
+      >
+        <div className="max-w-[1280px] mx-auto w-full h-[78px] flex items-center justify-between px-8">
+          {/* Brand Logo */}
+          <div
+            className="flex items-center gap-3 cursor-pointer select-none"
+            onClick={() => setActiveTab('home')}
           >
-            {user.avatarUrl ? (
-              <img
-                src={user.avatarUrl}
-                alt={user.name}
-                className="w-5 h-5 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-5 h-4 flex flex-col justify-between items-center py-0.5">
-                <span className="w-4 h-0.5 bg-white rounded-full" />
-                <span className="w-4 h-0.5 bg-white rounded-full" />
-                <span className="w-4 h-0.5 bg-white rounded-full" />
-              </div>
-            )}
-          </button>
-        </div>
-      </div>
+            <OwnlyLogo size="md" />
+          </div>
 
-      {/* Mobile Tab Bar */}
-      <div className="md:hidden border-t border-white/8 flex items-center justify-around gap-0.5 px-2 pb-1.5 pt-1.5">
+          {/* Desktop Nav Pill */}
+          <nav
+            className="flex items-center p-1.5 rounded-2xl relative"
+            id="center-pill-nav"
+            style={{
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+            }}
+          >
+            {navItems.map((item) => {
+              const isActive = activeTab === item.id;
+              const Icon = item.icon;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`relative px-4 py-2 text-[14px] font-bold tracking-tight rounded-xl flex items-center gap-2 cursor-pointer transition-colors duration-200 ${
+                    isActive ? 'text-white' : 'text-white/60 hover:text-white hover:bg-white/5'
+                  }`}
+                  id={`nav-pill-${item.id}`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="nav-active-pill"
+                      className="absolute inset-0 rounded-xl bg-[#191315] border border-white/20 shadow-md"
+                      transition={{ type: 'spring', damping: 28, stiffness: 420 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-2">
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-white/60'}`} />
+                    <span>{item.label}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* Account Controls */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onOpenAccount}
+              className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-xs font-black tracking-wider transition-all duration-150 cursor-pointer shadow-sm hover:scale-105"
+              title="Account profile"
+            >
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <span>{initials}</span>
+              )}
+            </button>
+
+            <button
+              onClick={onOpenAccount}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/12 border border-white/10 text-white transition-all cursor-pointer flex flex-col justify-center gap-1 w-9 h-9 items-center"
+              aria-label="Menu"
+            >
+              <span className="w-4 h-0.5 bg-white/80 rounded-full" />
+              <span className="w-4 h-0.5 bg-white/80 rounded-full" />
+              <span className="w-4 h-0.5 bg-white/80 rounded-full" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Mobile Header (Exact Figma Mobile Header: 390x64) ── */}
+      <header
+        className="md:hidden sticky top-0 z-40 w-full border-b border-white/[0.08] px-5 py-3 flex items-center justify-between"
+        id="app-mobile-header"
+        style={{
+          background: 'rgba(15, 8, 11, 0.88)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+      >
+        <div className="cursor-pointer" onClick={() => setActiveTab('home')}>
+          <OwnlyLogo size="sm" />
+        </div>
+
+        <div className="text-center">
+          <h2 className="text-sm font-black capitalize text-white leading-tight">
+            {activeTab === 'home' ? 'Dashboard' : activeTab === 'scan' ? 'Capture' : activeTab}
+          </h2>
+          <p className="text-[10px] text-white/40 font-medium">OWNLY Workspace</p>
+        </div>
+
+        <button
+          onClick={onOpenAccount}
+          className="w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-[10px] font-black cursor-pointer"
+        >
+          {user.avatarUrl ? (
+            <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
+          ) : (
+            <span>{initials}</span>
+          )}
+        </button>
+      </header>
+
+      {/* ── Mobile Bottom Navigation Bar (Exact Figma Bottom Nav: 390x70) ── */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-white/[0.1] flex items-center justify-around px-2 py-2"
+        id="app-mobile-bottom-nav"
+        style={{
+          background: 'rgba(12, 7, 9, 0.94)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+        }}
+      >
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           const Icon = item.icon;
@@ -117,27 +171,24 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              aria-current={isActive ? 'page' : undefined}
-              className={`flex-1 min-w-0 py-1.5 px-1 rounded-xl text-center flex flex-col items-center gap-0.5 transition-all duration-200 relative ${
-                isActive ? 'text-[#20140b]' : 'text-white/55 hover:text-[#f4dfb0]'
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all cursor-pointer ${
+                isActive ? 'text-white' : 'text-white/40 hover:text-white/70'
               }`}
-              id={`mobile-nav-${item.id}`}
             >
-              {isActive && (
-                <motion.div
-                  layoutId="mobile-nav-active"
-                  className="absolute inset-0 rounded-xl bg-[#d9ad52]"
-                  transition={{ type: 'spring', damping: 28, stiffness: 380 }}
-                />
-              )}
-              <span className="relative z-10 flex flex-col items-center gap-0.5">
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-zinc-950' : 'text-current'}`} />
-                <span className="text-[9px] font-bold truncate">{item.label}</span>
+              <div
+                className={`p-1.5 rounded-lg mb-0.5 transition-colors ${
+                  isActive ? 'bg-white/15 text-white' : 'text-white/40'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+              </div>
+              <span className={`text-[10px] ${isActive ? 'font-bold text-white' : 'font-medium'}`}>
+                {item.label}
               </span>
             </button>
           );
         })}
-      </div>
-    </header>
+      </nav>
+    </>
   );
 };
