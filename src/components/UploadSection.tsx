@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { UploadedImageItem } from '../types';
 import * as api from '../lib/api';
+import DocViewer, { DocViewerRenderers } from '@cyntler/react-doc-viewer';
+import '@cyntler/react-doc-viewer/dist/index.css';
 
 interface UploadSectionProps {
   images: UploadedImageItem[];
@@ -201,10 +203,9 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
     if (ext === 'pdf' || dataUrl.startsWith('data:application/pdf') || dataUrl.startsWith('blob:')) {
       return { type: 'pdf', src: dataUrl };
     }
-    // Word / Excel / PPT — use Google Docs Viewer
-    if (['doc','docx','xls','xlsx','ppt','pptx'].includes(ext)) {
-      // If we have a dataUrl we can't use Google Docs Viewer, open directly
-      return { type: 'download', src: dataUrl, ext };
+    // Word / Excel / PPT / Text — use DocViewer
+    if (['doc','docx','xls','xlsx','ppt','pptx','csv','txt'].includes(ext)) {
+      return { type: 'doc', src: dataUrl, ext, uri: dataUrl, name: img.name };
     }
     return { type: 'download', src: dataUrl, ext };
   };
@@ -357,7 +358,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => openViewer(img)}
                         className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-cyan-400 cursor-pointer transition-all"
@@ -488,6 +489,14 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
                     title={viewingFile.name}
                     style={{ minHeight: '70vh' }}
                   />
+                )}
+                {viewer.type === 'doc' && viewer.src && (
+                  <div className="w-full h-full rounded-xl border border-white/10 overflow-hidden bg-white text-black" style={{ minHeight: '70vh' }}>
+                    <DocViewer 
+                      documents={[{ uri: viewer.uri, fileType: viewer.ext, fileName: viewer.name }]} 
+                      pluginRenderers={DocViewerRenderers} 
+                    />
+                  </div>
                 )}
                 {viewer.type === 'download' && (
                   <div className="text-center space-y-4">

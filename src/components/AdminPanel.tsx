@@ -221,6 +221,9 @@ export function AdminPanel() {
     )
     .filter((u) => {
       if (filterType === 'Live Users' || filterType === 'Connections') return u.online_devices > 0;
+      if (filterType === 'Notes') return (u.notes_count || 0) > 0;
+      if (filterType === 'Images') return (u.images_count || 0) > 0;
+      if (filterType === 'Links') return (u.links_count || 0) > 0;
       return true;
     })
     .sort((a, b) => {
@@ -325,8 +328,12 @@ export function AdminPanel() {
               { icon: Bell, label: 'Resets', value: stats.pendingResets, color: stats.pendingResets > 0 ? '#f59e0b' : '#555' },
               { icon: Wifi, label: 'Live Users', value: stats.liveUsers, color: '#4ade80' },
               { icon: Wifi, label: 'Connections', value: stats.liveConnections, color: '#4ade80' },
-            ].map(({ icon: Icon, label, value, color }) => (
-              <div key={label} 
+            ].map(({ icon: Icon, label, value, color }, i) => (
+              <motion.div 
+                key={label}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
                 onClick={() => {
                   if (label === 'Resets') setActiveTab('requests');
                   else {
@@ -334,14 +341,14 @@ export function AdminPanel() {
                     setFilterType(label);
                   }
                 }}
-                className={`relative group overflow-hidden bg-black border ${filterType === label ? `border-[${color}] ring-1 ring-[${color}]` : 'border-white/10 hover:border-white/20'} rounded-2xl p-4 flex flex-col gap-1.5 transition-all cursor-pointer shadow-lg`}
+                className={`relative group overflow-hidden bg-black border ${filterType === label ? `border-[${color}] ring-1 ring-[${color}] scale-[1.02]` : 'border-white/10 hover:border-white/20 hover:-translate-y-1'} rounded-2xl p-4 flex flex-col gap-1.5 transition-all cursor-pointer shadow-lg`}
               >
-                <div className="absolute inset-0 opacity-5 group-hover:opacity-15 transition-opacity" style={{ backgroundColor: color }} />
+                <div className="absolute inset-0 opacity-5 group-hover:opacity-15 transition-opacity duration-300" style={{ backgroundColor: color }} />
                 {filterType === label && <div className="absolute inset-0 opacity-10" style={{ backgroundColor: color }} />}
-                <Icon className="w-5 h-5 relative z-10" style={{ color }} />
+                <Icon className={`w-5 h-5 relative z-10 ${filterType === label ? 'animate-pulse' : ''}`} style={{ color }} />
                 <p className="text-2xl font-black relative z-10 tracking-tight">{value}</p>
                 <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider relative z-10">{label}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}

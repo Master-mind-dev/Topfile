@@ -91,7 +91,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
   const storagePercent = Math.min(100, Math.round((storageUsedMb / totalStorageMb) * 100));
   const storageUsedDisplay = storageUsedMb >= 1024
     ? `${(storageUsedMb / 1024).toFixed(1)} GB`
-    : `${storageUsedMb.toFixed(0)} MB`;
+    : `${storageUsedMb.toFixed(2)} MB`;
   const storageTotalDisplay = `${(totalStorageMb / 1024).toFixed(0)} GB`;
 
   return (

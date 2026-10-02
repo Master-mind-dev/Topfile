@@ -13,6 +13,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@cyntler/react-doc-viewer": "^1.17.1",
     "axios": "^1.18.1",
     "bcrypt": "^5.1.0",
     "cheerio": "^1.2.0",

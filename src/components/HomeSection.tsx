@@ -62,27 +62,39 @@ export const HomeSection: React.FC<HomeSectionProps> = ({
 
   // Weekly activity: count items created in the last 7 days per day of week
   const weeklyActivity = useMemo(() => {
-    const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     const counts = [0, 0, 0, 0, 0, 0, 0];
+    const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
     const now = Date.now();
     const week = 7 * 86400000;
+    
     [...notes, ...images, ...links].forEach((item) => {
-      const created = new Date((item as any).createdAt).getTime();
+      const createdAt = (item as any).createdAt;
+      if (!createdAt) return;
+      const created = new Date(createdAt).getTime();
       if (now - created <= week) {
-        const dayIndex = new Date((item as any).createdAt).getDay();
+        const dayIndex = new Date(createdAt).getDay();
         counts[dayIndex]++;
       }
     });
+    
+    // Create an ordered array of the last 7 days ending with today
+    const currentDay = new Date().getDay();
+    const orderedDays = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = (currentDay - i + 7) % 7;
+      orderedDays.push({ day: dayNames[d], count: counts[d], pct: 0 });
+    }
+    
     const max = Math.max(...counts, 1);
-    return days.map((day, i) => ({ day, count: counts[i], pct: Math.round((counts[i] / max) * 100) }));
+    return orderedDays.map(d => ({ ...d, pct: Math.round((d.count / max) * 100) }));
   }, [notes, images, links]);
 
   const weeklyTotal = weeklyActivity.reduce((s, d) => s + d.count, 0);
 
   // Filter notes based on quick search
   const filteredNotes = notes.filter((n) =>
-    n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    n.content.toLowerCase().includes(searchQuery.toLowerCase())
+    (n.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (n.content || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (

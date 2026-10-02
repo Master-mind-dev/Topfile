@@ -110,8 +110,9 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
   };
 
   const filteredLinks = links.filter((l) => {
-    const matchesSearch = l.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          l.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch = (l.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (l.url || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          ((l as any).topic || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (l.description && l.description.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesFilter = activeFilter === 'All links' || (l as any).topic === activeFilter;
     return matchesSearch && matchesFilter;
@@ -297,9 +298,6 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex flex-col min-w-0">
-                            <span className="text-xs text-cyan-400/80 font-bold truncate">
-                              {link.topic || 'General'}
-                            </span>
                             <a
                               href={link.url}
                               target="_blank"
@@ -309,6 +307,9 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                               <span>{link.title}</span>
                               <ExternalLink className="w-3 h-3 text-white/40 flex-shrink-0" />
                             </a>
+                            <span className="text-xs text-cyan-400/80 font-bold truncate mt-0.5">
+                              {link.topic || 'General'}
+                            </span>
                           </div>
                           <button
                             onClick={() => handleDelete(link.id)}
@@ -377,34 +378,6 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
               <span>{isParsing ? 'Saving…' : 'Save link'}</span>
             </button>
           </form>
-
-          {/* Topic Collections - dynamic from actual links */}
-          <div className="figma-glass-card p-5 space-y-3">
-            <div className="text-xs font-bold text-white">Topics</div>
-            <div className="space-y-2 text-xs">
-              {(() => {
-                const topicMap: Record<string, number> = {};
-                links.forEach((l) => {
-                  const topic = (l as any).topic || '';
-                  if (topic) topicMap[topic] = (topicMap[topic] || 0) + 1;
-                });
-                const entries = Object.entries(topicMap);
-                if (entries.length === 0) {
-                  return (
-                    <p className="text-[11px] text-white/30">
-                      No topics yet. Assign topics when you save links.
-                    </p>
-                  );
-                }
-                return entries.map(([name, count]) => (
-                  <div key={name} className="flex items-center justify-between p-2 rounded-lg bg-white/5">
-                    <span className="text-white font-semibold">{name}</span>
-                    <span className="text-white/40 font-medium">{count}</span>
-                  </div>
-                ));
-              })()}
-            </div>
-          </div>
         </div>
       </div>
     </div>
