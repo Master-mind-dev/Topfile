@@ -64,25 +64,31 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
+      - name: Setup Android SDK (install platform 36)
         run: |
-          # ubuntu-latest already has Android SDK pre-installed
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --update || true
-          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0" || true
-          echo "yes" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          # Create local.properties so Gradle knows where SDK is
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+          # Accept all licenses
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
+          # Install required platform and build tools
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "platform-tools"
 
       - name: Sync Capacitor Android
         run: npx cap sync android
 
-      - name: Make gradlew executable and fix line endings
+      - name: Fix gradlew line endings and make executable
         run: |
           sed -i 's/\r$//' android/gradlew
           chmod +x android/gradlew
 
       - name: Build debug APK
-        run: cd android && ./gradlew assembleDebug --no-daemon
+        run: cd android && ./gradlew assembleDebug --no-daemon --stacktrace
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
       - name: Rename APK
         run: |
