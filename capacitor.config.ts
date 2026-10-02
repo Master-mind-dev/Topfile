@@ -5,7 +5,6 @@ const config: CapacitorConfig = {
   appName: 'Ownly',
   webDir: 'dist',
   // Load the live server so the app always has the latest version
-  // and login/auth works correctly against the real backend
   server: {
     url: 'https://topfile.onrender.com',
     cleartext: false,
@@ -13,6 +12,23 @@ const config: CapacitorConfig = {
   },
   android: {
     backgroundColor: '#000000',
+    // Allow mixed content for embedded media
+    allowMixedContent: false,
+    // Capture input for smooth scrolling
+    captureInput: true,
+    // Use WebView debugger in debug builds
+    webContentsDebuggingEnabled: false,
+  },
+  plugins: {
+    // Camera plugin permissions
+    Camera: {
+      permissions: ['camera', 'microphone', 'photos'],
+    },
+    // Keyboard handling for proper viewport
+    Keyboard: {
+      resize: 'body',
+      resizeOnFullScreen: true,
+    },
   },
 };
 
