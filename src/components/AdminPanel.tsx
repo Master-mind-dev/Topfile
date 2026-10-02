@@ -39,12 +39,7 @@ export function AdminPanel() {
   const [requestMsgs, setRequestMsgs] = useState<Record<string, { type: 'ok' | 'err'; text: string }>>({});
   const [requestLoading, setRequestLoading] = useState<Record<string, boolean>>({});
 
-  // Admin own password change
-  const [showChangePw, setShowChangePw] = useState(false);
-  const [changePwData, setChangePwData] = useState({ current: '', newPw: '', confirm: '' });
-  const [changePwMsg, setChangePwMsg] = useState('');
-  const [changePwErr, setChangePwErr] = useState('');
-  const [changePwLoading, setChangePwLoading] = useState(false);
+
 
   // Reset user password (from user detail card)
   const [resetPwEmail, setResetPwEmail] = useState('');
@@ -53,7 +48,11 @@ export function AdminPanel() {
   const [resetPwErr, setResetPwErr] = useState('');
   const [resetPwLoading, setResetPwLoading] = useState(false);
 
-  const token = localStorage.getItem('ownly_auth_token');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  const token = localStorage.getItem('ownly_admin_token');
   const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   const fetchResetRequests = async () => {
@@ -81,7 +80,7 @@ export function AdminPanel() {
 
   React.useEffect(() => {
     const init = async () => {
-      if (!token) { setError('You must be logged in.'); setLoading(false); return; }
+      if (!token) { setLoading(false); return; }
       try {
         const res = await fetch('/api/admin/users', { headers: authHeaders });
         const data = await res.json();
@@ -90,13 +89,34 @@ export function AdminPanel() {
           setUsers(data.users);
           await Promise.all([fetchStats(), fetchResetRequests()]);
         } else {
-          setError(data.error || 'You are not authorised to view this page.');
+          setError(data.error || 'Invalid session.');
         }
       } catch { setError('Failed to connect to server.'); }
       finally { setLoading(false); }
     };
     init();
   }, []);
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setError('');
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: adminEmail, password: adminPassword })
+      });
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('ownly_admin_token', data.token);
+        window.location.reload();
+      } else {
+        setError(data.error);
+      }
+    } catch { setError('Failed to connect'); }
+    finally { setLoginLoading(false); }
+  };
 
   const fetchUserData = async (email: string) => {
     if (!token) return;
@@ -190,22 +210,7 @@ export function AdminPanel() {
     finally { setResetPwLoading(false); }
   };
 
-  const handleChangeOwnPw = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (changePwData.newPw !== changePwData.confirm) { setChangePwErr('Passwords do not match'); return; }
-    if (changePwData.newPw.length < 6) { setChangePwErr('Minimum 6 characters'); return; }
-    setChangePwLoading(true); setChangePwErr(''); setChangePwMsg('');
-    try {
-      const res = await fetch('/api/admin/change-password', {
-        method: 'PUT', headers: authHeaders,
-        body: JSON.stringify({ currentPassword: changePwData.current, newPassword: changePwData.newPw }),
-      });
-      const data = await res.json();
-      if (data.success) { setChangePwMsg('Password changed successfully!'); setChangePwData({ current: '', newPw: '', confirm: '' }); }
-      else setChangePwErr(data.error || 'Failed');
-    } catch { setChangePwErr('Failed to change password'); }
-    finally { setChangePwLoading(false); }
-  };
+
 
   const filteredUsers = users.filter(
     (u) => !searchQuery ||
@@ -223,17 +228,44 @@ export function AdminPanel() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#d9ad52]/10 to-transparent pointer-events-none" />
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          className="bg-zinc-900 p-8 rounded-[28px] border border-zinc-800 w-full max-w-md shadow-2xl text-center"
+          className="bg-zinc-950 p-8 rounded-[28px] border border-zinc-800/50 shadow-2xl w-full max-w-md relative z-10"
         >
-          <div className="p-3 bg-red-500/10 rounded-full mb-4 inline-block">
-            <ShieldAlert className="w-8 h-8 text-red-500" />
+          <div className="text-center mb-8">
+            <div className="inline-flex p-3 bg-[#d9ad52]/10 rounded-2xl mb-4 text-[#d9ad52]">
+              <Shield className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-black">Admin Access</h1>
+            <p className="text-zinc-500 text-sm mt-2">Log in with your administrator credentials</p>
           </div>
-          <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
-          <p className="text-zinc-400 text-sm">{error || 'You do not have permission to view this page.'}</p>
-          <button onClick={() => window.location.href = '/'} className="mt-6 px-6 py-2 bg-white text-black rounded-full font-bold text-sm">
-            Go back Home
+          
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div>
+              <input type="email" placeholder="Admin Email" required
+                value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)}
+                className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-[#d9ad52]/50 text-white transition-colors"
+              />
+            </div>
+            <div>
+              <input type="password" placeholder="Admin Password" required
+                value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)}
+                className="w-full bg-black/50 border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-[#d9ad52]/50 text-white transition-colors"
+              />
+            </div>
+            
+            {error && <p className="text-red-400 text-sm text-center font-medium bg-red-500/10 py-2 rounded-lg">{error}</p>}
+            
+            <button type="submit" disabled={loginLoading}
+              className="w-full bg-[#d9ad52] hover:bg-[#f4dfb0] text-[#20140b] font-black py-3.5 rounded-xl transition-all disabled:opacity-50 mt-2"
+            >
+              {loginLoading ? 'Authenticating...' : 'Enter Dashboard'}
+            </button>
+          </form>
+          
+          <button onClick={() => window.location.href = '/'} className="w-full text-center text-sm text-zinc-500 hover:text-white mt-6 transition-colors">
+            ← Back to App
           </button>
         </motion.div>
       </div>
@@ -259,12 +291,7 @@ export function AdminPanel() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setShowChangePw(!showChangePw)}
-              className="flex items-center gap-2 px-4 py-2 bg-[#d9ad52]/10 hover:bg-[#d9ad52]/20 border border-[#d9ad52]/20 text-[#d9ad52] rounded-full text-sm transition-all"
-            >
-              <Lock className="w-4 h-4" /> <span className="hidden sm:inline">Change Password</span>
-            </button>
-            <button onClick={() => window.location.href = '/'}
+            <button onClick={() => { localStorage.removeItem('ownly_admin_token'); window.location.href = '/'; }}
               className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 rounded-full text-sm transition-all border border-zinc-800"
             >
               <LogOut className="w-4 h-4" /> Exit
@@ -274,40 +301,6 @@ export function AdminPanel() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-
-        {/* Change Own Password Panel */}
-        <AnimatePresence>
-          {showChangePw && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-              className="bg-zinc-950 rounded-[24px] border border-[#d9ad52]/30 p-6"
-            >
-              <h2 className="font-bold text-[#d9ad52] flex items-center gap-2 mb-4">
-                <Lock className="w-4 h-4" /> Change Your Admin Password
-              </h2>
-              <form onSubmit={handleChangeOwnPw} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <input type="password" placeholder="Current password" value={changePwData.current}
-                  onChange={(e) => setChangePwData((p) => ({ ...p, current: e.target.value }))}
-                  className="bg-black border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-[#d9ad52]/50 text-white" required
-                />
-                <input type="password" placeholder="New password (min 6)" value={changePwData.newPw}
-                  onChange={(e) => setChangePwData((p) => ({ ...p, newPw: e.target.value }))}
-                  className="bg-black border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-[#d9ad52]/50 text-white" required
-                />
-                <input type="password" placeholder="Confirm new password" value={changePwData.confirm}
-                  onChange={(e) => setChangePwData((p) => ({ ...p, confirm: e.target.value }))}
-                  className="bg-black border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-[#d9ad52]/50 text-white" required
-                />
-                <button type="submit" disabled={changePwLoading}
-                  className="sm:col-span-3 bg-[#d9ad52] hover:bg-[#f4dfb0] text-[#20140b] font-bold py-2 rounded-xl text-sm transition-all disabled:opacity-50"
-                >
-                  {changePwLoading ? 'Updating...' : 'Update Password'}
-                </button>
-              </form>
-              {changePwMsg && <p className="text-green-400 text-sm mt-2 flex items-center gap-1"><CheckCircle2 className="w-4 h-4" />{changePwMsg}</p>}
-              {changePwErr && <p className="text-red-400 text-sm mt-2 flex items-center gap-1"><XCircle className="w-4 h-4" />{changePwErr}</p>}
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Stats */}
         {stats && (

@@ -127,23 +127,32 @@ async function startServer() {
         try {
             const secret = process.env.JWT_SECRET || 'ownly-secret-key-change-in-production';
             const decoded = jwt.verify(token, secret);
-            const result = await query('SELECT is_admin FROM users WHERE id = $1', [decoded.id || decoded.userId]);
-            if (result.rows.length === 0 || !result.rows[0].is_admin) {
-                return res.status(403).json({ success: false, error: 'Unauthorized: Not an admin' });
+            if (!decoded.isSuperAdmin) {
+                return res.status(403).json({ success: false, error: 'Unauthorized: Not a super admin' });
             }
-            req.user = decoded;
+            req.admin = decoded;
             next();
         } catch (err) {
-            return res.status(401).json({ success: false, error: 'Invalid token' });
+            return res.status(401).json({ success: false, error: 'Invalid admin token' });
         }
     };
-    // ============ TEMPORARY ADMIN FIX ============
-    app.get('/api/auth/force-admin', async (req, res) => {
-        try {
-            await query('UPDATE users SET is_admin = true');
-            res.send('<h1>Success! All existing users are now Admins.</h1><p>Please <b>log out and log back in</b> to the app to access the Admin Dashboard.</p>');
-        } catch (err) {
-            res.status(500).send('Error updating users: ' + err.message);
+
+    // Admin standalone login
+    app.post('/api/admin/login', (req, res) => {
+        const { email, password } = req.body;
+        const expectedEmail = process.env.ADMIN_EMAIL;
+        const expectedPassword = process.env.ADMIN_PASSWORD;
+
+        if (!expectedEmail || !expectedPassword) {
+            return res.status(500).json({ success: false, error: 'Admin credentials not configured on the server.' });
+        }
+
+        if (email === expectedEmail && password === expectedPassword) {
+            const secret = process.env.JWT_SECRET || 'ownly-secret-key-change-in-production';
+            const adminToken = jwt.sign({ isSuperAdmin: true, email }, secret, { expiresIn: '24h' });
+            return res.json({ success: true, token: adminToken });
+        } else {
+            return res.status(401).json({ success: false, error: 'Invalid admin email or password' });
         }
     });
 
@@ -625,24 +634,7 @@ async function startServer() {
             res.status(500).json({ success: false, error: 'Failed to reset password' });
         }
     });
-    // Admin: change own password
-    app.put('/api/admin/change-password', verifyAdmin, async (req, res) => {
-        try {
-            const { currentPassword, newPassword } = req.body;
-            if (!newPassword || newPassword.length < 6) return res.status(400).json({ success: false, error: 'New password must be at least 6 characters' });
-            const userId = req.user.id || req.user.userId;
-            const userResult = await query('SELECT password_hash FROM users WHERE id = $1', [userId]);
-            if (userResult.rows.length === 0) return res.status(404).json({ success: false, error: 'User not found' });
-            const match = await comparePassword(currentPassword, userResult.rows[0].password_hash);
-            if (!match) return res.status(401).json({ success: false, error: 'Current password is incorrect' });
-            const hash = await hashPassword(newPassword);
-            await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, userId]);
-            res.json({ success: true, message: 'Password changed successfully' });
-        } catch (err) {
-            console.error('Admin change password error:', err);
-            res.status(500).json({ success: false, error: 'Failed to change password' });
-        }
-    });
+
     // Test endpoints
     app.get('/api', (req, res) => {
         res.json({
