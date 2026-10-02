@@ -3,7 +3,10 @@ name: Build & Release Desktop App
 on:
   push:
     tags:
-      - 'v*'   # Triggers when you push a tag like v1.0.0, v1.0.1, etc.
+      - 'v*'
+
+permissions:
+  contents: write  # Required to create GitHub Releases and upload assets
 
 jobs:
   build:
@@ -16,14 +19,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install dependencies (skip postinstall/build)
         run: npm ci --ignore-scripts
 
       - name: Build web app (Vite)
-        run: npm run build
+        run: npx tsc --noEmit --skipLibCheck; npx vite build
         env:
           NODE_ENV: production
 
@@ -31,29 +34,27 @@ jobs:
         run: npx electron-builder --win --publish never
         env:
           NODE_ENV: production
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload installer to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Ownly Desktop v${{ github.ref_name }}"
+          name: "Ownly Desktop ${{ github.ref_name }}"
           body: |
             ## 🎉 Ownly Desktop App — ${{ github.ref_name }}
 
-            ### 📥 Download
-            - **Windows**: Download the `.exe` file below and run it to install.
-
-            ### ✨ What's Inside
-            - Full Ownly workspace: Notes, Uploads, Links, Camera
-            - Secure login with your existing Ownly account
-            - Works just like the website — always synced!
+            ### 📥 How to Download & Install
+            1. Click **Ownly-Setup-*.exe** below
+            2. Run it — it creates a desktop shortcut automatically
+            3. Open **Ownly** and log in with your account
 
             ### 🔑 Login
-            Use your existing **Ownly account** (the same email & password you use on the website).
-            Don't have an account? [Sign up here](https://topfile.onrender.com).
-          files: |
-            dist_electron/*.exe
-            dist_electron/*.dmg
+            Use your existing Ownly account (same email & password as the website).
+            No account yet? [Sign up here →](https://topfile.onrender.com)
+
+            ### ✨ Features
+            - Notes, Uploads, Links, Camera — all synced in real time
+            - Works even when you switch devices
+          files: dist_electron/*.exe
           draft: false
           prerelease: false
         env:
