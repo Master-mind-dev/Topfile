@@ -32,6 +32,7 @@ export function AdminPanel() {
   const [searchQuery, setSearchQuery] = useState('');
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [activeTab, setActiveTab] = useState<'users' | 'requests'>('users');
+  const [filterType, setFilterType] = useState<string>('Users');
 
   // Reset requests
   const [resetRequests, setResetRequests] = useState<ResetRequest[]>([]);
@@ -212,11 +213,22 @@ export function AdminPanel() {
 
 
 
-  const filteredUsers = users.filter(
-    (u) => !searchQuery ||
-      u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users
+    .filter(
+      (u) => !searchQuery ||
+        u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .filter((u) => {
+      if (filterType === 'Live Users' || filterType === 'Connections') return u.online_devices > 0;
+      return true;
+    })
+    .sort((a, b) => {
+      if (filterType === 'Notes') return (b.notes_count || 0) - (a.notes_count || 0);
+      if (filterType === 'Images') return (b.images_count || 0) - (a.images_count || 0);
+      if (filterType === 'Links') return (b.links_count || 0) - (a.links_count || 0);
+      return 0; // Default: already sorted by joined_date DESC from backend
+    });
 
   if (loading && !isAuthenticated) {
     return (
@@ -314,8 +326,18 @@ export function AdminPanel() {
               { icon: Wifi, label: 'Live Users', value: stats.liveUsers, color: '#4ade80' },
               { icon: Wifi, label: 'Connections', value: stats.liveConnections, color: '#4ade80' },
             ].map(({ icon: Icon, label, value, color }) => (
-              <div key={label} className="relative group overflow-hidden bg-black border border-white/10 hover:border-white/20 rounded-2xl p-4 flex flex-col gap-1.5 transition-all cursor-default shadow-lg">
+              <div key={label} 
+                onClick={() => {
+                  if (label === 'Resets') setActiveTab('requests');
+                  else {
+                    setActiveTab('users');
+                    setFilterType(label);
+                  }
+                }}
+                className={`relative group overflow-hidden bg-black border ${filterType === label ? `border-[${color}] ring-1 ring-[${color}]` : 'border-white/10 hover:border-white/20'} rounded-2xl p-4 flex flex-col gap-1.5 transition-all cursor-pointer shadow-lg`}
+              >
                 <div className="absolute inset-0 opacity-5 group-hover:opacity-15 transition-opacity" style={{ backgroundColor: color }} />
+                {filterType === label && <div className="absolute inset-0 opacity-10" style={{ backgroundColor: color }} />}
                 <Icon className="w-5 h-5 relative z-10" style={{ color }} />
                 <p className="text-2xl font-black relative z-10 tracking-tight">{value}</p>
                 <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider relative z-10">{label}</p>

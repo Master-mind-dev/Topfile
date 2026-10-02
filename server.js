@@ -486,12 +486,23 @@ async function startServer() {
         }
     });
     // ============ ADMIN ENDPOINTS ============
-    // Get all users (with live connected device count)
+    // Get all users (with live connected device count and content counts)
     app.get('/api/admin/users', verifyAdmin, async (req, res) => {
         try {
-            const result = await query('SELECT id, email, name, joined_date, plan, storage_used_mb, is_admin FROM users ORDER BY joined_date DESC');
+            const result = await query(`
+                SELECT 
+                    u.id, u.email, u.name, u.joined_date, u.plan, u.storage_used_mb, u.is_admin,
+                    (SELECT COUNT(*) FROM notes WHERE user_id = u.id) as notes_count,
+                    (SELECT COUNT(*) FROM images WHERE user_id = u.id) as images_count,
+                    (SELECT COUNT(*) FROM links WHERE user_id = u.id) as links_count
+                FROM users u 
+                ORDER BY u.joined_date DESC
+            `);
             const users = result.rows.map((u) => ({
                 ...u,
+                notes_count: parseInt(u.notes_count),
+                images_count: parseInt(u.images_count),
+                links_count: parseInt(u.links_count),
                 online_devices: userClients.get(String(u.id))?.size || 0,
             }));
             res.json({ success: true, users });
