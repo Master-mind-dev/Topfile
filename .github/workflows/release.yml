@@ -50,8 +50,11 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Install dependencies
-        run: npm ci --ignore-scripts
+      - name: Install dependencies (allow Capacitor scripts to run)
+        run: |
+          npm pkg set scripts.postinstall="echo skipped"
+          npm ci
+          npm pkg delete scripts.postinstall
 
       - name: Build web app
         run: npx vite build
@@ -67,11 +70,8 @@ jobs:
       - name: Setup Android SDK (install platform 36)
         run: |
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          # Create local.properties so Gradle knows where SDK is
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
-          # Accept all licenses
           yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
-          # Install required platform and build tools
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager \
             "platforms;android-36" \
             "build-tools;36.0.0" \
@@ -133,7 +133,7 @@ jobs:
             ---
 
             ### 💻 Windows — Desktop App
-            **⬇️ Download:** `Ownly-Setup-*.exe` (see Assets below ↓)
+            **⬇️ Download:** `Ownly-Setup-*.exe` (see **Assets** below ↓)
             1. Click the `.exe` file in **Assets** below
             2. Run the installer — it creates a desktop shortcut automatically
             3. Open **Ownly** and log in
@@ -141,10 +141,11 @@ jobs:
             ---
 
             ### 🤖 Android — APK
-            **⬇️ Download:** `Ownly-*-android.apk` (see Assets below ↓)
+            **⬇️ Download:** `Ownly-*-android.apk` (see **Assets** below ↓)
             1. Click the `.apk` file in **Assets** below
-            2. Open it on your Android phone (allow "Install unknown apps" in Settings if asked)
-            3. Open **Ownly** and log in
+            2. Open it on your Android phone
+            3. Allow "Install unknown apps" in Settings if asked
+            4. Open **Ownly** and log in
 
             ---
 
@@ -152,14 +153,12 @@ jobs:
             1. Open **Safari** on your iPhone → go to [topfile.onrender.com](https://topfile.onrender.com)
             2. Tap the **Share** button (📤)
             3. Tap **"Add to Home Screen"** → tap **Add**
-            4. Ownly icon appears on your home screen — works like a real app!
+            4. Ownly icon appears on your home screen!
 
             ---
 
             ### 🔑 Login
             Same email & password as the website. No account? [Sign up →](https://topfile.onrender.com)
-
-            ---
 
             > **All downloads are in the Assets section right below ↓**
           files: release-files/*
