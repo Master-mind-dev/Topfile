@@ -49,6 +49,7 @@ export async function initializeDatabase() {
         total_storage_mb FLOAT DEFAULT 1024,
         reset_token VARCHAR(255),
         reset_token_expires TIMESTAMP,
+        is_admin BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -57,6 +58,7 @@ export async function initializeDatabase() {
     // Migration: add reset token columns if missing (for existing deployments)
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255)`);
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMP`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE`);
 
 
     // Notes table

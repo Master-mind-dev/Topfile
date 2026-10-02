@@ -250,6 +250,21 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({
                   <span className="font-semibold text-white/80">v2.4.0 (Figma Studio)</span>
                 </div>
               </div>
+
+              {/* Admin Access */}
+              {user.isAdmin && (
+                <div className="figma-glass-card p-5">
+                  <div className="font-bold text-[#d9ad52] mb-2 flex items-center gap-2">
+                    <Shield className="w-4 h-4" /> Admin Controls
+                  </div>
+                  <button
+                    onClick={() => window.location.href = '/admin'}
+                    className="w-full py-2 bg-[#d9ad52]/10 hover:bg-[#d9ad52]/20 border border-[#d9ad52]/20 text-[#d9ad52] font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    Open Admin Dashboard
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Footer / Logout */}

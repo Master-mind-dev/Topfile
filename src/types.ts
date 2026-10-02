@@ -8,6 +8,7 @@ export interface UserProfile {
   plan: string;
   storageUsedMb: number;
   totalStorageMb: number;
+  isAdmin?: boolean;
 }
 
 export interface NoteAttachment {

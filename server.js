@@ -120,13 +120,22 @@ async function startServer() {
     }));
     app.use(express.json({ limit: '50mb' }));
     // ============ ADMIN MIDDLEWARE ============
-    const verifyAdmin = (req, res, next) => {
-        const adminPassword = req.headers['x-admin-password'];
-        const expectedPassword = process.env.ADMIN_PASSWORD || 'admin123';
-        if (adminPassword !== expectedPassword) {
-            return res.status(403).json({ success: false, error: 'Unauthorized: Invalid admin password' });
+    const verifyAdmin = async (req, res, next) => {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) return res.status(401).json({ success: false, error: 'No token provided' });
+        const token = authHeader.split(' ')[1];
+        try {
+            const secret = process.env.JWT_SECRET || 'ownly-secret-key-change-in-production';
+            const decoded = jwt.verify(token, secret);
+            const result = await query('SELECT is_admin FROM users WHERE id = $1', [decoded.id || decoded.userId]);
+            if (result.rows.length === 0 || !result.rows[0].is_admin) {
+                return res.status(403).json({ success: false, error: 'Unauthorized: Not an admin' });
+            }
+            req.user = decoded;
+            next();
+        } catch (err) {
+            return res.status(401).json({ success: false, error: 'Invalid token' });
         }
-        next();
     };
     // ============ AUTH ENDPOINTS ============
     // Register
@@ -137,7 +146,9 @@ async function startServer() {
                 return res.status(400).json({ success: false, error: 'Email and password required' });
             }
             const passwordHash = await hashPassword(password);
-            const result = await query('INSERT INTO users (email, password_hash, name) VALUES ($1, $2, $3) RETURNING id, email, name', [email, passwordHash, name || email.split('@')[0]]);
+            const countResult = await query('SELECT COUNT(*) FROM users');
+            const isFirstUser = parseInt(countResult.rows[0].count) === 0;
+            const result = await query('INSERT INTO users (email, password_hash, name, is_admin) VALUES ($1, $2, $3, $4) RETURNING id, email, name, is_admin', [email, passwordHash, name || email.split('@')[0], isFirstUser]);
             const userId = result.rows[0].id;
             const token = generateToken(userId);
             res.json({ success: true, token, user: result.rows[0] });
@@ -157,7 +168,7 @@ async function startServer() {
             if (!email || !password) {
                 return res.status(400).json({ success: false, error: 'Email and password required' });
             }
-            const result = await query('SELECT id, email, name, password_hash FROM users WHERE email = $1', [email]);
+            const result = await query('SELECT id, email, name, password_hash, is_admin FROM users WHERE email = $1', [email]);
             if (result.rows.length === 0) {
                 return res.status(401).json({ success: false, error: 'Invalid credentials' });
             }
@@ -167,7 +178,7 @@ async function startServer() {
                 return res.status(401).json({ success: false, error: 'Invalid credentials' });
             }
             const token = generateToken(user.id);
-            res.json({ success: true, token, user: { id: user.id, email: user.email, name: user.name } });
+            res.json({ success: true, token, user: { id: user.id, email: user.email, name: user.name, is_admin: user.is_admin } });
         }
         catch (err) {
             console.error('Login error:', err);
@@ -411,7 +422,7 @@ async function startServer() {
     // Get user profile
     app.get('/api/user/profile', verifyToken, async (req, res) => {
         try {
-            const result = await query('SELECT id, email, name, avatar_url, joined_date, plan, storage_used_mb, total_storage_mb FROM users WHERE id = $1', [req.user.id]);
+            const result = await query('SELECT id, email, name, avatar_url, joined_date, plan, storage_used_mb, total_storage_mb, is_admin FROM users WHERE id = $1', [req.user.id]);
             if (result.rows.length === 0) {
                 return res.status(404).json({ success: false, error: 'User not found' });
             }
@@ -426,7 +437,7 @@ async function startServer() {
     app.put('/api/user/profile', verifyToken, async (req, res) => {
         try {
             const { name, avatarUrl } = req.body;
-            const result = await query('UPDATE users SET name = $1, avatar_url = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING id, email, name, avatar_url, joined_date, plan, storage_used_mb, total_storage_mb', [name, avatarUrl, req.user.id]);
+            const result = await query('UPDATE users SET name = $1, avatar_url = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING id, email, name, avatar_url, joined_date, plan, storage_used_mb, total_storage_mb, is_admin', [name, avatarUrl, req.user.id]);
             const updatedUser = result.rows[0];
             res.json({ success: true, user: updatedUser });
             broadcastToUser(req.user.id, { type: 'profile_updated', user: updatedUser });
@@ -519,6 +530,53 @@ async function startServer() {
         catch (err) {
             console.error('Admin delete error:', err);
             res.status(500).json({ success: false, error: 'Failed to delete user' });
+        }
+    });
+    // Admin: promote or demote a user (set is_admin)
+    app.put('/api/admin/user/:email/role', verifyAdmin, async (req, res) => {
+        try {
+            const { isAdmin } = req.body;
+            const result = await query(
+                'UPDATE users SET is_admin = $1 WHERE email = $2 RETURNING id, email, name, is_admin',
+                [!!isAdmin, req.params.email]
+            );
+            if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'User not found' });
+            res.json({ success: true, user: result.rows[0] });
+        } catch (err) {
+            console.error('Admin role update error:', err);
+            res.status(500).json({ success: false, error: 'Failed to update role' });
+        }
+    });
+    // Admin: reset any user's password
+    app.put('/api/admin/user/:email/password', verifyAdmin, async (req, res) => {
+        try {
+            const { newPassword } = req.body;
+            if (!newPassword || newPassword.length < 6) return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+            const hash = await hashPassword(newPassword);
+            const result = await query('UPDATE users SET password_hash = $1 WHERE email = $2 RETURNING id', [hash, req.params.email]);
+            if (result.rows.length === 0) return res.status(404).json({ success: false, error: 'User not found' });
+            res.json({ success: true, message: 'Password updated successfully' });
+        } catch (err) {
+            console.error('Admin reset password error:', err);
+            res.status(500).json({ success: false, error: 'Failed to reset password' });
+        }
+    });
+    // Admin: change own password
+    app.put('/api/admin/change-password', verifyAdmin, async (req, res) => {
+        try {
+            const { currentPassword, newPassword } = req.body;
+            if (!newPassword || newPassword.length < 6) return res.status(400).json({ success: false, error: 'New password must be at least 6 characters' });
+            const userId = req.user.id || req.user.userId;
+            const userResult = await query('SELECT password_hash FROM users WHERE id = $1', [userId]);
+            if (userResult.rows.length === 0) return res.status(404).json({ success: false, error: 'User not found' });
+            const match = await comparePassword(currentPassword, userResult.rows[0].password_hash);
+            if (!match) return res.status(401).json({ success: false, error: 'Current password is incorrect' });
+            const hash = await hashPassword(newPassword);
+            await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, userId]);
+            res.json({ success: true, message: 'Password changed successfully' });
+        } catch (err) {
+            console.error('Admin change password error:', err);
+            res.status(500).json({ success: false, error: 'Failed to change password' });
         }
     });
     // Test endpoints
