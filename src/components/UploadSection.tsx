@@ -51,6 +51,7 @@ const MAX_FILE_SIZE_MB = 25;
 export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [dragActive, setDragActive] = useState(false);
+  const [customFileName, setCustomFileName] = useState('');
   const [uploadStatuses, setUploadStatuses] = useState<UploadStatus[]>([]);
   const [viewingFile, setViewingFile] = useState<UploadedImageItem | null>(null);
   const [viewerLoading, setViewerLoading] = useState(false);
@@ -100,7 +101,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
 
     const item: UploadedImageItem = {
       id: tempId,
-      name: file.name || 'Unnamed file',
+      name: customFileName.trim() || file.name || 'Unnamed file',
       dataUrl,
       fileSize: sizeFormatted,
       source: 'upload',
@@ -123,11 +124,12 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
       // Don't remove from list, just mark as sync warning
       updateStatus(tempId, { progress: 100, status: 'done' });
     }
-  }, [setImages, updateStatus]);
+  }, [setImages, updateStatus, customFileName]);
 
   const handleFiles = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) return;
     Array.from(files).forEach(processFile);
+    setCustomFileName('');
   }, [processFile]);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -420,7 +422,15 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
             <p className="text-xs text-white/40 mt-1.5 max-w-[180px] leading-relaxed">
               PDF, PNG, JPG, DOCX, MP4 &bull; Up to {MAX_FILE_SIZE_MB} MB each
             </p>
-            <div className="mt-5 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/15 rounded-full text-xs font-bold text-white transition-all">
+            <input 
+              type="text" 
+              placeholder="Custom File Name (Optional)" 
+              value={customFileName}
+              onChange={e => setCustomFileName(e.target.value)}
+              onClick={e => e.stopPropagation()}
+              className="mt-4 w-[200px] px-3 py-2 bg-black/50 border border-white/10 rounded-lg text-xs text-white focus:outline-none focus:border-cyan-400 transition-all text-center placeholder:text-white/30"
+            />
+            <div className="mt-3 flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/15 rounded-full text-xs font-bold text-white transition-all">
               <FolderOpen className="w-3.5 h-3.5" />
               <span>Choose files</span>
             </div>

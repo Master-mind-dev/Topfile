@@ -28,6 +28,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
 }) => {
   const [urlInput, setUrlInput] = useState('');
   const [topicInput, setTopicInput] = useState('');
+  const [titleInput, setTitleInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All links');
   const [isParsing, setIsParsing] = useState(false);
@@ -55,7 +56,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
       host = parsed.hostname.replace(/^www\./, '');
       if (host.includes('youtube.com') || host.includes('youtu.be')) {
         isYoutube = true;
-        title = 'YouTube Video';
+        title = titleInput.trim() || 'YouTube Video';
         if (host.includes('youtu.be')) {
           embedId = parsed.pathname.slice(1);
         } else {
@@ -65,11 +66,11 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
           embedThumb = `https://img.youtube.com/vi/${embedId}/mqdefault.jpg`;
         }
       } else if (host.includes('khanacademy.org')) {
-        title = 'Khan Academy Resource';
+        title = titleInput.trim() || 'Khan Academy Resource';
       } else if (host.includes('wikipedia.org')) {
-        title = 'Wikipedia Reference';
+        title = titleInput.trim() || 'Wikipedia Reference';
       } else {
-        title = host.charAt(0).toUpperCase() + host.slice(1);
+        title = titleInput.trim() || (host.charAt(0).toUpperCase() + host.slice(1));
       }
     } catch {}
 
@@ -90,6 +91,7 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
     setLinks((prev) => [newItem, ...prev]);
     setUrlInput('');
     setTopicInput('');
+    setTitleInput('');
     setIsParsing(false);
 
     try {
@@ -356,6 +358,16 @@ export const LinkSection: React.FC<LinkSectionProps> = ({
                 placeholder="Paste a URL…"
                 required
                 className="w-full pl-10 pr-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/35 focus:outline-none focus:border-white/30"
+              />
+            </div>
+
+            <div className="relative">
+              <input
+                type="text"
+                value={titleInput}
+                onChange={(e) => setTitleInput(e.target.value)}
+                placeholder="Custom Title (optional)…"
+                className="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/35 focus:outline-none focus:border-white/30"
               />
             </div>
 

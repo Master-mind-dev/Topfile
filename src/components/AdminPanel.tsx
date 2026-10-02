@@ -341,7 +341,8 @@ export function AdminPanel() {
                     setFilterType(label);
                   }
                 }}
-                className={`relative group overflow-hidden bg-black border ${filterType === label ? `border-[${color}] ring-1 ring-[${color}] scale-[1.02]` : 'border-white/10 hover:border-white/20 hover:-translate-y-1'} rounded-2xl p-4 flex flex-col gap-1.5 transition-all cursor-pointer shadow-lg`}
+                className={`relative group overflow-hidden bg-black border ${filterType === label ? 'ring-1 scale-[1.02]' : 'border-white/10 hover:border-white/20 hover:-translate-y-1'} rounded-2xl p-4 flex flex-col gap-1.5 transition-all cursor-pointer shadow-lg`}
+                style={{ borderColor: filterType === label ? color : undefined, boxShadow: filterType === label ? `0 0 0 1px ${color}` : undefined }}
               >
                 <div className="absolute inset-0 opacity-5 group-hover:opacity-15 transition-opacity duration-300" style={{ backgroundColor: color }} />
                 {filterType === label && <div className="absolute inset-0 opacity-10" style={{ backgroundColor: color }} />}
@@ -461,8 +462,13 @@ export function AdminPanel() {
                   {filteredUsers.length === 0 ? (
                     <p className="p-8 text-center text-zinc-500 text-sm">No users found</p>
                   ) : (
-                    filteredUsers.map((user: any) => (
-                      <div key={user.id} onClick={() => fetchUserData(user.email)}
+                    filteredUsers.map((user: any, index: number) => (
+                      <motion.div 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        key={user.id} 
+                        onClick={() => fetchUserData(user.email)}
                         className={`p-4 border-b border-white/5 cursor-pointer transition-all hover:bg-white/5 last:border-0 ${selectedUser?.user?.email === user.email ? 'bg-[#d9ad52]/10 border-l-2 border-l-[#d9ad52]' : ''}`}
                       >
                         <div className="flex justify-between items-start">
@@ -481,9 +487,9 @@ export function AdminPanel() {
                               </span>
                             </div>
                           </div>
-                          <Eye className="w-4 h-4 text-zinc-600 shrink-0 ml-2" />
+                          <Eye className={`w-4 h-4 shrink-0 ml-2 transition-all ${selectedUser?.user?.email === user.email ? 'text-[#d9ad52] scale-110' : 'text-zinc-600 group-hover:text-white'}`} />
                         </div>
-                      </div>
+                      </motion.div>
                     ))
                   )}
                 </div>
