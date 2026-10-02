@@ -1,4 +1,4 @@
-name: Build & Release Desktop App
+name: Build & Release All Platforms
 
 on:
   push:
@@ -6,55 +6,146 @@ on:
       - 'v*'
 
 permissions:
-  contents: write  # Required to create GitHub Releases and upload assets
+  contents: write
 
 jobs:
-  build:
+  # ─── WINDOWS DESKTOP (.exe) ────────────────────────────────
+  build-windows:
+    name: 🪟 Windows Desktop App
     runs-on: windows-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
 
-      - name: Install dependencies (skip postinstall/build)
+      - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Build web app (Vite)
-        run: npx tsc --noEmit --skipLibCheck; npx vite build
+      - name: Build web app
+        run: npx vite build
         env:
           NODE_ENV: production
 
-      - name: Build Electron Windows installer (.exe)
+      - name: Build Electron .exe installer
         run: npx electron-builder --win --publish never
         env:
           NODE_ENV: production
 
-      - name: Upload installer to GitHub Release
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist_electron/*.exe
+
+  # ─── ANDROID APK ───────────────────────────────────────────
+  build-android:
+    name: 🤖 Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build web app
+        run: npx vite build
+        env:
+          NODE_ENV: production
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Capacitor CLI
+        run: npm install -g @capacitor/cli
+
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build debug APK
+        run: cd android && ./gradlew assembleDebug --no-daemon
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}
+
+      - name: Rename APK
+        run: mv android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/Ownly-${{ github.ref_name }}.apk
+
+      - name: Upload Android artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: android/app/build/outputs/apk/debug/Ownly-*.apk
+
+  # ─── PUBLISH RELEASE ───────────────────────────────────────
+  release:
+    name: 🚀 Publish GitHub Release
+    needs: [build-windows, build-android]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-installer
+          path: release-files/
+
+      - name: Download Android artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: android-apk
+          path: release-files/
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Ownly Desktop ${{ github.ref_name }}"
+          name: "Ownly ${{ github.ref_name }}"
           body: |
-            ## 🎉 Ownly Desktop App — ${{ github.ref_name }}
+            ## 🎉 Ownly Desktop + Mobile — ${{ github.ref_name }}
 
-            ### 📥 How to Download & Install
-            1. Click **Ownly-Setup-*.exe** below
-            2. Run it — it creates a desktop shortcut automatically
-            3. Open **Ownly** and log in with your account
+            ---
+
+            ### 💻 Windows — Download Desktop App
+            1. Download **Ownly-Setup-*.exe** below
+            2. Run the installer → desktop shortcut is created automatically
+            3. Open Ownly and log in with your account
+
+            ---
+
+            ### 🤖 Android — Download APK
+            1. Download **Ownly-*.apk** below to your Android phone
+            2. Open the APK file to install *(you may need to allow "Install from unknown sources" in Settings → Security)*
+            3. Open Ownly and log in
+
+            ---
+
+            ### 🍎 iPhone (iOS) — Add to Home Screen
+            > iOS does not allow direct APK/EXE installs — use this free method instead:
+            1. Open Safari on your iPhone and go to **[topfile.onrender.com](https://topfile.onrender.com)**
+            2. Tap the **Share** button (box with arrow)
+            3. Tap **"Add to Home Screen"**
+            4. Tap **Add** — the Ownly app icon now appears on your home screen!
+
+            ---
 
             ### 🔑 Login
             Use your existing Ownly account (same email & password as the website).
-            No account yet? [Sign up here →](https://topfile.onrender.com)
-
-            ### ✨ Features
-            - Notes, Uploads, Links, Camera — all synced in real time
-            - Works even when you switch devices
-          files: dist_electron/*.exe
+            No account? [**Sign up for free →**](https://topfile.onrender.com)
+          files: release-files/*
           draft: false
           prerelease: false
         env:
