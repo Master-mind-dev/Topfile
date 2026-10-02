@@ -120,6 +120,20 @@ export async function initializeDatabase() {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_links_user_id ON links(user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
 
+    // Password reset requests (user → admin flow)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS password_reset_requests (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        email VARCHAR(255) NOT NULL,
+        name VARCHAR(255),
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        fulfilled_at TIMESTAMP
+      )
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_reset_requests_status ON password_reset_requests(status)`);
+
     console.log('✅ Database schema initialized successfully');
   } catch (err) {
     console.error('Error initializing database:', err);

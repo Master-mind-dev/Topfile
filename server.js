@@ -185,51 +185,68 @@ async function startServer() {
             res.status(500).json({ success: false, error: 'Login failed' });
         }
     });
-    // Forgot password — generate reset token and log it (email requires SMTP setup)
+    // Forgot password — creates a request and notifies admin
     app.post('/api/auth/forgot-password', async (req, res) => {
         try {
             const { email } = req.body;
             if (!email) return res.status(400).json({ success: false, error: 'Email required' });
-            const result = await query('SELECT id FROM users WHERE email = $1', [email]);
+            const result = await query('SELECT id, name FROM users WHERE email = $1', [email]);
+            // Always return success to not reveal whether email exists
             if (result.rows.length === 0) {
-                // Don't reveal whether email exists
-                return res.json({ success: true, message: 'If that email exists, a reset link has been sent.' });
+                return res.json({ success: true, message: 'Your request has been sent to the admin. They will reset your password shortly.' });
             }
-            const userId = result.rows[0].id;
-            const token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-            const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-            await query(`UPDATE users SET reset_token = $1, reset_token_expires = $2 WHERE id = $3`, [token, expires, userId]);
-            // Log the reset link (replace with email provider like SendGrid/Resend/Nodemailer)
-            const resetUrl = `${req.headers.origin || 'https://topfile.onrender.com'}/?reset=${token}`;
-            console.log(`🔑 Password reset link for ${email}: ${resetUrl}`);
-            
-            // Send email using Ethereal Email (free test SMTP)
-            try {
-                let testAccount = await nodemailer.createTestAccount();
-                let transporter = nodemailer.createTransport({
-                    host: "smtp.ethereal.email",
-                    port: 587,
-                    secure: false,
-                    auth: { user: testAccount.user, pass: testAccount.pass },
-                });
-                let info = await transporter.sendMail({
-                    from: '"Ownly Workspace" <noreply@ownly.com>',
-                    to: email,
-                    subject: "Reset your Ownly password",
-                    text: `Click here to reset your password: ${resetUrl}`,
-                    html: `<b>Click here to reset your password:</b> <a href="${resetUrl}">${resetUrl}</a>`
-                });
-                console.log(`📧 Test Email sent! Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
-                res.json({ 
-                    success: true, 
-                    message: 'If that email exists, a reset link has been sent.', 
-                    debug_reset_url: resetUrl,
-                    debug_email_preview: nodemailer.getTestMessageUrl(info)
-                });
-            } catch (emailErr) {
-                console.warn('Failed to send test email, but token is created.', emailErr);
-                res.json({ success: true, message: 'Reset link generated (check server console)', debug_reset_url: resetUrl });
+            const user = result.rows[0];
+            // Create a pending reset request (one per user at a time)
+            await query(`DELETE FROM password_reset_requests WHERE user_id = $1 AND status = 'pending'`, [user.id]);
+            await query(
+                `INSERT INTO password_reset_requests (user_id, email, name) VALUES ($1, $2, $3)`,
+                [user.id, email, user.name]
+            );
+            console.log(`📩 Password reset request created for: ${email}`);
+            // Email the admin if ADMIN_EMAIL is set
+            const adminEmail = process.env.ADMIN_EMAIL;
+            if (adminEmail) {
+                try {
+                    const adminUrl = `${req.headers.origin || 'https://topfile.onrender.com'}/admin`;
+                    let transporter;
+                    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+                        transporter = nodemailer.createTransport({
+                            host: process.env.SMTP_HOST,
+                            port: parseInt(process.env.SMTP_PORT || '587'),
+                            secure: process.env.SMTP_SECURE === 'true',
+                            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+                        });
+                    } else {
+                        // Fallback: ethereal test account
+                        const testAccount = await nodemailer.createTestAccount();
+                        transporter = nodemailer.createTransport({
+                            host: 'smtp.ethereal.email', port: 587, secure: false,
+                            auth: { user: testAccount.user, pass: testAccount.pass },
+                        });
+                    }
+                    const info = await transporter.sendMail({
+                        from: '"Ownly System" <noreply@ownly.app>',
+                        to: adminEmail,
+                        subject: `🔑 Password Reset Request — ${user.name || email}`,
+                        text: `User ${user.name} (${email}) has requested a password reset.\n\nGo to your admin dashboard to reset their password:\n${adminUrl}`,
+                        html: `
+                          <div style="font-family:sans-serif;max-width:500px;margin:auto;padding:32px;background:#111;color:#fff;border-radius:16px;">
+                            <h2 style="color:#d9ad52;margin-bottom:8px;">🔑 Password Reset Request</h2>
+                            <p style="color:#aaa;margin-bottom:24px;">A user has requested a password reset.</p>
+                            <div style="background:#1a1a1a;border-radius:12px;padding:16px;margin-bottom:24px;">
+                              <p style="margin:0;font-size:14px;"><strong>Name:</strong> ${user.name || 'Unknown'}</p>
+                              <p style="margin:8px 0 0;font-size:14px;"><strong>Email:</strong> ${email}</p>
+                            </div>
+                            <a href="${adminUrl}" style="display:inline-block;background:#d9ad52;color:#111;font-weight:bold;padding:12px 24px;border-radius:8px;text-decoration:none;">Open Admin Dashboard</a>
+                          </div>
+                        `,
+                    });
+                    console.log(`📧 Admin notified at ${adminEmail}. Preview: ${nodemailer.getTestMessageUrl(info) || 'N/A'}`);
+                } catch (emailErr) {
+                    console.warn('⚠️ Failed to email admin, but request is saved in DB:', emailErr.message);
+                }
             }
+            res.json({ success: true, message: 'Your request has been sent to the admin. They will reset your password shortly.' });
         } catch (err) {
             console.error('Forgot password error:', err);
             res.status(500).json({ success: false, error: 'Failed to process request' });
@@ -451,7 +468,7 @@ async function startServer() {
     // Get all users (with live connected device count)
     app.get('/api/admin/users', verifyAdmin, async (req, res) => {
         try {
-            const result = await query('SELECT id, email, name, joined_date, plan, storage_used_mb FROM users ORDER BY joined_date DESC');
+            const result = await query('SELECT id, email, name, joined_date, plan, storage_used_mb, is_admin FROM users ORDER BY joined_date DESC');
             const users = result.rows.map((u) => ({
                 ...u,
                 online_devices: userClients.get(String(u.id))?.size || 0,
@@ -463,6 +480,41 @@ async function startServer() {
             res.status(500).json({ success: false, error: 'Failed to fetch users' });
         }
     });
+    // Get pending password reset requests
+    app.get('/api/admin/reset-requests', verifyAdmin, async (req, res) => {
+        try {
+            const result = await query(`SELECT * FROM password_reset_requests WHERE status = 'pending' ORDER BY created_at DESC`);
+            res.json({ success: true, requests: result.rows });
+        } catch (err) {
+            res.status(500).json({ success: false, error: 'Failed to fetch requests' });
+        }
+    });
+    // Fulfil a password reset request — admin sets the user's new password
+    app.put('/api/admin/reset-requests/:id/fulfil', verifyAdmin, async (req, res) => {
+        try {
+            const { newPassword } = req.body;
+            if (!newPassword || newPassword.length < 6) return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+            const reqResult = await query(`SELECT * FROM password_reset_requests WHERE id = $1 AND status = 'pending'`, [req.params.id]);
+            if (reqResult.rows.length === 0) return res.status(404).json({ success: false, error: 'Request not found or already fulfilled' });
+            const resetReq = reqResult.rows[0];
+            const hash = await hashPassword(newPassword);
+            await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, resetReq.user_id]);
+            await query(`UPDATE password_reset_requests SET status = 'fulfilled', fulfilled_at = NOW() WHERE id = $1`, [req.params.id]);
+            res.json({ success: true, message: `Password reset for ${resetReq.email}` });
+        } catch (err) {
+            console.error('Fulfil reset error:', err);
+            res.status(500).json({ success: false, error: 'Failed to reset password' });
+        }
+    });
+    // Dismiss a request without resetting
+    app.delete('/api/admin/reset-requests/:id', verifyAdmin, async (req, res) => {
+        try {
+            await query(`UPDATE password_reset_requests SET status = 'dismissed' WHERE id = $1`, [req.params.id]);
+            res.json({ success: true });
+        } catch (err) {
+            res.status(500).json({ success: false, error: 'Failed to dismiss' });
+        }
+    });
     // Admin stats: total users, total content counts, live connections
     app.get('/api/admin/stats', verifyAdmin, async (req, res) => {
         try {
@@ -470,6 +522,7 @@ async function startServer() {
             const notesCount = await query('SELECT COUNT(*) FROM notes');
             const imagesCount = await query('SELECT COUNT(*) FROM images');
             const linksCount = await query('SELECT COUNT(*) FROM links');
+            const pendingResets = await query(`SELECT COUNT(*) FROM password_reset_requests WHERE status = 'pending'`);
             let liveConnections = 0;
             for (const [, clients] of userClients) liveConnections += clients.size;
             const liveUsers = userClients.size;
@@ -480,6 +533,7 @@ async function startServer() {
                     totalNotes: parseInt(notesCount.rows[0].count),
                     totalImages: parseInt(imagesCount.rows[0].count),
                     totalLinks: parseInt(linksCount.rows[0].count),
+                    pendingResets: parseInt(pendingResets.rows[0].count),
                     liveConnections,
                     liveUsers,
                 }

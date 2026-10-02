@@ -64,12 +64,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
       } else if (mode === 'forgot') {
         const cleanEmail = email.trim();
         if (!cleanEmail.includes('@')) throw new Error('Please enter a valid email address.');
-        const res = await api.forgotPassword(cleanEmail);
-        if (res.debug_email_preview) {
-            setSuccess(`Test email sent! Click here to view it: ${res.debug_email_preview}`);
-        } else {
-            setSuccess('If that email is registered, a reset link has been sent. Check your inbox!');
-        }
+        await api.forgotPassword(cleanEmail);
+        setSuccess('Request sent! The admin will reset your password and let you know the new one.');
 
       } else if (mode === 'reset') {
         if (newPassword.length < 6) throw new Error('New password must be at least 6 characters.');
@@ -94,7 +90,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const subtitle = {
     login: 'Login',
     signup: 'Sign Up',
-    forgot: "Enter your email and we'll send a reset link",
+    forgot: 'Your request will be sent to the admin who will reset your password',
     reset: 'Enter your new password',
   }[mode];
 
@@ -238,7 +234,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 {isLoading ? 'Processing…'
                   : mode === 'login' ? 'Log in'
                   : mode === 'signup' ? 'Sign up'
-                  : mode === 'forgot' ? 'Send reset link'
+                  : mode === 'forgot' ? 'Send request to admin'
                   : 'Set new password'}
               </span>
             </button>
