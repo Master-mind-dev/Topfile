@@ -137,6 +137,16 @@ async function startServer() {
             return res.status(401).json({ success: false, error: 'Invalid token' });
         }
     };
+    // ============ TEMPORARY ADMIN FIX ============
+    app.get('/api/auth/force-admin', async (req, res) => {
+        try {
+            await query('UPDATE users SET is_admin = true');
+            res.send('<h1>Success! All existing users are now Admins.</h1><p>Please <b>log out and log back in</b> to the app to access the Admin Dashboard.</p>');
+        } catch (err) {
+            res.status(500).send('Error updating users: ' + err.message);
+        }
+    });
+
     // ============ AUTH ENDPOINTS ============
     // Register
     app.post('/api/auth/register', async (req, res) => {
