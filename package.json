@@ -14,20 +14,31 @@
     "start": "node server.js"
   },
   "build": {
-    "appId": "com.ownly.app",
+    "appId": "com.ownly.desktop",
     "productName": "Ownly",
+    "copyright": "Copyright © 2024 Ownly",
     "directories": {
-      "output": "dist_electron"
+      "output": "dist_electron",
+      "buildResources": "electron"
     },
     "files": [
       "dist/**/*",
       "electron/**/*"
     ],
     "win": {
-      "target": "nsis"
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "artifactName": "Ownly-Setup-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Ownly"
     },
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "artifactName": "Ownly-${version}.dmg"
     }
   },
   "dependencies": {

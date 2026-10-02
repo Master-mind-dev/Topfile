@@ -1,0 +1,60 @@
+name: Build & Release Desktop App
+
+on:
+  push:
+    tags:
+      - 'v*'   # Triggers when you push a tag like v1.0.0, v1.0.1, etc.
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Build web app (Vite)
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Build Electron Windows installer (.exe)
+        run: npx electron-builder --win --publish never
+        env:
+          NODE_ENV: production
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installer to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Ownly Desktop v${{ github.ref_name }}"
+          body: |
+            ## 🎉 Ownly Desktop App — ${{ github.ref_name }}
+
+            ### 📥 Download
+            - **Windows**: Download the `.exe` file below and run it to install.
+
+            ### ✨ What's Inside
+            - Full Ownly workspace: Notes, Uploads, Links, Camera
+            - Secure login with your existing Ownly account
+            - Works just like the website — always synced!
+
+            ### 🔑 Login
+            Use your existing **Ownly account** (the same email & password you use on the website).
+            Don't have an account? [Sign up here](https://topfile.onrender.com).
+          files: |
+            dist_electron/*.exe
+            dist_electron/*.dmg
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

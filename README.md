@@ -1,20 +1,48 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Ownly — Your Personal Workspace
 
-# Run and deploy your AI Studio app
+> Notes · Uploads · Links · Camera — all in one place, synced in real time.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/c7369b44-e918-419b-b32c-1287ac4bd9d8
+## 🌐 Use Online (No Install Needed)
 
-## Run Locally
+**➡️ [Open Ownly in Browser](https://topfile.onrender.com)**
 
-**Prerequisites:**  Node.js
+---
 
+## 💻 Download Desktop App (Windows)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+[![Download for Windows](https://img.shields.io/github/v/release/Master-mind-dev/Topfile?label=Download%20for%20Windows&logo=windows&style=for-the-badge&color=0078D7)](https://github.com/Master-mind-dev/Topfile/releases/latest/download/Ownly-Setup-1.0.0.exe)
+
+> **How to install:**
+> 1. Click the button above to download the `.exe` file
+> 2. Run the installer — it will create a desktop shortcut automatically
+> 3. Open **Ownly** from your desktop and log in with your account
+
+**Don't have an account?** [Sign up for free here](https://topfile.onrender.com)
+
+---
+
+## 🔑 Login
+
+The desktop app uses the **same login** as the website.  
+Just enter your **email** and **password** — your data syncs automatically across all devices.
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---|---|
+| 📝 **Notes** | Rich notes with color tags, pinning, and search |
+| 📁 **Uploads** | Store PDFs, images, Word, Excel files — view them in-app |
+| 🔗 **Links** | Save YouTube videos and web links with thumbnails |
+| 📷 **Camera** | Capture photos directly from the app |
+| 🔄 **Real-time sync** | Changes sync across all your devices instantly |
+| 🔐 **Secure** | JWT authentication, PostgreSQL database |
+
+---
+
+## 📦 Latest Release
+
+Check the [**Releases page**](https://github.com/Master-mind-dev/Topfile/releases) for all download options.
