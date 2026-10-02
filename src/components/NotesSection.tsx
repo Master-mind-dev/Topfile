@@ -136,8 +136,8 @@ export const NotesSection: React.FC<NotesSectionProps> = ({
   }).sort((a, b) => {
     if (a.isPinned && !b.isPinned) return -1;
     if (!a.isPinned && b.isPinned) return 1;
-    const dateA = new Date(a.updatedAt).getTime();
-    const dateB = new Date(b.updatedAt).getTime();
+    const dateA = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const dateB = new Date(b.updatedAt || b.createdAt || 0).getTime();
     return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
   });
 
