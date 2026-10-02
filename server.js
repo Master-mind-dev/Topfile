@@ -140,14 +140,16 @@ async function startServer() {
     // Admin standalone login
     app.post('/api/admin/login', (req, res) => {
         const { email, password } = req.body;
-        const expectedEmail = process.env.ADMIN_EMAIL;
-        const expectedPassword = process.env.ADMIN_PASSWORD;
+        // Trim just in case there are accidental spaces in Render env vars
+        const expectedEmail = (process.env.ADMIN_EMAIL || 'rmohammeddastagir1@gmail.com').trim();
+        const expectedPassword = (process.env.ADMIN_PASSWORD || '').trim();
 
-        if (!expectedEmail || !expectedPassword) {
-            return res.status(500).json({ success: false, error: 'Admin credentials not configured on the server.' });
+        if (!expectedPassword) {
+            console.error("ADMIN_PASSWORD is not set in environment variables!");
+            return res.status(500).json({ success: false, error: 'Admin credentials not configured on the server. Please set ADMIN_PASSWORD in Render.' });
         }
 
-        if (email === expectedEmail && password === expectedPassword) {
+        if (email.trim() === expectedEmail && password === expectedPassword) {
             const secret = process.env.JWT_SECRET || 'ownly-secret-key-change-in-production';
             const adminToken = jwt.sign({ isSuperAdmin: true, email }, secret, { expiresIn: '24h' });
             return res.json({ success: true, token: adminToken });
