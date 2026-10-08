@@ -1,0 +1,10 @@
+{
+  "description": "Organize and enhance study sessions with note-taking, uploads, scans, and link management designed for focused learners seeking productivity.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

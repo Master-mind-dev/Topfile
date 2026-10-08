@@ -5,7 +5,7 @@
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
-    "dev": "concurrently \"node server.js\" \"vite\"",
+    "dev": "vite",
     "dev:electron": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "tsc && vite build",
     "build:electron": "vite build && electron-builder -w",

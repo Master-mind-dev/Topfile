@@ -1,11 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Eye, EyeOff, ArrowRight, Mail, KeyRound, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, FormEvent } from 'react';
 import { UserProfile } from '../types';
 import * as api from '../lib/api';
+import { Eye, EyeOff, ArrowRight } from 'lucide-react';
 
 interface LoginPageProps {
   onLoginSuccess: (profile: Partial<UserProfile>) => void;
+}
+
+function Wordmark({ light = false }: { light?: boolean }) {
+  return (
+    <div className={`wordmark ${light ? "wordmark-light" : ""}`} aria-label="OWNLY">
+      <span>O</span>WNLY<span className="wordmark-dot">.</span>
+    </div>
+  );
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
@@ -15,19 +22,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [newPassword, setNewPassword] = useState('');
   const [name, setName] = useState('');
   const [resetToken, setResetToken] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Detect reset token in URL
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('reset');
     if (token) {
       setResetToken(token);
       setMode('reset');
-      // Clean URL
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -36,6 +41,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setMode(m);
     setError('');
     setSuccess('');
+    setPasswordVisible(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,180 +87,144 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   };
 
   const title = {
-    login: 'WELCOME BACK',
-    signup: 'CREATE ACCOUNT',
-    forgot: 'RESET PASSWORD',
-    reset: 'NEW PASSWORD',
+    login: 'Login',
+    signup: 'Sign Up',
+    forgot: 'Reset Password',
+    reset: 'New Password',
   }[mode];
 
   const subtitle = {
-    login: 'Login',
-    signup: 'Sign Up',
-    forgot: 'Your request will be sent to the admin who will reset your password',
-    reset: 'Enter your new password',
+    login: 'Welcome back',
+    signup: 'Create an account',
+    forgot: 'Enter your email',
+    reset: 'Set your new password',
   }[mode];
 
   return (
-    <div
-      className="min-h-screen w-full text-white flex flex-col justify-center items-center px-4 py-8 relative overflow-hidden"
-      id="figma-auth-screen"
-    >
-      <div className="ambient-glow-mesh">
-        <div className="ambient-glow-1" />
-        <div className="ambient-glow-2" />
-        <div className="ambient-glow-cyan" />
-      </div>
+    <main className="login-screen screen-enter">
+      <div className="login-orb orb-one" />
+      <div className="login-orb orb-two" />
+      <form className="login-card relative" onSubmit={handleSubmit}>
+        <Wordmark light />
 
-      <motion.div
-        key={mode}
-        initial={{ opacity: 0, y: 16, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.35 }}
-        className="w-full max-w-[492px] z-10 space-y-6"
-      >
-        {/* Brand */}
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-white">OWNLY</h1>
-          <h2 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">{title}</h2>
-          <p className="text-base font-bold text-white/70">{subtitle}</p>
+        <div className="login-heading">
+          <p>{subtitle}</p>
+          <h1>{title}</h1>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-          {error && (
-            <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-200 text-xs text-center font-medium">
-              {error}
-            </div>
-          )}
-          {success && (
-            <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 text-xs text-center font-medium flex items-center justify-center gap-2">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              {success.includes('http') ? (
-                  <span dangerouslySetInnerHTML={{ __html: success.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="underline hover:text-white">$1</a>') }} />
-              ) : (
-                  <span>{success}</span>
-              )}
-            </div>
-          )}
+        {error && (
+          <div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-200 text-xs text-center font-medium">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="mb-4 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 text-xs text-center font-medium">
+            {success}
+          </div>
+        )}
 
-          {/* Name — signup only */}
-          <AnimatePresence>
-            {mode === 'signup' && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="space-y-1.5 overflow-hidden"
+        {mode === 'signup' && (
+          <div className="field-group">
+            <label htmlFor="name">Full Name</label>
+            <input
+              id="name"
+              type="text"
+              placeholder="Your name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+        )}
+
+        {(mode === 'login' || mode === 'signup' || mode === 'forgot') && (
+          <div className="field-group">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+        )}
+
+        {(mode === 'login' || mode === 'signup') && (
+          <div className="field-group password-field">
+            <label htmlFor="password">Password</label>
+            <div className="input-wrap">
+              <input
+                id="password"
+                type={passwordVisible ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                aria-label={passwordVisible ? "Hide password" : "Show password"}
+                type="button"
+                onClick={() => setPasswordVisible((visible) => !visible)}
               >
-                <label className="text-xs font-black uppercase tracking-wider text-white/80">FULL NAME</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Your name"
-                  className="w-full h-[58px] px-5 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.14] border border-white/20 focus:border-white/50 rounded-2xl text-white placeholder-white/40 font-medium focus:outline-none transition-all"
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Email */}
-          {(mode === 'login' || mode === 'signup' || mode === 'forgot') && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-black uppercase tracking-wider text-white/80">EMAIL</label>
-              <div className="relative">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="alex@workspace.io"
-                  required
-                  className="w-full h-[58px] px-5 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.14] border border-white/20 focus:border-white/50 rounded-2xl text-white placeholder-white/40 font-medium focus:outline-none transition-all"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Password — login and signup */}
-          {(mode === 'login' || mode === 'signup') && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-black uppercase tracking-wider text-white/80">PASSWORD</label>
-                {mode === 'login' && (
-                  <button type="button" onClick={() => switchMode('forgot')} className="text-xs font-bold text-white/60 hover:text-white transition-colors">
-                    Forgot password?
-                  </button>
-                )}
-              </div>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full h-[58px] pl-5 pr-12 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.14] border border-white/20 focus:border-white/50 rounded-2xl text-white placeholder-white/40 font-medium focus:outline-none transition-all"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1">
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* New password — reset mode */}
-          {mode === 'reset' && (
-            <div className="space-y-1.5">
-              <label className="text-xs font-black uppercase tracking-wider text-white/80">NEW PASSWORD</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="At least 6 characters"
-                  required
-                  className="w-full h-[58px] pl-5 pr-12 bg-white/[0.08] hover:bg-white/[0.12] focus:bg-white/[0.14] border border-white/20 focus:border-white/50 rounded-2xl text-white placeholder-white/40 font-medium focus:outline-none transition-all"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1">
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Submit */}
-          <div className="flex justify-center pt-2">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-[204px] h-[58px] bg-white text-zinc-950 font-black text-base rounded-2xl hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {mode === 'forgot' ? <Mail className="w-4 h-4" /> : mode === 'reset' ? <KeyRound className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-              <span>
-                {isLoading ? 'Processing…'
-                  : mode === 'login' ? 'Log in'
-                  : mode === 'signup' ? 'Sign up'
-                  : mode === 'forgot' ? 'Send request to admin'
-                  : 'Set new password'}
-              </span>
-            </button>
-          </div>
-
-          {/* Bottom links */}
-          <div className="text-center pt-2 space-y-2">
-            {(mode === 'login' || mode === 'signup') && (
-              <button type="button" onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')} className="text-xs font-bold text-white/70 hover:text-white transition-colors cursor-pointer block w-full">
-                {mode === 'login' ? 'No account? Sign up' : 'Already have an account? Log in'}
+                {passwordVisible ? "Hide" : "Show"}
               </button>
-            )}
-            {(mode === 'forgot' || mode === 'reset') && (
-              <button type="button" onClick={() => switchMode('login')} className="text-xs font-bold text-white/50 hover:text-white transition-colors cursor-pointer">
-                ← Back to login
-              </button>
-            )}
+            </div>
           </div>
-        </form>
-      </motion.div>
-    </div>
+        )}
+
+        {mode === 'reset' && (
+          <div className="field-group password-field">
+            <label htmlFor="new-password">New Password</label>
+            <div className="input-wrap">
+              <input
+                id="new-password"
+                type={passwordVisible ? "text" : "password"}
+                placeholder="At least 6 characters"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+              <button
+                aria-label={passwordVisible ? "Hide password" : "Show password"}
+                type="button"
+                onClick={() => setPasswordVisible((visible) => !visible)}
+              >
+                {passwordVisible ? "Hide" : "Show"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {mode === 'login' && (
+          <button className="forgot" type="button" onClick={() => switchMode('forgot')}>
+            Forgot password?
+          </button>
+        )}
+
+        {mode !== 'login' && (
+          <div className="mt-4"></div> /* Spacer if no forgot button */
+        )}
+
+        <button className="primary-button" type="submit" disabled={isLoading}>
+          {isLoading ? 'Processing...' : (
+            mode === 'login' ? <>Log in <ArrowRight size={18} /></> :
+            mode === 'signup' ? <>Sign up <ArrowRight size={18} /></> :
+            mode === 'forgot' ? 'Send request' : 'Reset password'
+          )}
+        </button>
+
+        <p className="signup-copy">
+          {mode === 'login' ? (
+            <>No account? <button type="button" onClick={() => switchMode('signup')}>Sign up</button></>
+          ) : mode === 'signup' ? (
+            <>Already have an account? <button type="button" onClick={() => switchMode('login')}>Log in</button></>
+          ) : (
+            <button type="button" onClick={() => switchMode('login')}>← Back to login</button>
+          )}
+        </p>
+      </form>
+    </main>
   );
 };

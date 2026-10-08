@@ -2,9 +2,7 @@
 // Replace Firebase calls with these API calls
 import { UserProfile } from '../types';
 
-const API_BASE = (typeof window !== 'undefined' && window.location.origin.startsWith('http'))
-  ? '/api'
-  : 'https://topfile.onrender.com/api';
+const API_BASE = 'https://topfile.onrender.com/api';
 
 let authToken: string | null = null;
 
