@@ -388,10 +388,11 @@ function LoginScreen({ onLogin }: { onLogin: (u: AppUser) => void }) {
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function DashboardScreen({ onNavigate, headerProps, notes, uploads, links }: {
+function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpenNote }: {
   onNavigate: (s: Screen) => void;
   headerProps: HeaderProps;
   notes: Note[]; uploads: UploadFile[]; links: SavedLink[];
+  onOpenNote: (id: string) => void;
 }) {
   const [search, setSearch] = useState("");
   const [viewAll, setViewAll] = useState(false);
@@ -490,7 +491,7 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links }: {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {shown.map(note => (
-                <button key={note.id} onClick={() => onNavigate("note-editor")} style={{
+                <button key={note.id} onClick={() => onOpenNote(note.id)} style={{
                   display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 12,
                   padding: 12, border: "1px solid rgba(60,50,54,0.07)", borderRadius: 16,
                   background: "#fff", textAlign: "left", cursor: "pointer", boxShadow: "0 2px 8px rgba(40,30,34,0.04)"
@@ -625,7 +626,14 @@ function NoteEditorScreen({ onNavigate, headerProps, note, onSave }: {
   useEffect(() => {
     if (!saved) {
       const t = setTimeout(() => {
-        onSave({ ...note, title, tags, blocks, updatedAt: new Date().toISOString() });
+        const updatedBlocks = blocks.map(b => {
+          if (b.type === "text") {
+            const el = editorRefs.current.get(b.id);
+            return el ? { ...b, html: el.innerHTML } : b;
+          }
+          return b;
+        });
+        onSave({ ...note, title, tags, blocks: updatedBlocks, updatedAt: new Date().toISOString() });
         setSaved(true);
       }, 800);
       return () => clearTimeout(t);
@@ -749,7 +757,7 @@ function NoteEditorScreen({ onNavigate, headerProps, note, onSave }: {
                 <div key={block.id} ref={el => { if (el) editorRefs.current.set(block.id, el); }}
                   contentEditable suppressContentEditableWarning
                   dangerouslySetInnerHTML={{ __html: block.html || "" }}
-                  onInput={e => updateBlockHtml(block.id, (e.target as HTMLDivElement).innerHTML)}
+                  onInput={() => markDirty()}
                   data-placeholder={idx === 0 ? "Start writing your note…" : "Continue writing…"}
                   style={{
                     minHeight: 48, outline: "none", fontSize: 15, lineHeight: 1.7,
@@ -814,13 +822,22 @@ function NoteEditorScreen({ onNavigate, headerProps, note, onSave }: {
 }
 
 // ─── UPLOADS SCREEN ───────────────────────────────────────────────────────────
-function UploadsScreen({ onNavigate, headerProps, files, onAddFiles, onDeleteFile }: {
+function UploadsScreen({ onNavigate, headerProps, files, onAddFiles, onDeleteFile, onRenameFile }: {
   onNavigate: (s: Screen) => void; headerProps: HeaderProps;
   files: UploadFile[]; onAddFiles: (f: UploadFile[]) => void; onDeleteFile: (id: string) => void;
+  onRenameFile: (id: string, name: string) => void;
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("All");
   const [viewing, setViewing] = useState<UploadFile | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+
+  function handleRename(id: string, name: string) {
+     const newName = name.trim() || "Untitled";
+     onRenameFile(id, newName);
+     setEditingId(null);
+  }
 
   function handleAdd(e: ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? []);
@@ -861,6 +878,8 @@ function UploadsScreen({ onNavigate, headerProps, files, onAddFiles, onDeleteFil
             <img src={viewing.uri} alt={viewing.name} style={{ maxWidth: "100%", maxHeight: "calc(100vh - 120px)", objectFit: "contain" }} />
           ) : isVideo(viewing) ? (
             <video src={viewing.uri} controls autoPlay style={{ maxWidth: "100%", maxHeight: "calc(100vh - 120px)" }} />
+          ) : isPDF(viewing) ? (
+            <iframe src={viewing.uri} title={viewing.name} style={{ width: "100%", height: "calc(100vh - 60px)", border: "none", background: "#fff" }} />
           ) : (
             <div style={{ width: "100%", height: "calc(100vh - 60px)", background: "#fff" }}>
               <DocViewer
@@ -942,9 +961,21 @@ function UploadsScreen({ onNavigate, headerProps, files, onAddFiles, onDeleteFil
                 }}>
                   <Icon name={isImage(file) ? "image" : isVideo(file) ? "video" : "file"} size={20} />
                 </span>
-                <span style={{ minWidth: 0 }}>
-                  <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 13, fontWeight: 700, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</strong>
-                  <small style={{ color: "#aaa", fontSize: 11 }}>{file.size} · {new Date(file.addedAt).toLocaleDateString()}</small>
+                <span style={{ minWidth: 0, flex: 1 }}>
+                  {editingId === file.id ? (
+                     <div style={{ display: "flex", gap: 8, marginBottom: 4 }} onClick={e => e.stopPropagation()}>
+                       <input autoFocus value={editName} onChange={e => setEditName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleRename(file.id, editName)} style={{ flex: 1, border: "1px solid #9f1239", borderRadius: 6, padding: "4px 8px", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
+                       <button onClick={() => handleRename(file.id, editName)} style={{ background: "#9f1239", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>✓</button>
+                     </div>
+                  ) : (
+                    <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 13, fontWeight: 700, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</strong>
+                  )}
+                  <small style={{ color: "#aaa", fontSize: 11, display: "flex", gap: 10, alignItems: "center" }}>
+                    <span>{file.size} · {new Date(file.addedAt).toLocaleDateString()}</span>
+                    {editingId !== file.id && (
+                       <button onClick={e => { e.stopPropagation(); setEditingId(file.id); setEditName(file.name); }} style={{ background: "none", border: "none", color: "#9f1239", fontSize: 11, padding: 0, fontWeight: 600, cursor: "pointer" }}>Rename</button>
+                    )}
+                  </small>
                 </span>
                 <button onClick={e => { e.stopPropagation(); onDeleteFile(file.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#ddd", padding: 6 }}>
                   <Icon name="trash" size={17} />
@@ -962,42 +993,10 @@ function UploadsScreen({ onNavigate, headerProps, files, onAddFiles, onDeleteFil
 
 // ─── SCANNER SCREEN ───────────────────────────────────────────────────────────
 function CaptureScreen({ onNavigate, headerProps }: { onNavigate: (s: Screen) => void; headerProps: HeaderProps }) {
-  const [phase, setPhase] = useState<"idle" | "scanning" | "done">("idle");
+  const [phase, setPhase] = useState<"idle" | "done">("idle");
   const [preview, setPreview] = useState<string | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const [cameraActive, setCameraActive] = useState(false);
-  const [cameraError, setCameraError] = useState("");
 
-  async function startCamera() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
-      streamRef.current = stream;
-      if (videoRef.current) { videoRef.current.srcObject = stream; }
-      setCameraActive(true); setCameraError("");
-    } catch (e: any) {
-      setCameraError("Camera not accessible: " + (e.message || "Permission denied"));
-    }
-  }
-
-  function stopCamera() {
-    streamRef.current?.getTracks().forEach(t => t.stop());
-    streamRef.current = null; setCameraActive(false);
-  }
-
-  function capture() {
-    if (!videoRef.current || !canvasRef.current) return;
-    const v = videoRef.current, c = canvasRef.current;
-    c.width = v.videoWidth; c.height = v.videoHeight;
-    c.getContext("2d")?.drawImage(v, 0, 0);
-    setPreview(c.toDataURL("image/jpeg", 0.92));
-    setPhase("scanning");
-    stopCamera();
-    setTimeout(() => setPhase("done"), 1800);
-  }
-
-  function handleGallery(e: ChangeEvent<HTMLInputElement>) {
+  function handleCapture(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (f) { setPreview(URL.createObjectURL(f)); setPhase("done"); }
   }
@@ -1007,9 +1006,7 @@ function CaptureScreen({ onNavigate, headerProps }: { onNavigate: (s: Screen) =>
     onNavigate("uploads");
   }
 
-  function reset() { setPhase("idle"); setPreview(null); stopCamera(); }
-
-  useEffect(() => () => stopCamera(), []);
+  function reset() { setPhase("idle"); setPreview(null); }
 
   return (
     <main style={{ minHeight: "100vh", background: "#f7f6f3", paddingBottom: 76 }}>
@@ -1020,75 +1017,37 @@ function CaptureScreen({ onNavigate, headerProps }: { onNavigate: (s: Screen) =>
         <div style={{ borderRadius: 20, overflow: "hidden", marginBottom: 20, background: "linear-gradient(150deg,#9f1239,#6e082b)", color: "#fff", padding: "20px 20px 16px", position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <span style={{ background: "rgba(255,255,255,0.2)", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
-              {phase === "done" ? "✓ Complete" : phase === "scanning" ? "⏳ Processing…" : "✦ AI Scanner"}
+              {phase === "done" ? "✓ Complete" : "✦ AI Scanner"}
             </span>
           </div>
           <h2 style={{ margin: "0 0 6px", fontFamily: "Manrope,sans-serif", fontSize: 20, fontWeight: 800 }}>
             {phase === "done" ? "Document captured!" : "Scan your document"}
           </h2>
           <p style={{ margin: 0, opacity: 0.8, fontSize: 13 }}>
-            {phase === "done" ? "Your document is ready. Save it as PDF or retake." : "Point your camera at a page. AI will auto-detect edges and enhance."}
+            {phase === "done" ? "Your document is ready. Save it as PDF or retake." : "Use your native camera to snap a document. AI will enhance it."}
           </p>
         </div>
 
-        {/* Camera / preview */}
+        {/* Idle */}
         {phase === "idle" && (
           <>
-            {cameraActive ? (
-              <div style={{ borderRadius: 20, overflow: "hidden", marginBottom: 16, position: "relative", background: "#000", aspectRatio: "4/3" }}>
-                <video ref={videoRef} autoPlay playsInline muted style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                {/* Scanning frame overlay */}
-                <div style={{ position: "absolute", inset: 20, border: "2px solid rgba(255,255,255,0.6)", borderRadius: 12, pointerEvents: "none" }}>
-                  {["top-left", "top-right", "bottom-left", "bottom-right"].map(c => (
-                    <div key={c} style={{
-                      position: "absolute", width: 20, height: 20,
-                      top: c.includes("top") ? -2 : "auto", bottom: c.includes("bottom") ? -2 : "auto",
-                      left: c.includes("left") ? -2 : "auto", right: c.includes("right") ? -2 : "auto",
-                      borderTop: c.includes("top") ? "3px solid #fff" : "none",
-                      borderBottom: c.includes("bottom") ? "3px solid #fff" : "none",
-                      borderLeft: c.includes("left") ? "3px solid #fff" : "none",
-                      borderRight: c.includes("right") ? "3px solid #fff" : "none",
-                      borderRadius: c.includes("top-left") ? "4px 0 0 0" : c.includes("top-right") ? "0 4px 0 0" : c.includes("bottom-left") ? "0 0 0 4px" : "0 0 4px 0"
-                    }} />
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div style={{ borderRadius: 20, background: "#f0eae8", aspectRatio: "4/3", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 16 }}>
-                <Icon name="camera" size={48} />
-                <p style={{ margin: 0, color: "#888", fontSize: 14 }}>Camera preview will appear here</p>
-                {cameraError && <p style={{ margin: 0, color: "#e05", fontSize: 12, textAlign: "center", padding: "0 20px" }}>{cameraError}</p>}
-              </div>
-            )}
-            <canvas ref={canvasRef} style={{ display: "none" }} />
+            <div style={{ borderRadius: 20, background: "#f0eae8", aspectRatio: "4/3", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 16 }}>
+              <Icon name="camera" size={48} />
+              <p style={{ margin: 0, color: "#888", fontSize: 14 }}>Ready to scan</p>
+            </div>
 
             {/* Buttons */}
             <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "center" }}>
               <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "12px 20px", borderRadius: 16, background: "#fff", border: "1px solid #eee", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
                 <Icon name="image" size={24} /> Gallery
-                <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleGallery} />
+                <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleCapture} />
               </label>
-              <button onClick={cameraActive ? capture : startCamera}
-                style={{ width: 72, height: 72, borderRadius: "50%", background: "#9f1239", border: "4px solid #fff", boxShadow: "0 4px 20px rgba(159,18,57,0.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
-                <Icon name={cameraActive ? "check" : "camera"} size={28} />
-              </button>
-              {cameraActive && (
-                <button onClick={stopCamera} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "12px 20px", borderRadius: 16, background: "#fff", border: "1px solid #eee", cursor: "pointer", fontSize: 12, fontWeight: 600, color: "#e05" }}>
-                  <Icon name="x" size={24} /> Cancel
-                </button>
-              )}
+              <label style={{ width: 72, height: 72, borderRadius: "50%", background: "#9f1239", border: "4px solid #fff", boxShadow: "0 4px 20px rgba(159,18,57,0.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
+                <Icon name="camera" size={28} />
+                <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleCapture} />
+              </label>
             </div>
           </>
-        )}
-
-        {/* Scanning */}
-        {phase === "scanning" && (
-          <div style={{ textAlign: "center", padding: "40px 0" }}>
-            {preview && <img src={preview} alt="" style={{ width: "80%", borderRadius: 16, opacity: 0.6, marginBottom: 20 }} />}
-            <div style={{ width: 40, height: 40, border: "3px solid #eee", borderTopColor: "#9f1239", borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 16px" }} />
-            <p style={{ color: "#888", fontSize: 14 }}>Processing document…</p>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          </div>
         )}
 
         {/* Done */}
@@ -1288,7 +1247,11 @@ export default function App() {
   useEffect(() => { save(KEYS.links, links); }, [links]);
   useEffect(() => { if (user) save(KEYS.user, user); }, [user]);
   useEffect(() => {
-    document.documentElement.style.setProperty("color-scheme", darkMode ? "dark" : "light");
+    if (darkMode) {
+      document.documentElement.classList.add("dark-mode");
+    } else {
+      document.documentElement.classList.remove("dark-mode");
+    }
   }, [darkMode]);
 
   // Auth check
@@ -1332,6 +1295,7 @@ export default function App() {
   // Uploads
   function addUploadFiles(files: UploadFile[]) { setUploads(p => [...files, ...p]); }
   function deleteUpload(id: string) { setUploads(p => p.filter(f => f.id !== id)); }
+  function renameUpload(id: string, name: string) { setUploads(p => p.map(f => f.id === id ? { ...f, name } : f)); }
 
   // Links
   function addLink(l: SavedLink) {
@@ -1411,7 +1375,7 @@ export default function App() {
 
       {screen === "login" && <LoginScreen onLogin={handleLogin} />}
       {screen === "dashboard" && (
-        <DashboardScreen onNavigate={setScreen} headerProps={headerProps} notes={notes} uploads={uploads} links={links} />
+        <DashboardScreen onNavigate={setScreen} headerProps={headerProps} notes={notes} uploads={uploads} links={links} onOpenNote={openNote} />
       )}
       {screen === "notes" && (
         <NotesListScreen onNavigate={setScreen} headerProps={headerProps} notes={notes}
@@ -1422,7 +1386,7 @@ export default function App() {
       )}
       {screen === "uploads" && (
         <UploadsScreen onNavigate={setScreen} headerProps={headerProps} files={uploads}
-          onAddFiles={addUploadFiles} onDeleteFile={deleteUpload} />
+          onAddFiles={addUploadFiles} onDeleteFile={deleteUpload} onRenameFile={renameUpload} />
       )}
       {screen === "capture" && <CaptureScreen onNavigate={setScreen} headerProps={headerProps} />}
       {screen === "links" && (

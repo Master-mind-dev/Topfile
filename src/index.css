@@ -1767,3 +1767,5 @@ label.gallery-button {
 [data-theme="dark"] [style*="background-image"] {
   filter: invert(1) hue-rotate(180deg);
 }
+h t m l . d a r k - m o d e   {   f i l t e r :   i n v e r t ( 1 )   h u e - r o t a t e ( 1 8 0 d e g ) ;   b a c k g r o u n d :   # 1 1 1 ;   }   h t m l . d a r k - m o d e   i m g ,   h t m l . d a r k - m o d e   v i d e o ,   h t m l . d a r k - m o d e   i f r a m e ,   h t m l . d a r k - m o d e   . n o - i n v e r t   {   f i l t e r :   i n v e r t ( 1 )   h u e - r o t a t e ( 1 8 0 d e g ) ;   }  
+ 
