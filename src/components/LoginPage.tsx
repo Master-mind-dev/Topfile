@@ -7,6 +7,23 @@ interface LoginPageProps {
   onLoginSuccess: (profile: Partial<UserProfile>) => void;
 }
 
+// New premium OWNLY O+Y logo mark (SVG)
+function OwnlyLogo({ size = 48 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="OWNLY">
+      {/* Outer rounded square (the O) */}
+      <rect x="2" y="2" width="44" height="44" rx="14" fill="#111111" />
+      {/* Inner white container */}
+      <rect x="9" y="9" width="30" height="30" rx="8" fill="white" opacity="0.95" />
+      {/* Hidden Y shape in crimson red */}
+      <path d="M24 13 L18 20 L24 27 L30 20 Z" fill="#9f1239" />
+      <rect x="22" y="27" width="4" height="9" rx="2" fill="#9f1239" />
+      {/* Subtle top highlight */}
+      <rect x="2" y="2" width="44" height="6" rx="14" fill="white" opacity="0.08" />
+    </svg>
+  );
+}
+
 function Wordmark({ light = false }: { light?: boolean }) {
   return (
     <div className={`wordmark ${light ? "wordmark-light" : ""}`} aria-label="OWNLY">
@@ -102,10 +119,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
   return (
     <main className="login-screen screen-enter">
+      {/* Blob orbs */}
       <div className="login-orb orb-one" />
       <div className="login-orb orb-two" />
-      <form className="login-card relative" onSubmit={handleSubmit}>
-        <Wordmark light />
+
+      {/* Floating particles */}
+      {[...Array(10)].map((_, i) => (
+        <div key={i} className="particle" style={{
+          left: `${8 + i * 9}%`,
+          bottom: '-10px',
+          width: i % 3 === 0 ? '5px' : '3px',
+          height: i % 3 === 0 ? '5px' : '3px',
+          opacity: 0.4 + (i % 3) * 0.15,
+          animationDuration: `${7 + (i * 1.3)}s`,
+          animationDelay: `${i * 0.6}s`,
+          background: i % 4 === 0 ? 'rgba(200,255,250,0.6)' : 'rgba(255,255,255,0.45)',
+        }} />
+      ))}
+
+      <form className="login-card" onSubmit={handleSubmit}>
+        {/* Logo row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+          <OwnlyLogo size={46} />
+          <div>
+            <div style={{ fontFamily: 'Manrope,sans-serif', fontSize: 20, fontWeight: 800, color: 'white', letterSpacing: '-0.8px', lineHeight: 1.1 }}>OWNLY</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase' }}>Knowledge · Notes · Files</div>
+          </div>
+        </div>
 
         <div className="login-heading">
           <p>{subtitle}</p>
@@ -113,12 +153,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-200 text-xs text-center font-medium">
+          <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 12, background: 'rgba(239,68,68,0.2)', border: '1px solid rgba(239,68,68,0.3)', color: '#fca5a5', fontSize: 12, textAlign: 'center', fontWeight: 600 }}>
             {error}
           </div>
+
         )}
         {success && (
-          <div className="mb-4 p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 text-xs text-center font-medium">
+          <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 12, background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.25)', color: '#6ee7b7', fontSize: 12, textAlign: 'center', fontWeight: 600 }}>
             {success}
           </div>
         )}

@@ -4,18 +4,24 @@ import {
 } from "react";
 import * as api from './lib/api';
 import DocViewer, { DocViewerRenderers } from '@cyntler/react-doc-viewer';
+import NoteEditor, { type Note as EditorNote, type NoteAttachment } from './components/NoteEditor';
+import Scanner, { type ScannedPage } from './components/Scanner';
+import FileViewer, { type ViewableFile } from './components/FileViewer';
+import FileManager, { type ExtFile } from './components/FileManager';
+import ConnectedKnowledge from './components/ConnectedKnowledge';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
-type Screen = "login" | "dashboard" | "notes" | "note-editor" | "uploads" | "capture" | "links";
+type Screen = "login" | "dashboard" | "notes" | "note-editor" | "uploads" | "capture" | "links" | "knowledge";
 
 interface NoteBlock {
   id: string;
-  type: "text" | "image" | "video";
+  type: "text" | "image" | "video" | "attachment";
   html?: string;
   src?: string;
+  attachment?: NoteAttachment;
 }
 
-interface Note {
+export interface Note {
   id: string;
   title: string;
   tags: string[];
@@ -24,7 +30,7 @@ interface Note {
   updatedAt: string;
 }
 
-interface UploadFile {
+export interface UploadFile {
   id: string;
   name: string;
   size: string;
@@ -32,6 +38,8 @@ interface UploadFile {
   uri: string;
   file?: File;
   addedAt: string;
+  isFavorite?: boolean;
+  lastOpenedAt?: string;
 }
 
 interface SavedLink {
@@ -170,12 +178,9 @@ function AppHeader({
         </span>
       </div>
 
-      {/* Right: dark mode toggle + custom extra + user icon */}
+      {/* Right: user icon */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
         {rightExtra}
-        <button onClick={onToggleDark} aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"} style={iconBtnStyle} title={darkMode ? "Light mode" : "Dark mode"}>
-          <Icon name={darkMode ? "sun" : "moon"} size={20} />
-        </button>
         <button onClick={onOpenAccount} aria-label="Open account" style={{
           ...iconBtnStyle, width: 36, height: 36, borderRadius: "50%",
           background: avatarBg, color: "#fff", fontWeight: 800, fontSize: 13,
@@ -200,11 +205,11 @@ const iconBtnStyle: React.CSSProperties = {
 
 // ─── BOTTOM NAV ───────────────────────────────────────────────────────────────
 const navItems: { label: string; icon: IconName; screen: Screen }[] = [
-  { label: "Home", icon: "home", screen: "dashboard" },
-  { label: "Notes", icon: "note", screen: "notes" },
-  { label: "Uploads", icon: "upload", screen: "uploads" },
-  { label: "Scan", icon: "camera", screen: "capture" },
-  { label: "Links", icon: "link", screen: "links" },
+  { label: "Home",      icon: "home",   screen: "dashboard" },
+  { label: "Notes",     icon: "note",   screen: "notes" },
+  { label: "Uploads",   icon: "upload", screen: "uploads" },
+  { label: "Scan",      icon: "camera", screen: "capture" },
+  { label: "Knowledge", icon: "link",   screen: "knowledge" },
 ];
 
 function BottomNav({ active, onNavigate }: { active: Screen; onNavigate: (s: Screen) => void }) {
@@ -436,16 +441,28 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpe
 
   return (
     <main style={{ minHeight: "100vh", background: "var(--bg-page)", color: "var(--text-primary)", paddingBottom: 80, transition: "background 0.2s" }}>
-      <AppHeader title="Dashboard" screen="dashboard" {...headerProps} />
-
-      <div style={{ padding: "20px 18px" }}>
-        {/* Greeting */}
-        <div style={{ marginBottom: 18 }}>
-          <p style={{ margin: 0, fontSize: 10, fontWeight: 800, fontFamily: "Manrope,sans-serif", letterSpacing: 2, textTransform: "uppercase", color: "#9d1d42" }}>{greeting}</p>
-          <h1 style={{ margin: "6px 0 4px", fontFamily: "Manrope,sans-serif", fontSize: 23, fontWeight: 800, letterSpacing: -0.6, color: "var(--text-primary)" }}>
-            Hey, {firstName} <span style={{ display: "inline-block", animation: "wave 1.5s ease-in-out 1" }}>👋</span>
-          </h1>
-          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>Ready for another focused session?</p>
+      <div style={{ padding: "calc(env(safe-area-inset-top) + 20px) 18px 20px" }}>
+        {/* Greeting & Profile */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 18 }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, fontFamily: "Manrope,sans-serif", letterSpacing: 2, textTransform: "uppercase", color: "#9d1d42" }}>{greeting}</p>
+            <h1 style={{ margin: "6px 0 4px", fontFamily: "Manrope,sans-serif", fontSize: 23, fontWeight: 800, letterSpacing: -0.6, color: "var(--text-primary)" }}>
+              Hey, {firstName} <span style={{ display: "inline-block", animation: "wave 1.5s ease-in-out 1" }}>👋</span>
+            </h1>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>Ready for another focused session?</p>
+          </div>
+          
+          <button onClick={headerProps.onOpenAccount} aria-label="Open account" style={{
+            width: 44, height: 44, borderRadius: "50%", border: "none", cursor: "pointer",
+            background: headerProps.user?.avatarUrl ? "transparent" : "#9f1239", color: "#fff", 
+            fontWeight: 800, fontSize: 15, fontFamily: "Manrope, sans-serif", position: "relative",
+            boxShadow: "var(--shadow-card)", display: "flex", alignItems: "center", justifyContent: "center"
+          }} title="Profile">
+            {headerProps.user?.avatarUrl ? (
+              <img src={headerProps.user.avatarUrl} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} />
+            ) : (headerProps.user?.name ? headerProps.user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?")}
+            <span style={{ position: "absolute", right: 2, bottom: 2, width: 10, height: 10, borderRadius: "50%", background: "#4fe2d9", border: "2px solid #fff" }} />
+          </button>
         </div>
 
         {/* Search */}
@@ -1347,6 +1364,10 @@ export default function App() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 
+  // Scanner & file-viewer overlay state
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [viewerFile, setViewerFile] = useState<ViewableFile | null>(null);
+
   // Persist on change
   useEffect(() => { save(KEYS.notes, notes); }, [notes]);
   useEffect(() => { save(KEYS.links, links); }, [links]);
@@ -1403,10 +1424,41 @@ export default function App() {
   }
   function deleteNote(id: string) { setNotes(p => p.filter(n => n.id !== id)); api.deleteNote(id).catch(() => {}); }
 
-  // Uploads
+  // Scanner → note integration
+  function handleScanInsert(pages: ScannedPage[], pdfUri?: string) {
+    setScannerOpen(false);
+    if (!activeNoteId) return;
+    const newBlocks: NoteBlock[] = pages.map(p => ({
+      id: `img-${Date.now()}-${Math.random()}`,
+      type: "image" as const,
+      src: p.enhanced || p.uri,
+    }));
+    if (pdfUri) {
+      const att: NoteAttachment = {
+        id: `att-${Date.now()}`, name: "Scanned_Document.pdf",
+        type: "application/pdf", size: "—", uri: pdfUri, addedAt: new Date().toISOString(),
+      };
+      newBlocks.push({ id: `att-blk-${Date.now()}`, type: "attachment", attachment: att });
+    }
+    setNotes(prev => prev.map(n => n.id === activeNoteId
+      ? { ...n, blocks: [...n.blocks, ...newBlocks], updatedAt: new Date().toISOString() }
+      : n));
+  }
+
+  // Uploads & Files
   function addUploadFiles(files: UploadFile[]) { setUploads(p => [...files, ...p]); }
   function deleteUpload(id: string) { setUploads(p => p.filter(f => f.id !== id)); }
   function renameUpload(id: string, name: string) { setUploads(p => p.map(f => f.id === id ? { ...f, name } : f)); }
+  function duplicateUpload(file: ExtFile) {
+    const newFile = { ...file, id: `f-${Date.now()}`, name: `Copy of ${file.name}`, addedAt: new Date().toISOString(), isFavorite: false };
+    setUploads(p => [newFile, ...p]);
+  }
+  function toggleFavoriteUpload(id: string) {
+    setUploads(p => p.map(f => f.id === id ? { ...f, isFavorite: !f.isFavorite } : f));
+  }
+  function updateOpenedAt(id: string) {
+    setUploads(p => p.map(f => f.id === id ? { ...f, lastOpenedAt: new Date().toISOString() } : f));
+  }
 
   // Links
   function addLink(l: SavedLink) {
@@ -1435,160 +1487,18 @@ export default function App() {
 
   return (
     <>
-      <style>{`
-        /* ── CSS VARIABLES (Dark Mode & Themes) ── */
-        :root {
-          --bg-page: #f7f6f3;
-          --bg-card: #ffffff;
-          --bg-header: rgba(255, 255, 255, 0.96);
-          --bg-nav: rgba(255, 255, 255, 0.97);
-          --bg-input: #ffffff;
-          --bg-chip: #f3eee8;
-          --text-primary: #19161b;
-          --text-secondary: #6e6770;
-          --text-muted: #9c9498;
-          --border-color: #eee8dd;
-          --border-subtle: rgba(60, 50, 54, 0.08);
-          --shadow-card: 0 3px 12px rgba(40, 30, 34, 0.05);
-          --note-bg: #fcfbf9;
-        }
-        .dark-mode {
-          --bg-page: #0d0d11;
-          --bg-card: #18181f;
-          --bg-header: rgba(13, 13, 17, 0.96);
-          --bg-nav: rgba(13, 13, 17, 0.97);
-          --bg-input: #22222c;
-          --bg-chip: #22222c;
-          --text-primary: #f5f0f8;
-          --text-secondary: #a39ca8;
-          --text-muted: #6b6572;
-          --border-color: #2a2736;
-          --border-subtle: rgba(255, 255, 255, 0.08);
-          --shadow-card: 0 4px 18px rgba(0, 0, 0, 0.45);
-          --note-bg: #111116;
-        }
-        html { color-scheme: light; }
-        html.dark-mode { color-scheme: dark; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body {
-          margin: 0; padding: 0; overflow-x: hidden;
-          background: var(--bg-page); color: var(--text-primary);
-          font-family: 'DM Sans', sans-serif;
-          transition: background-color 0.2s ease, color 0.2s ease;
-        }
-        h1, h2, h3, h4, h5, h6 { color: var(--text-primary); }
-        input, textarea, select { color: var(--text-primary); }
-        ::placeholder { color: var(--text-muted); opacity: 0.8; }
+      {/* Universal File Viewer overlay (highest z) */}
+      {viewerFile && <FileViewer file={viewerFile} onBack={() => setViewerFile(null)} />}
 
-        /* Note block rich text styles */
-        .note-text-block {
-          min-height: 48px;
-          outline: none;
-          font-size: 15px;
-          line-height: 1.7;
-          color: var(--text-primary);
-          font-family: 'DM Sans', sans-serif;
-          direction: ltr !important;
-          text-align: left !important;
-          unicode-bidi: plaintext;
-        }
-        .note-text-block:empty:before {
-          content: attr(data-placeholder);
-          color: var(--text-muted);
-          pointer-events: none;
-          position: absolute;
-        }
-        .note-text-block h1 {
-          font-size: 1.65rem;
-          font-weight: 800;
-          margin: 0.5em 0 0.2em;
-          line-height: 1.25;
-          color: var(--text-primary);
-          font-family: 'Manrope', sans-serif;
-        }
-        .note-text-block h2 {
-          font-size: 1.35rem;
-          font-weight: 700;
-          margin: 0.4em 0 0.2em;
-          line-height: 1.3;
-          color: var(--text-primary);
-          font-family: 'Manrope', sans-serif;
-        }
-        .note-text-block blockquote {
-          border-left: 3px solid #9f1239;
-          margin: 0.6em 0;
-          padding: 6px 14px;
-          color: var(--text-secondary);
-          font-style: italic;
-          background: var(--bg-chip);
-          border-radius: 0 8px 8px 0;
-        }
-        .note-text-block ul, .note-text-block ol {
-          padding-left: 22px;
-          margin: 0.4em 0;
-        }
-        .note-text-block li {
-          margin-bottom: 4px;
-        }
-        .note-text-block b, .note-text-block strong {
-          font-weight: 700;
-        }
-        .note-text-block i, .note-text-block em {
-          font-style: italic;
-        }
-        .note-text-block u {
-          text-decoration: underline;
-        }
-
-        /* Chips and Icons */
-        .icon-chip { width:29px;height:29px;display:grid;place-items:center;border-radius:9px; }
-        .icon-chip.cyan { color:#087f80;background:rgba(8,127,128,0.15); }
-        .icon-chip.yellow { color:#a66d00;background:rgba(166,109,0,0.15); }
-        .icon-chip.green { color:#347b60;background:rgba(52,123,96,0.15); }
-        .icon-chip.orange { color:#b45a28;background:rgba(180,90,40,0.15); }
-
-        .action-icon { width:39px;height:39px;display:grid;place-items:center;border-radius:50%; }
-        .action-icon.cyan { color:#087f80;background:rgba(8,127,128,0.15); }
-        .action-icon.purple { color:#87568d;background:rgba(135,86,141,0.15); }
-        .action-icon.green { color:#347b60;background:rgba(52,123,96,0.15); }
-        .action-icon.orange { color:#b45a28;background:rgba(180,90,40,0.15); }
-
-        @keyframes wave { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-10deg)} 60%{transform:rotate(14deg)} 80%{transform:rotate(-8deg)} }
-        @keyframes spin { to{transform:rotate(360deg)} }
-        @keyframes screenIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-        .screen-enter { animation: screenIn 0.28s ease both; }
-
-        .login-screen {
-          position:relative;display:grid;place-items:center;min-height:100vh;
-          padding:clamp(60px,14vh,120px) 24px 30px;overflow:hidden;color:white;
-          background: linear-gradient(155deg,rgba(76,2,23,.18),rgba(80,0,25,.45)), radial-gradient(circle at 23% 12%,#d33f5e,transparent 37%), linear-gradient(150deg,#9f1239 0%,#6e082b 52%,#3d061f 100%);
-        }
-        .login-screen::before { content:"";position:absolute;inset:0;opacity:.1;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.4'/%3E%3C/svg%3E"); }
-        .login-orb { position:absolute;border:1px solid rgba(255,255,255,.1);border-radius:50%; }
-        .orb-one { width:260px;height:260px;top:-110px;right:-95px;animation:wallpaperRotate 22s linear infinite; }
-        .orb-two { width:170px;height:170px;bottom:-85px;left:-80px;animation:wallpaperRotate 18s linear infinite reverse; }
-        @keyframes wallpaperRotate { from{transform:rotate(0)} to{transform:rotate(360deg)} }
-        .login-card { position:relative;z-index:1;width:100%;max-width:420px;padding:32px 20px 28px;border:1px solid rgba(255,255,255,.18);border-radius:28px;background:rgba(255,255,255,.1);box-shadow:0 28px 60px rgba(44,0,18,.28);backdrop-filter:blur(18px); }
-        .wordmark { font:800 21px/1 "Manrope",sans-serif;letter-spacing:-1.3px;color:#19161b; }
-        .wordmark span:first-child { display:inline-grid;place-items:center;width:18px;height:18px;margin-right:1px;border:2px solid currentColor;border-radius:50%;font-size:0;transform:translateY(2px); }
-        .wordmark span:first-child::after { content:"";width:5px;height:5px;background:#45ded9;border-radius:50%; }
-        .wordmark .wordmark-dot { color:#45ded9; }
-        .wordmark-light { color:white; }
-        .login-heading { margin-bottom:24px;text-align:center; }
-        .login-heading p { margin:0 0 4px;font:800 11px/1.2 "Manrope",sans-serif;letter-spacing:2.2px;text-transform:uppercase;opacity:.7; }
-        .login-heading h1 { margin:0;font:800 22px/1.1 "Manrope",sans-serif;letter-spacing:-0.5px; }
-        .field-group { margin-top:18px; }
-        .field-group label { display:block;margin:0 0 8px 2px;font:700 10px/1 "Manrope",sans-serif;letter-spacing:1.7px;text-transform:uppercase; }
-        .field-group input { width:100%;height:52px;border:0;border-radius:14px;padding:0 16px;color:#241d21;background:rgba(255,255,255,.95);font-family:inherit;font-size:14px;outline:none; }
-        .input-wrap { position:relative; }
-        .input-wrap input { padding-right:65px; }
-        .input-wrap button { position:absolute;top:0;right:12px;height:52px;border:0;color:#817578;background:transparent;font-size:11px;font-weight:700;cursor:pointer; }
-        .forgot { display:block;margin:10px 2px 22px auto;padding:0;border:0;color:rgba(255,255,255,.8);background:transparent;font-size:12px;font-weight:600;cursor:pointer; }
-        .primary-button { display:flex;align-items:center;justify-content:center;gap:8px;width:160px;height:52px;border:0;border-radius:14px;color:white;background:#171418;box-shadow:0 13px 25px rgba(28,4,12,.28);font:700 14px "Manrope",sans-serif;cursor:pointer;transition:transform .2s;margin:0 auto; }
-        .primary-button:hover { transform:translateY(-1px); }
-        .signup-copy { margin:20px 0 0;color:rgba(255,255,255,.65);text-align:center;font-size:12px; }
-        .signup-copy button { padding:0;border:0;color:#54eee7;background:transparent;font-weight:700;cursor:pointer; }
-      `}</style>
+      {/* Scanner overlay */}
+      {scannerOpen && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 400 }}>
+          <Scanner
+            onBack={() => setScannerOpen(false)}
+            onInsertToNote={handleScanInsert}
+          />
+        </div>
+      )}
 
       {screen === "login" && <LoginScreen onLogin={handleLogin} />}
       {screen === "dashboard" && (
@@ -1599,16 +1509,44 @@ export default function App() {
           onNewNote={createNote} onOpenNote={openNote} onDeleteNote={deleteNote} />
       )}
       {screen === "note-editor" && activeNote && (
-        <NoteEditorScreen onNavigate={setScreen} headerProps={headerProps} note={activeNote} onSave={saveNote} />
+        <NoteEditor
+          note={activeNote as EditorNote}
+          onSave={saveNote as (n: EditorNote) => void}
+          onBack={() => setScreen("notes")}
+          onOpenScanner={() => setScannerOpen(true)}
+          onOpenViewer={(att: NoteAttachment) => setViewerFile({ name: att.name, type: att.type, uri: att.uri, size: att.size })}
+        />
       )}
       {screen === "uploads" && (
-        <UploadsScreen onNavigate={setScreen} headerProps={headerProps} files={uploads}
-          onAddFiles={addUploadFiles} onDeleteFile={deleteUpload} onRenameFile={renameUpload} />
+        <FileManager
+          files={uploads}
+          onBack={() => setScreen("dashboard")}
+          onAddFiles={addUploadFiles}
+          onDeleteFile={deleteUpload}
+          onRenameFile={renameUpload}
+          onDuplicateFile={duplicateUpload}
+          onToggleFavorite={toggleFavoriteUpload}
+          onUpdateOpenedAt={updateOpenedAt}
+          onOpenViewer={(f: ExtFile) => setViewerFile({ name: f.name, type: f.type, uri: f.uri, size: f.size })}
+        />
       )}
-      {screen === "capture" && <CaptureScreen onNavigate={setScreen} headerProps={headerProps} />}
+      {screen === "capture" && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 400 }}>
+          <Scanner onBack={() => setScreen("dashboard")} onInsertToNote={(pages, pdfUri) => {
+            if (pdfUri) {
+              const newFile: UploadFile = { id: `f-${Date.now()}`, name: "Scanned_Document.pdf", size: "—", type: "application/pdf", uri: pdfUri, addedAt: new Date().toISOString() };
+              addUploadFiles([newFile]);
+            }
+            setScreen("uploads");
+          }} />
+        </div>
+      )}
       {screen === "links" && (
         <LinksScreen onNavigate={setScreen} headerProps={headerProps} links={links}
           onAddLink={addLink} onDeleteLink={deleteLink} onRenameLink={renameLink} />
+      )}
+      {screen === "knowledge" && (
+        <ConnectedKnowledge onBack={() => setScreen("dashboard")} />
       )}
 
       {drawerOpen && (
@@ -1618,3 +1556,6 @@ export default function App() {
     </>
   );
 }
+
+
+
