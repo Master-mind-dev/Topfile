@@ -5,6 +5,7 @@ import { ChangeEvent, FormEvent, ReactNode, useState, useEffect } from "react";
 type Screen = "login" | "dashboard" | "editor" | "uploads" | "capture" | "links";
 
 type IconName =
+  | "menu"
   | "arrow-left"
   | "arrow-right"
   | "book"
@@ -36,6 +37,7 @@ function Icon({
   strokeWidth?: number;
 }) {
   const paths: Record<IconName, ReactNode> = {
+    "menu": <path d="M4 6h16M4 12h16M4 18h16" />,
     "arrow-left": <path d="m15 18-6-6 6-6" />,
     "arrow-right": <path d="m9 18 6-6-6-6" />,
     book: (
@@ -122,6 +124,14 @@ function Icon({
     ),
   };
 
+  function logout() {
+    localStorage.removeItem('ownly_auth_token');
+    setIsAuthenticated(false);
+    setUser(null);
+    setScreen('login');
+    setDrawerOpen(false);
+  }
+
   return (
     <svg
       aria-hidden="true"
@@ -173,6 +183,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: any) => void }) {
       <div className="login-orb orb-one" />
       <div className="login-orb orb-two" />
       <form className="login-card" onSubmit={submit}>
+        <button onClick={onMenuClick} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}><Icon name="menu" size={24} /></button>
         <Wordmark light />
 
         <div className="login-heading">
@@ -275,7 +286,9 @@ function BottomNav({
   );
 }
 
-function DashboardScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
+function DashboardScreen({ onNavigate, onMenuClick, darkMode, toggleDark }: { onNavigate: (screen: Screen) => void, onMenuClick: () => void, darkMode: boolean, toggleDark: () => void }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [viewAll, setViewAll] = useState(false);
   return (
     <main className="app-screen screen-enter">
       <header className="topbar">
@@ -284,7 +297,8 @@ function DashboardScreen({ onNavigate }: { onNavigate: (screen: Screen) => void 
           <strong>Dashboard</strong>
           <span>Tuesday, Oct 15</span>
         </div>
-        <button className="avatar" type="button" aria-label="Open profile">
+        <button onClick={toggleDark} style={{ background: 'transparent', border: 'none', marginRight: 10 }}>{darkMode ? '☀️' : '🌙'}</button>
+        <button className="avatar" type="button" aria-label="Open profile" onClick={onMenuClick}>
           AR
           <span />
         </button>
@@ -299,9 +313,15 @@ function DashboardScreen({ onNavigate }: { onNavigate: (screen: Screen) => void 
             </h1>
             <p className="subcopy">Ready for another focused study session?</p>
           </div>
-          <button className="search-button" type="button" aria-label="Search">
-            <Icon name="search" size={19} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', background: 'white', borderRadius: 12, padding: '0 10px', marginTop: 10 }}>
+            <Icon name="search" size={19} color="#888" />
+            <input 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search notes..."
+              style={{ border: 'none', padding: '10px', width: '100%', background: 'transparent', outline: 'none' }} 
+            />
+          </div>
         </section>
 
         <section className="stats-grid" aria-label="Library totals">
@@ -369,7 +389,7 @@ function DashboardScreen({ onNavigate }: { onNavigate: (screen: Screen) => void 
         <section className="content-section recent-section">
           <div className="section-heading">
             <h2>Recent notes</h2>
-            <button type="button">View all</button>
+            <button type="button" onClick={() => setViewAll(!viewAll)}>{viewAll ? "Show less" : "View all"}</button>
           </div>
           <div className="notes-list">
             <button className="note-card" type="button" onClick={() => onNavigate("editor")}>
@@ -898,11 +918,33 @@ function LinksScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
 }
 
 
+
+function AccountDrawer({ user, onLogout, onClose }: { user: any, onLogout: () => void, onClose: () => void }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.5)' }}>
+      <div style={{ width: '80%', background: 'var(--bg, white)', padding: 20, height: '100%', color: 'var(--text, black)' }}>
+        <button onClick={onClose} style={{ float: 'right', background: 'transparent', border: 'none', fontSize: 20 }}>&times;</button>
+        <h2>Account</h2>
+        <div style={{ marginTop: 20 }}>
+          <p><strong>Name:</strong> {user?.name || 'Alex'}</p>
+          <p><strong>Email:</strong> {user?.email || 'alex@example.com'}</p>
+        </div>
+        <button onClick={onLogout} style={{ marginTop: 40, width: '100%', padding: 15, background: '#d33f5e', color: 'white', border: 'none', borderRadius: 8 }}>Log Out</button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>("login");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  useEffect(() => {
+    document.body.setAttribute("data-theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
 
   useEffect(() => {
     const token = localStorage.getItem('ownly_auth_token');
@@ -922,7 +964,8 @@ export default function App() {
         setUser(user);
         setScreen("dashboard");
       }} />}
-      {screen === "dashboard" && <DashboardScreen onNavigate={setScreen} />}
+      {screen === "dashboard" && <DashboardScreen onNavigate={setScreen} onMenuClick={() => setDrawerOpen(true)} darkMode={darkMode} toggleDark={() => setDarkMode(!darkMode)} />}
+      {drawerOpen && <AccountDrawer user={user} onClose={() => setDrawerOpen(false)} onLogout={logout} />}
       {screen === "editor" && <EditorScreen onNavigate={setScreen} />}
       {screen === "uploads" && <UploadsScreen onNavigate={setScreen} />}
       {screen === "capture" && <CaptureScreen onNavigate={setScreen} />}

@@ -1753,3 +1753,17 @@ label.gallery-button {
     animation-iteration-count: 1 !important;
   }
 }
+
+
+/* Dark Mode Override */
+[data-theme="dark"] {
+  filter: invert(1) hue-rotate(180deg);
+  background: #111;
+}
+
+[data-theme="dark"] img, 
+[data-theme="dark"] video,
+[data-theme="dark"] .login-screen,
+[data-theme="dark"] [style*="background-image"] {
+  filter: invert(1) hue-rotate(180deg);
+}
