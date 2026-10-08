@@ -1,6 +1,7 @@
 import * as api from './lib/api';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { ChangeEvent, FormEvent, ReactNode, useState, useEffect } from "react";
+import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
 
 type Screen = "login" | "dashboard" | "editor" | "uploads" | "capture" | "links";
 
@@ -292,16 +293,25 @@ function DashboardScreen({ onNavigate, onMenuClick, darkMode, toggleDark }: { on
   return (
     <main className="app-screen screen-enter">
       <header className="topbar">
-        <Wordmark light />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={onMenuClick} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            <Icon name="menu" size={24} />
+          </button>
+          <Wordmark />
+        </div>
         <div className="topbar-title">
           <strong>Dashboard</strong>
           <span>Tuesday, Oct 15</span>
         </div>
-        <button onClick={toggleDark} style={{ background: 'transparent', border: 'none', marginRight: 10 }}>{darkMode ? '☀️' : '🌙'}</button>
-        <button className="avatar" type="button" aria-label="Open profile" onClick={onMenuClick}>
-          AR
-          <span />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={toggleDark} style={{ background: 'transparent', border: 'none', fontSize: 18, cursor: 'pointer' }}>
+            {darkMode ? '☀️' : '🌙'}
+          </button>
+          <button className="avatar" type="button" aria-label="Open profile" onClick={onMenuClick}>
+            AR
+            <span />
+          </button>
+        </div>
       </header>
 
       <div className="dashboard-content">
@@ -429,6 +439,18 @@ function DashboardScreen({ onNavigate, onMenuClick, darkMode, toggleDark }: { on
 
 function EditorScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
   const [saved, setSaved] = useState(true);
+  
+  const insertMedia = (type: 'image' | 'video', file: File) => {
+    const url = URL.createObjectURL(file);
+    const mediaHtml = type === 'image' 
+      ? `<img src="${url}" style="max-width: 100%; border-radius: 8px; margin: 10px 0;" />`
+      : `<video src="${url}" controls style="max-width: 100%; border-radius: 8px; margin: 10px 0;"></video>`;
+    document.execCommand('insertHTML', false, mediaHtml + '<p><br/></p>');
+    setSaved(false);
+  };
+  const handleImage = (e: any) => e.target.files?.[0] && insertMedia('image', e.target.files[0]);
+  const handleVideo = (e: any) => e.target.files?.[0] && insertMedia('video', e.target.files[0]);
+
 
   return (
     <main className="app-screen editor-screen screen-enter">
@@ -531,12 +553,14 @@ function EditorScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) 
 
       <div className="editor-footer">
         <div className="insert-tools">
-          <button type="button" aria-label="Add attachment">
-            <Icon name="paperclip" size={19} />
-          </button>
-          <button type="button" aria-label="Add image">
+          <label aria-label="Add video" style={{ cursor: 'pointer', padding: 8 }}>
+            <Icon name="camera" size={19} />
+            <input type="file" accept="video/*" style={{ display: 'none' }} onChange={handleVideo} />
+          </label>
+          <label aria-label="Add image" style={{ cursor: 'pointer', padding: 8 }}>
             <Icon name="image" size={19} />
-          </button>
+            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImage} />
+          </label>
         </div>
         <button
           className={`save-status ${saved ? "saved" : ""}`}
@@ -554,10 +578,8 @@ function EditorScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) 
 }
 
 const initialFiles = [
-  { name: "Bio_Notes_Ch4.pdf", meta: "PDF · 2.4 MB · Today", color: "rose" },
-  { name: "History_Diagram.png", meta: "PNG · 840 KB · Yesterday", color: "cyan" },
-  { name: "Calculus_Worksheet.docx", meta: "DOCX · 180 KB · Sep 28", color: "yellow" },
-  { name: "Organic_Chemistry_Lab.pdf", meta: "PDF · 4.1 MB · Sep 26", color: "green" },
+  { name: "Sample.pdf", uri: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf", meta: "PDF · 2.4 MB · Today", color: "rose" },
+  { name: "Sample_Doc.docx", uri: "https://files.testfile.org/PDF/50MB-TESTFILE.ORG.pdf", meta: "DOCX · 180 KB · Sep 28", color: "yellow" },
 ];
 
 function SectionHeader({
@@ -582,7 +604,8 @@ function SectionHeader({
 }
 
 function UploadsScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
-  const [files, setFiles] = useState(initialFiles);
+  const [files, setFiles] = useState<any[]>(initialFiles);
+  const [viewingFile, setViewingFile] = useState<any>(null);
   const [query, setQuery] = useState("");
 
   function addFiles(event: ChangeEvent<HTMLInputElement>) {
@@ -590,6 +613,7 @@ function UploadsScreen({ onNavigate }: { onNavigate: (screen: Screen) => void })
     setFiles((current) => [
       ...selected.map((file) => ({
         name: file.name,
+        file: file,
         meta: `${file.type.split("/").pop()?.toUpperCase() || "FILE"} · ${Math.max(
           1,
           Math.round(file.size / 1024),
@@ -604,6 +628,30 @@ function UploadsScreen({ onNavigate }: { onNavigate: (screen: Screen) => void })
   const visibleFiles = files.filter((file) =>
     file.name.toLowerCase().includes(query.toLowerCase()),
   );
+
+  if (viewingFile) {
+    return (
+      <main className="app-screen screen-enter" style={{ display: 'flex', flexDirection: 'column' }}>
+        <header className="topbar">
+          <button onClick={() => setViewingFile(null)} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            <Icon name="arrow-left" size={24} />
+          </button>
+          <div className="topbar-title">
+            <strong>{viewingFile.name}</strong>
+          </div>
+          <span style={{ width: 24 }} />
+        </header>
+        <div style={{ flex: 1, position: 'relative' }}>
+          <DocViewer
+            documents={[{ uri: viewingFile.uri || window.URL.createObjectURL(viewingFile.file), fileName: viewingFile.name }]}
+            pluginRenderers={DocViewerRenderers}
+            style={{ width: '100%', height: '100%' }}
+            config={{ header: { disableHeader: true } }}
+          />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="app-screen library-screen screen-enter">
@@ -659,7 +707,7 @@ function UploadsScreen({ onNavigate }: { onNavigate: (screen: Screen) => void })
 
         <div className="file-list">
           {visibleFiles.map((file, index) => (
-            <article className="file-row interactive-box" key={`${file.name}-${index}`}>
+            <article className="file-row interactive-box" key={`${file.name}-${index}`} onClick={() => setViewingFile(file)} style={{ cursor: 'pointer' }}>
               <span className={`file-icon ${file.color}`}>
                 <Icon name={file.name.match(/\.(png|jpg|jpeg)$/i) ? "image" : "file"} size={19} />
               </span>
@@ -670,9 +718,10 @@ function UploadsScreen({ onNavigate }: { onNavigate: (screen: Screen) => void })
               <button
                 type="button"
                 aria-label={`Remove ${file.name}`}
-                onClick={() =>
-                  setFiles((current) => current.filter((item) => item !== file))
-                }
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFiles((current) => current.filter((item) => item !== file));
+                }}
               >
                 <Icon name="more" size={18} />
               </button>
@@ -716,7 +765,7 @@ function CaptureScreen({ onNavigate }: { onNavigate: (screen: Screen) => void })
               <Icon name={captured ? "check" : "sparkle"} size={16} />
               {captured ? "Scan complete" : scanning ? "Finding document" : "AI document scanner"}
             </span>
-            <h1>{captured ? "Perfect capture." : "Turn paper into study notes."}</h1>
+            <h1>{captured ? "Converted to PDF." : "Document Scanner"}</h1>
             <p>
               {captured
                 ? "Your page is clear, straightened, and ready to save."
@@ -809,6 +858,7 @@ const initialLinks: SavedLink[] = [
 ];
 
 function LinksScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
+  const [editingLink, setEditingLink] = useState<any>(null);
   const [links, setLinks] = useState(initialLinks);
   const [url, setUrl] = useState("");
   const [query, setQuery] = useState("");
@@ -886,28 +936,29 @@ function LinksScreen({ onNavigate }: { onNavigate: (screen: Screen) => void }) {
         </div>
         <div className="link-list">
           {visibleLinks.map((link, index) => (
-            <article className="link-row interactive-box" key={`${link.url}-${index}`}>
-              <span className={`file-icon ${link.color}`}>
-                <Icon name="link" size={18} />
-              </span>
-              <span>
-                <strong>{link.title}</strong>
-                <b>{link.url}</b>
-                <small>{link.description}</small>
-              </span>
-              <button
-                type="button"
-                aria-label={`Open ${link.title}`}
-                onClick={() =>
-                  window.open(
-                    link.url.startsWith("http") ? link.url : `https://${link.url}`,
-                    "_blank",
-                    "noopener,noreferrer",
-                  )
-                }
-              >
-                <Icon name="arrow-right" size={17} />
-              </button>
+            <article className="link-row interactive-box" key={`${link.url}-${index}`} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 16 }}>
+              <div style={{ width: '100%', height: 160, background: '#eee', borderRadius: 12, overflow: 'hidden', position: 'relative' }}
+                   onClick={() => window.open(link.url.startsWith("http") ? link.url : `https://${link.url}`, "_blank")}>
+                {link.url.includes("youtube.com") || link.url.includes("youtu.be") ? 
+                  <img src="https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&q=80&w=400&h=200" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> 
+                  : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="link" size={40} /></div>}
+                <div style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.8)', color: 'white', padding: '2px 6px', borderRadius: 4, fontSize: 10 }}>10:24</div>
+              </div>
+              <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  {editingLink === index ? (
+                    <input autoFocus defaultValue={link.title} onBlur={(e) => {
+                      const newLinks = [...links];
+                      newLinks[index].title = e.target.value;
+                      setLinks(newLinks);
+                      setEditingLink(null);
+                    }} style={{ width: '100%', border: '1px solid #ccc', borderRadius: 4, padding: 4 }} />
+                  ) : (
+                    <strong onClick={() => setEditingLink(index)} style={{ cursor: 'text' }}>{link.title}</strong>
+                  )}
+                  <div style={{ color: '#666', fontSize: 12, marginTop: 4 }}>{link.url} • {link.description}</div>
+                </div>
+              </div>
             </article>
           ))}
         </div>
@@ -956,6 +1007,14 @@ export default function App() {
   }, []);
 
   if (isCheckingAuth) return null;
+
+  function logout() {
+    localStorage.removeItem('ownly_auth_token');
+    setIsAuthenticated(false);
+    setUser(null);
+    setScreen('login');
+    setDrawerOpen(false);
+  }
 
   return (
     <>
