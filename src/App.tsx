@@ -1,9 +1,9 @@
 import {
   ChangeEvent, FormEvent, ReactNode, useRef,
-  useState, useEffect, useCallback
+  useState, useEffect
 } from "react";
 import * as api from './lib/api';
-import DocViewer, { DocViewerRenderers } from "@cyntler/react-doc-viewer";
+import DocViewer, { DocViewerRenderers } from '@cyntler/react-doc-viewer';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 type Screen = "login" | "dashboard" | "notes" | "note-editor" | "uploads" | "capture" | "links";
@@ -51,15 +51,30 @@ interface AppUser {
 }
 
 // ─── STORAGE (localStorage with API fallback) ─────────────────────────────────
-const KEYS = { notes: "ownly_notes_v2", uploads: "ownly_uploads_v2", links: "ownly_links_v2", user: "ownly_user" };
+const KEYS = {
+  notes: "ownly_notes_v2",
+  uploads: "ownly_uploads_v2",
+  links: "ownly_links_v2",
+  user: "ownly_user",
+  dark: "ownly_dark_mode"
+};
+
 function load<T>(key: string, fallback: T): T {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
-}
-function save<T>(key: string, val: T) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+  try {
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
-// ─── ICON ─────────────────────────────────────────────────────────────────────
+function save<T>(key: string, val: T) {
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch {}
+}
+
+// ─── ICON COMPONENT ───────────────────────────────────────────────────────────
 type IconName =
   "arrow-left" | "arrow-right" | "book" | "camera" | "check" | "chevron-right" |
   "clock" | "file" | "flame" | "home" | "image" | "link" | "more" | "note" |
@@ -132,36 +147,40 @@ function AppHeader({
     <header style={{
       position: "sticky", top: 0, zIndex: 50,
       display: "grid", gridTemplateColumns: "1fr auto 1fr",
-      alignItems: "center", minHeight: 60, paddingTop: "env(safe-area-inset-top)",
-      padding: "env(safe-area-inset-top) 16px 0",
-      background: "rgba(255,255,255,0.96)", borderBottom: "1px solid #eeeae3",
-      backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)"
+      alignItems: "center", minHeight: 60,
+      padding: "calc(env(safe-area-inset-top) + 6px) 16px 6px",
+      background: "var(--bg-header)", borderBottom: "1px solid var(--border-color)",
+      backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+      transition: "background 0.2s, border-color 0.2s"
     }}>
-      {/* Left: back or avatar */}
-      <div style={{ display: "flex", alignItems: "center", paddingBottom: 14, paddingTop: 14 }}>
+      {/* Left: back button or spacer */}
+      <div style={{ display: "flex", alignItems: "center" }}>
         {showBack && (
-          <button onClick={onBack} style={iconBtnStyle}>
+          <button onClick={onBack} style={iconBtnStyle} title="Back">
             <Icon name="arrow-left" size={22} />
           </button>
         )}
       </div>
 
       {/* Center: page title */}
-      <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 2, paddingBottom: 14, paddingTop: 14 }}>
-        <strong style={{ fontFamily: "Manrope, sans-serif", fontSize: 14, fontWeight: 700, letterSpacing: -0.2 }}>{title}</strong>
-        <span style={{ fontSize: 10, color: "#a09890" }}>
+      <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 2 }}>
+        <strong style={{ fontFamily: "Manrope, sans-serif", fontSize: 15, fontWeight: 800, letterSpacing: -0.2, color: "var(--text-primary)" }}>{title}</strong>
+        <span style={{ fontSize: 10, color: "var(--text-secondary)", fontWeight: 500 }}>
           {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
         </span>
       </div>
 
-      {/* Right: dark mode + user icon */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, paddingBottom: 14, paddingTop: 14 }}>
+      {/* Right: dark mode toggle + custom extra + user icon */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
         {rightExtra}
+        <button onClick={onToggleDark} aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"} style={iconBtnStyle} title={darkMode ? "Light mode" : "Dark mode"}>
+          <Icon name={darkMode ? "sun" : "moon"} size={20} />
+        </button>
         <button onClick={onOpenAccount} aria-label="Open account" style={{
           ...iconBtnStyle, width: 36, height: 36, borderRadius: "50%",
           background: avatarBg, color: "#fff", fontWeight: 800, fontSize: 13,
           fontFamily: "Manrope, sans-serif", position: "relative"
-        }}>
+        }} title="Profile">
           {user?.avatarUrl ? (
             <img src={user.avatarUrl} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }} />
           ) : initials}
@@ -176,7 +195,7 @@ const iconBtnStyle: React.CSSProperties = {
   background: "transparent", border: "none", cursor: "pointer",
   display: "flex", alignItems: "center", justifyContent: "center",
   width: 36, height: 36, borderRadius: "50%",
-  color: "#19161b", transition: "background 0.15s"
+  color: "var(--text-primary)", transition: "background 0.15s"
 };
 
 // ─── BOTTOM NAV ───────────────────────────────────────────────────────────────
@@ -192,30 +211,35 @@ function BottomNav({ active, onNavigate }: { active: Screen; onNavigate: (s: Scr
   return (
     <nav style={{
       position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 40,
-      height: `calc(66px + env(safe-area-inset-bottom))`,
+      height: `calc(64px + env(safe-area-inset-bottom))`,
       display: "grid", gridTemplateColumns: "repeat(5,1fr)",
-      padding: "8px 4px env(safe-area-inset-bottom)",
-      background: "rgba(255,255,255,0.97)", borderTop: "1px solid #eee9e2",
-      boxShadow: "0 -4px 20px rgba(54,43,36,0.06)", backdropFilter: "blur(14px)"
+      padding: "6px 4px env(safe-area-inset-bottom)",
+      background: "var(--bg-nav)", borderTop: "1px solid var(--border-color)",
+      boxShadow: "0 -4px 20px rgba(0,0,0,0.06)", backdropFilter: "blur(14px)",
+      WebkitBackdropFilter: "blur(14px)", transition: "background 0.2s, border-color 0.2s"
     }}>
-      {navItems.map(it => (
-        <button key={it.screen} type="button" onClick={() => onNavigate(it.screen)}
-          style={{
-            display: "flex", flexDirection: "column", alignItems: "center",
-            justifyContent: "center", gap: 3, border: "none", background: "transparent",
-            cursor: "pointer", fontSize: 9, fontWeight: 600, fontFamily: "Manrope, sans-serif",
-            color: active === it.screen ? "#b2213d" : "#99918a", transition: "color 0.15s"
-          }}>
-          <span style={{
-            width: 36, height: 30, display: "flex", alignItems: "center", justifyContent: "center",
-            borderRadius: 10, background: active === it.screen ? "#fff1bd" : "transparent",
-            transition: "background 0.15s"
-          }}>
-            <Icon name={it.icon} size={21} />
-          </span>
-          {it.label}
-        </button>
-      ))}
+      {navItems.map(it => {
+        const isActive = active === it.screen;
+        return (
+          <button key={it.screen} type="button" onClick={() => onNavigate(it.screen)}
+            style={{
+              display: "flex", flexDirection: "column", alignItems: "center",
+              justifyContent: "center", gap: 3, border: "none", background: "transparent",
+              cursor: "pointer", fontSize: 9, fontWeight: 700, fontFamily: "Manrope, sans-serif",
+              color: isActive ? "#b2213d" : "var(--text-secondary)", transition: "color 0.15s"
+            }}>
+            <span style={{
+              width: 36, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 10, background: isActive ? "rgba(178,33,61,0.15)" : "transparent",
+              color: isActive ? "#b2213d" : "inherit",
+              transition: "background 0.15s, color 0.15s"
+            }}>
+              <Icon name={it.icon} size={20} />
+            </span>
+            {it.label}
+          </button>
+        );
+      })}
     </nav>
   );
 }
@@ -237,21 +261,21 @@ function AccountDrawer({
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 200 }} onClick={onClose}>
-      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)" }} />
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }} />
       <div onClick={e => e.stopPropagation()} style={{
         position: "absolute", top: 0, right: 0, bottom: 0, width: "82%", maxWidth: 360,
-        background: "#fff", display: "flex", flexDirection: "column",
-        boxShadow: "-16px 0 60px rgba(0,0,0,0.2)"
+        background: "var(--bg-card)", color: "var(--text-primary)", display: "flex", flexDirection: "column",
+        boxShadow: "-16px 0 60px rgba(0,0,0,0.35)", transition: "background 0.2s"
       }}>
         {/* Banner */}
-        <div style={{ background: "linear-gradient(150deg,#9f1239,#6e082b)", padding: "calc(env(safe-area-inset-top) + 48px) 24px 28px", color: "#fff", position: "relative" }}>
+        <div style={{ background: "linear-gradient(150deg,#9f1239,#6e082b)", padding: "calc(env(safe-area-inset-top) + 36px) 24px 24px", color: "#fff", position: "relative" }}>
           <button onClick={onClose} style={{ position: "absolute", top: `calc(env(safe-area-inset-top) + 12px)`, right: 16, background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
             <Icon name="x" size={18} />
           </button>
 
           {/* Editable avatar */}
-          <div style={{ position: "relative", width: 68, height: 68, marginBottom: 14 }}>
-            <div style={{ width: 68, height: 68, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, fontWeight: 800, fontFamily: "Manrope,sans-serif", overflow: "hidden", cursor: "pointer" }}
+          <div style={{ position: "relative", width: 64, height: 64, marginBottom: 12 }}>
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(255,255,255,0.2)", border: "2px solid rgba(255,255,255,0.4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800, fontFamily: "Manrope,sans-serif", overflow: "hidden", cursor: "pointer" }}
               onClick={() => fileRef.current?.click()}>
               {user?.avatarUrl ? <img src={user.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initials}
             </div>
@@ -261,35 +285,35 @@ function AccountDrawer({
             <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
           </div>
 
-          <div style={{ fontWeight: 700, fontSize: 18, fontFamily: "Manrope,sans-serif" }}>{user?.name || "User"}</div>
-          <div style={{ opacity: 0.7, fontSize: 13, marginTop: 4 }}>{user?.email || "—"}</div>
-          <div style={{ marginTop: 8, display: "inline-block", background: "rgba(255,255,255,0.18)", borderRadius: 20, padding: "3px 12px", fontSize: 11, fontWeight: 600 }}>{user?.plan || "Personal Pro"}</div>
+          <div style={{ fontWeight: 800, fontSize: 18, fontFamily: "Manrope,sans-serif" }}>{user?.name || "User"}</div>
+          <div style={{ opacity: 0.75, fontSize: 13, marginTop: 2 }}>{user?.email || "—"}</div>
+          <div style={{ marginTop: 8, display: "inline-block", background: "rgba(255,255,255,0.2)", borderRadius: 20, padding: "3px 12px", fontSize: 11, fontWeight: 700 }}>{user?.plan || "Personal Pro"}</div>
         </div>
 
         {/* Settings */}
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
-          <div style={{ padding: "14px 24px", borderBottom: "1px solid #f5f0eb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>Dark Mode</div>
-              <div style={{ fontSize: 12, color: "#aaa", marginTop: 2 }}>Toggle dark appearance</div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)" }}>Dark Mode</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>Toggle dark appearance</div>
             </div>
             <button onClick={toggleDark} style={{
-              width: 44, height: 26, borderRadius: 13, border: "none", cursor: "pointer",
+              width: 48, height: 28, borderRadius: 14, border: "none", cursor: "pointer",
               background: darkMode ? "#9f1239" : "#ddd", position: "relative", transition: "background 0.2s"
             }}>
-              <span style={{ position: "absolute", top: 3, left: darkMode ? 21 : 3, width: 20, height: 20, borderRadius: "50%", background: "#fff", transition: "left 0.2s", display: "block" }} />
+              <span style={{ position: "absolute", top: 3, left: darkMode ? 23 : 3, width: 22, height: 22, borderRadius: "50%", background: "#fff", transition: "left 0.2s", display: "block" }} />
             </button>
           </div>
-          {[{ label: "Name", val: user?.name }, { label: "Email", val: user?.email }].map(row => (
-            <div key={row.label} style={{ padding: "14px 24px", borderBottom: "1px solid #f5f0eb", display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "#888", fontSize: 13 }}>{row.label}</span>
-              <span style={{ fontWeight: 600, fontSize: 13 }}>{row.val || "—"}</span>
+          {[{ label: "Full Name", val: user?.name }, { label: "Email Address", val: user?.email }].map(row => (
+            <div key={row.label} style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between" }}>
+              <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>{row.label}</span>
+              <span style={{ fontWeight: 600, fontSize: 13, color: "var(--text-primary)" }}>{row.val || "—"}</span>
             </div>
           ))}
         </div>
 
         <div style={{ padding: "16px 24px", paddingBottom: `calc(16px + env(safe-area-inset-bottom))` }}>
-          <button onClick={onLogout} style={{ width: "100%", padding: 15, background: "#d33f5e", color: "#fff", border: "none", borderRadius: 14, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "Manrope,sans-serif" }}>
+          <button onClick={onLogout} style={{ width: "100%", padding: 14, background: "#d33f5e", color: "#fff", border: "none", borderRadius: 14, fontWeight: 800, fontSize: 14, cursor: "pointer", fontFamily: "Manrope,sans-serif" }}>
             Log Out
           </button>
         </div>
@@ -338,7 +362,6 @@ function LoginScreen({ onLogin }: { onLogin: (u: AppUser) => void }) {
       <div className="login-orb orb-one" />
       <div className="login-orb orb-two" />
       <form className="login-card" onSubmit={submit}>
-        {/* Wordmark */}
         <div className="wordmark wordmark-light" style={{ textAlign: "center", marginBottom: 20 }} aria-label="OWNLY">
           <span>O</span>WNLY<span className="wordmark-dot">.</span>
         </div>
@@ -412,25 +435,30 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpe
   ];
 
   return (
-    <main style={{ minHeight: "100vh", background: "#f7f6f3", paddingBottom: 76 }}>
+    <main style={{ minHeight: "100vh", background: "var(--bg-page)", color: "var(--text-primary)", paddingBottom: 80, transition: "background 0.2s" }}>
       <AppHeader title="Dashboard" screen="dashboard" {...headerProps} />
 
       <div style={{ padding: "20px 18px" }}>
         {/* Greeting */}
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 18 }}>
           <p style={{ margin: 0, fontSize: 10, fontWeight: 800, fontFamily: "Manrope,sans-serif", letterSpacing: 2, textTransform: "uppercase", color: "#9d1d42" }}>{greeting}</p>
-          <h1 style={{ margin: "6px 0 4px", fontFamily: "Manrope,sans-serif", fontSize: 22, fontWeight: 800, letterSpacing: -0.6 }}>
+          <h1 style={{ margin: "6px 0 4px", fontFamily: "Manrope,sans-serif", fontSize: 23, fontWeight: 800, letterSpacing: -0.6, color: "var(--text-primary)" }}>
             Hey, {firstName} <span style={{ display: "inline-block", animation: "wave 1.5s ease-in-out 1" }}>👋</span>
           </h1>
-          <p style={{ margin: 0, fontSize: 13, color: "#8a8589" }}>Ready for another focused session?</p>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>Ready for another focused session?</p>
         </div>
 
         {/* Search */}
-        <label style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", borderRadius: 14, padding: "0 14px", height: 48, border: "1px solid #eee8dd", marginBottom: 20, boxShadow: "0 2px 8px rgba(40,30,34,0.04)" }}>
+        <label style={{
+          display: "flex", alignItems: "center", gap: 10,
+          background: "var(--bg-card)", borderRadius: 14, padding: "0 14px", height: 48,
+          border: "1px solid var(--border-color)", marginBottom: 20, boxShadow: "var(--shadow-card)",
+          color: "var(--text-primary)", transition: "background 0.2s, border-color 0.2s"
+        }}>
           <Icon name="search" size={18} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes, tags…"
-            style={{ flex: 1, border: "none", outline: "none", fontSize: 14, background: "transparent" }} />
-          {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#bbb" }}><Icon name="x" size={16} /></button>}
+            style={{ flex: 1, border: "none", outline: "none", fontSize: 14, background: "transparent", color: "var(--text-primary)" }} />
+          {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><Icon name="x" size={16} /></button>}
         </label>
 
         {/* Stats */}
@@ -438,12 +466,12 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpe
           {stats.map(s => (
             <button key={s.label} onClick={() => onNavigate(s.screen)} style={{
               display: "flex", flexDirection: "column", alignItems: "flex-start", padding: "12px 10px 11px",
-              border: "1px solid rgba(60,50,54,0.07)", borderRadius: 16, background: "rgba(255,255,255,0.78)",
-              boxShadow: "0 7px 16px rgba(41,32,36,0.04)", cursor: "pointer", transition: "transform 0.15s"
+              border: "1px solid var(--border-subtle)", borderRadius: 16, background: "var(--bg-card)",
+              boxShadow: "var(--shadow-card)", cursor: "pointer", transition: "transform 0.15s, background 0.2s"
             }}>
               <span className={`icon-chip ${s.color}`} style={{ marginBottom: 10 }}><Icon name={s.icon} size={18} /></span>
-              <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 18, fontWeight: 800 }}>{s.count}</strong>
-              <span style={{ fontSize: 10, color: "#8a8589", marginTop: 2 }}>{s.label}</span>
+              <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 18, fontWeight: 800, color: "var(--text-primary)" }}>{s.count}</strong>
+              <span style={{ fontSize: 10, color: "var(--text-secondary)", marginTop: 2 }}>{s.label}</span>
             </button>
           ))}
         </div>
@@ -451,8 +479,8 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpe
         {/* Quick actions */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h2 style={{ margin: 0, fontFamily: "Manrope,sans-serif", fontSize: 15, fontWeight: 800 }}>Quick actions</h2>
-            <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#8a8589", fontSize: 10 }}>
+            <h2 style={{ margin: 0, fontFamily: "Manrope,sans-serif", fontSize: 15, fontWeight: 800, color: "var(--text-primary)" }}>Quick actions</h2>
+            <span style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--text-secondary)", fontSize: 10 }}>
               <Icon name="flame" size={14} />{(notes?.length || 0) + (uploads?.length || 0)} items
             </span>
           </div>
@@ -465,9 +493,9 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpe
             ].map(a => (
               <button key={a.l} onClick={() => onNavigate(a.s)} style={{
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "12px 3px 10px",
-                border: "1px solid rgba(60,50,54,0.06)", borderRadius: 15, background: "#fff",
-                fontSize: 9, fontWeight: 600, fontFamily: "Manrope,sans-serif", cursor: "pointer",
-                transition: "transform 0.15s, box-shadow 0.15s"
+                border: "1px solid var(--border-subtle)", borderRadius: 15, background: "var(--bg-card)",
+                fontSize: 9, fontWeight: 700, fontFamily: "Manrope,sans-serif", cursor: "pointer",
+                transition: "transform 0.15s, box-shadow 0.15s, background 0.2s", color: "var(--text-primary)"
               }}>
                 <span className={`action-icon ${a.c}`}><Icon name={a.i} size={20} /></span>
                 {a.l}
@@ -479,13 +507,13 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpe
         {/* Recent notes */}
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h2 style={{ margin: 0, fontFamily: "Manrope,sans-serif", fontSize: 15, fontWeight: 800 }}>Recent notes</h2>
-            <button onClick={() => setViewAll(v => !v)} style={{ border: "none", background: "none", cursor: "pointer", color: "#95183d", fontWeight: 700, fontSize: 12, fontFamily: "Manrope,sans-serif" }}>
+            <h2 style={{ margin: 0, fontFamily: "Manrope,sans-serif", fontSize: 15, fontWeight: 800, color: "var(--text-primary)" }}>Recent notes</h2>
+            <button onClick={() => setViewAll(v => !v)} style={{ border: "none", background: "none", cursor: "pointer", color: "#9f1239", fontWeight: 700, fontSize: 12, fontFamily: "Manrope,sans-serif" }}>
               {viewAll ? "Show less" : "View all"}
             </button>
           </div>
           {shown.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "30px 0", color: "#bbb", fontSize: 14 }}>
+            <div style={{ textAlign: "center", padding: "30px 0", color: "var(--text-muted)", fontSize: 14 }}>
               {search ? `No notes matching "${search}"` : "No notes yet. Create your first note!"}
             </div>
           ) : (
@@ -493,22 +521,23 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpe
               {shown.map(note => (
                 <button key={note.id} onClick={() => onOpenNote(note.id)} style={{
                   display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 12,
-                  padding: 12, border: "1px solid rgba(60,50,54,0.07)", borderRadius: 16,
-                  background: "#fff", textAlign: "left", cursor: "pointer", boxShadow: "0 2px 8px rgba(40,30,34,0.04)"
+                  padding: 12, border: "1px solid var(--border-subtle)", borderRadius: 16,
+                  background: "var(--bg-card)", textAlign: "left", cursor: "pointer", boxShadow: "var(--shadow-card)",
+                  transition: "background 0.2s"
                 }}>
-                  <span style={{ width: 46, height: 50, borderRadius: 11, background: "#f5dfe6", color: "#7a2440", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ width: 46, height: 50, borderRadius: 11, background: "rgba(159,18,57,0.12)", color: "#9f1239", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Icon name="note" size={22} />
                   </span>
                   <span style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
                     {note.tags && note.tags.length > 0 && (
                       <span style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                         {note.tags.slice(0, 2).map(t => (
-                          <span key={t} style={{ padding: "2px 7px", borderRadius: 10, background: "#f8e8ed", color: "#8f2241", fontSize: 9, fontWeight: 700, fontFamily: "Manrope,sans-serif" }}>{t}</span>
+                          <span key={t} style={{ padding: "2px 7px", borderRadius: 10, background: "rgba(159,18,57,0.15)", color: "#b2213d", fontSize: 9, fontWeight: 700, fontFamily: "Manrope,sans-serif" }}>{t}</span>
                         ))}
                       </span>
                     )}
-                    <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{note.title || "Untitled"}</strong>
-                    <small style={{ display: "flex", alignItems: "center", gap: 3, color: "#aaa", fontSize: 9 }}>
+                    <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-primary)" }}>{note.title || "Untitled Note"}</strong>
+                    <small style={{ display: "flex", alignItems: "center", gap: 3, color: "var(--text-secondary)", fontSize: 9 }}>
                       <Icon name="clock" size={11} /> {new Date(note.updatedAt).toLocaleDateString()}
                     </small>
                   </span>
@@ -537,10 +566,10 @@ function NotesListScreen({ onNavigate, headerProps, notes, onNewNote, onOpenNote
   );
 
   return (
-    <main style={{ minHeight: "100vh", background: "#f7f6f3", paddingBottom: 76 }}>
+    <main style={{ minHeight: "100vh", background: "var(--bg-page)", color: "var(--text-primary)", paddingBottom: 80, transition: "background 0.2s" }}>
       <AppHeader title="Notes" screen="notes" {...headerProps}
         rightExtra={
-          <button onClick={onNewNote} style={{ ...iconBtnStyle, color: "#9f1239" }} aria-label="New note">
+          <button onClick={onNewNote} style={{ ...iconBtnStyle, color: "#9f1239" }} aria-label="New note" title="New note">
             <Icon name="plus" size={22} />
           </button>
         }
@@ -548,17 +577,22 @@ function NotesListScreen({ onNavigate, headerProps, notes, onNewNote, onOpenNote
 
       <div style={{ padding: "16px 18px" }}>
         {/* Search */}
-        <label style={{ display: "flex", alignItems: "center", gap: 10, background: "#fff", borderRadius: 14, padding: "0 14px", height: 46, border: "1px solid #eee8dd", marginBottom: 16, boxShadow: "0 2px 8px rgba(40,30,34,0.04)" }}>
+        <label style={{
+          display: "flex", alignItems: "center", gap: 10,
+          background: "var(--bg-card)", borderRadius: 14, padding: "0 14px", height: 46,
+          border: "1px solid var(--border-color)", marginBottom: 16, boxShadow: "var(--shadow-card)",
+          color: "var(--text-primary)", transition: "background 0.2s, border-color 0.2s"
+        }}>
           <Icon name="search" size={17} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes…"
-            style={{ flex: 1, border: "none", outline: "none", fontSize: 13, background: "transparent" }} />
-          {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#bbb" }}><Icon name="x" size={14} /></button>}
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search notes by title or tags…"
+            style={{ flex: 1, border: "none", outline: "none", fontSize: 13, background: "transparent", color: "var(--text-primary)" }} />
+          {search && <button onClick={() => setSearch("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><Icon name="x" size={14} /></button>}
         </label>
 
         {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", paddingTop: 60 }}>
-            <Icon name="note" size={48} className="" />
-            <p style={{ color: "#bbb", marginTop: 12 }}>{search ? `No notes for "${search}"` : "No notes yet."}</p>
+          <div style={{ textAlign: "center", paddingTop: 60, color: "var(--text-muted)" }}>
+            <Icon name="note" size={48} />
+            <p style={{ marginTop: 12 }}>{search ? `No notes matching "${search}"` : "No notes yet."}</p>
             <button onClick={onNewNote} style={{ marginTop: 12, padding: "10px 24px", background: "#9f1239", color: "#fff", border: "none", borderRadius: 12, fontWeight: 700, cursor: "pointer" }}>
               Create your first note
             </button>
@@ -567,26 +601,26 @@ function NotesListScreen({ onNavigate, headerProps, notes, onNewNote, onOpenNote
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {filtered.map(note => {
               const textBlock = (note.blocks || []).find(b => b.type === "text" && b.html);
-              const preview = textBlock?.html ? textBlock.html.replace(/<[^>]+>/g, "").slice(0, 80) : "No content";
+              const preview = textBlock?.html ? textBlock.html.replace(/<[^>]+>/g, "").slice(0, 100) : "No text content yet…";
               return (
-                <div key={note.id} style={{ background: "#fff", borderRadius: 16, border: "1px solid rgba(60,50,54,0.07)", boxShadow: "0 2px 8px rgba(40,30,34,0.04)", overflow: "hidden" }}>
+                <div key={note.id} style={{ background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", boxShadow: "var(--shadow-card)", overflow: "hidden", transition: "background 0.2s" }}>
                   <button onClick={() => onOpenNote(note.id)} style={{ width: "100%", padding: "14px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                      <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 15, fontWeight: 700, flex: 1, marginRight: 8 }}>{note.title || "Untitled"}</strong>
-                      <span style={{ fontSize: 10, color: "#bbb", whiteSpace: "nowrap" }}>{new Date(note.updatedAt).toLocaleDateString()}</span>
+                      <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 15, fontWeight: 700, flex: 1, marginRight: 8, color: "var(--text-primary)" }}>{note.title || "Untitled Note"}</strong>
+                      <span style={{ fontSize: 10, color: "var(--text-secondary)", whiteSpace: "nowrap" }}>{new Date(note.updatedAt).toLocaleDateString()}</span>
                     </div>
                     {note.tags && note.tags.length > 0 && (
                       <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
                         {note.tags.map(t => (
-                          <span key={t} style={{ padding: "2px 8px", borderRadius: 10, background: "#f8e8ed", color: "#8f2241", fontSize: 10, fontWeight: 700, fontFamily: "Manrope,sans-serif" }}>{t}</span>
+                          <span key={t} style={{ padding: "2px 8px", borderRadius: 10, background: "rgba(159,18,57,0.15)", color: "#b2213d", fontSize: 10, fontWeight: 700, fontFamily: "Manrope,sans-serif" }}>{t}</span>
                         ))}
                       </div>
                     )}
-                    <p style={{ margin: 0, fontSize: 12, color: "#888", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{preview}</p>
+                    <p style={{ margin: 0, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{preview}</p>
                   </button>
                   {/* Small icon row */}
-                  <div style={{ borderTop: "1px solid #f0eae8", display: "flex", justifyContent: "flex-end", padding: "6px 12px", gap: 8 }}>
-                    <button onClick={() => onOpenNote(note.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9f1239", display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600 }}>
+                  <div style={{ borderTop: "1px solid var(--border-subtle)", display: "flex", justifyContent: "flex-end", padding: "6px 12px", gap: 8 }}>
+                    <button onClick={() => onOpenNote(note.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9f1239", display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 700 }}>
                       <Icon name="edit" size={14} /> Open
                     </button>
                     <button onClick={() => onDeleteNote(note.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#e05", display: "flex", alignItems: "center", gap: 4, fontSize: 11 }}>
@@ -613,37 +647,65 @@ function NoteEditorScreen({ onNavigate, headerProps, note, onSave }: {
   const [title, setTitle] = useState(note.title);
   const [tags, setTags] = useState<string[]>(note.tags || []);
   const [tagInput, setTagInput] = useState("");
+  const [saved, setSaved] = useState(true);
   const [blocks, setBlocks] = useState<NoteBlock[]>(
     note.blocks && note.blocks.length ? note.blocks : [{ id: "b1", type: "text", html: "" }]
   );
-  const [saved, setSaved] = useState(true);
+
   const editorRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const activeBlockRef = useRef<string | null>(null);
   const idCounter = useRef(1000);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const uid = () => `b-${idCounter.current++}-${Date.now()}`;
 
-  // Auto-save
-  useEffect(() => {
-    if (!saved) {
-      const t = setTimeout(() => {
-        const updatedBlocks = blocks.map(b => {
-          if (b.type === "text") {
-            const el = editorRefs.current.get(b.id);
-            return el ? { ...b, html: el.innerHTML } : b;
-          }
-          return b;
-        });
-        onSave({ ...note, title, tags, blocks: updatedBlocks, updatedAt: new Date().toISOString() });
-        setSaved(true);
-      }, 800);
-      return () => clearTimeout(t);
+  function setRef(el: HTMLDivElement | null, blockId: string, initialHtml: string) {
+    if (el && !editorRefs.current.has(blockId)) {
+      editorRefs.current.set(blockId, el);
+      el.innerHTML = initialHtml || "";
+    } else if (el) {
+      editorRefs.current.set(blockId, el);
     }
-  }, [saved, title, tags, blocks]);
+  }
 
-  function markDirty() { setSaved(false); }
+  function collectAndSave(currentTitle: string, currentTags: string[], currentBlocks: NoteBlock[]) {
+    const updatedBlocks = currentBlocks.map(b => {
+      if (b.type === "text") {
+        const el = editorRefs.current.get(b.id);
+        return el ? { ...b, html: el.innerHTML } : b;
+      }
+      return b;
+    });
+    onSave({ ...note, title: currentTitle, tags: currentTags, blocks: updatedBlocks, updatedAt: new Date().toISOString() });
+    setSaved(true);
+  }
 
+  function scheduleSave(t: string, tg: string[], bl: NoteBlock[]) {
+    setSaved(false);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => collectAndSave(t, tg, bl), 800);
+  }
+
+  function markDirty() { scheduleSave(title, tags, blocks); }
+
+  // Execute rich text formatting (bold, italic, underline, headings, lists, quotes)
   function formatText(cmd: string, val?: string) {
-    document.execCommand(cmd, false, val);
+    const targetId = activeBlockRef.current || blocks.find(b => b.type === "text")?.id;
+    const el = targetId ? editorRefs.current.get(targetId) : null;
+    if (!el) return;
+
+    // Check if selection exists inside this block
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || !el.contains(sel.anchorNode)) {
+      el.focus();
+    }
+
+    if (cmd === "formatBlock" && val) {
+      // In modern browsers, formatBlock expects <tagName> like <h1> or <h2> or <blockquote>
+      document.execCommand("formatBlock", false, `<${val}>`);
+    } else {
+      document.execCommand(cmd, false, val);
+    }
     markDirty();
   }
 
@@ -651,141 +713,167 @@ function NoteEditorScreen({ onNavigate, headerProps, note, onSave }: {
     if ((e.key === "Enter" || e.key === ",") && tagInput.trim()) {
       e.preventDefault();
       const t = tagInput.trim().replace(/,/g, "");
-      if (t && !tags.includes(t)) { setTags(prev => [...prev, t]); markDirty(); }
+      if (t && !tags.includes(t)) {
+        const newTags = [...tags, t];
+        setTags(newTags);
+        scheduleSave(title, newTags, blocks);
+      }
       setTagInput("");
     }
   }
 
-  function removeTag(t: string) { setTags(prev => prev.filter(x => x !== t)); markDirty(); }
+  function removeTag(t: string) {
+    const newTags = tags.filter(x => x !== t);
+    setTags(newTags);
+    scheduleSave(title, newTags, blocks);
+  }
 
   function addImageBlock(file: File) {
     const src = URL.createObjectURL(file);
     const imgBlock: NoteBlock = { id: uid(), type: "image", src };
     const textBlock: NoteBlock = { id: uid(), type: "text", html: "" };
-    setBlocks(prev => [...prev, imgBlock, textBlock]);
-    markDirty();
+    const newBlocks = [...blocks, imgBlock, textBlock];
+    setBlocks(newBlocks);
+    scheduleSave(title, tags, newBlocks);
   }
 
   function addVideoBlock(file: File) {
     const src = URL.createObjectURL(file);
     const vidBlock: NoteBlock = { id: uid(), type: "video", src };
     const textBlock: NoteBlock = { id: uid(), type: "text", html: "" };
-    setBlocks(prev => [...prev, vidBlock, textBlock]);
-    markDirty();
+    const newBlocks = [...blocks, vidBlock, textBlock];
+    setBlocks(newBlocks);
+    scheduleSave(title, tags, newBlocks);
   }
 
   function deleteBlock(id: string) {
-    setBlocks(prev => prev.filter(b => b.id !== id));
-    markDirty();
-  }
-
-  function updateBlockHtml(id: string, html: string) {
-    setBlocks(prev => prev.map(b => b.id === id ? { ...b, html } : b));
-    markDirty();
+    editorRefs.current.delete(id);
+    const newBlocks = blocks.filter(b => b.id !== id);
+    setBlocks(newBlocks);
+    scheduleSave(title, tags, newBlocks);
   }
 
   return (
-    <main style={{ minHeight: "100vh", background: "#fcfbf9", paddingBottom: 120 }}>
+    <main style={{ minHeight: "100vh", background: "var(--note-bg)", color: "var(--text-primary)", paddingBottom: 120, transition: "background 0.2s" }}>
       <AppHeader title="Note" screen="note-editor" onBack={() => onNavigate("notes")} {...headerProps}
         rightExtra={
-          <span style={{ fontSize: 11, color: saved ? "#4caf50" : "#ff9800", fontWeight: 700, fontFamily: "Manrope,sans-serif" }}>
+          <span style={{ fontSize: 11, color: saved ? "#4caf50" : "#ff9800", fontWeight: 800, fontFamily: "Manrope,sans-serif" }}>
             {saved ? "✓ Saved" : "Saving…"}
           </span>
         }
       />
 
       <div style={{ padding: "16px 18px" }}>
-        {/* Title */}
-        <input value={title} onChange={e => { setTitle(e.target.value); markDirty(); }}
+        {/* Note Title */}
+        <input value={title} onChange={e => { setTitle(e.target.value); scheduleSave(e.target.value, tags, blocks); }}
           placeholder="Note title…" style={{
             width: "100%", border: "none", outline: "none", fontSize: 24, fontWeight: 800,
             fontFamily: "Manrope, sans-serif", background: "transparent", marginBottom: 12,
-            letterSpacing: -0.6, boxSizing: "border-box"
+            letterSpacing: -0.6, boxSizing: "border-box", color: "var(--text-primary)"
           }} />
 
-        {/* Tags (user-defined) */}
+        {/* Tags */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14, alignItems: "center" }}>
           {tags.map(t => (
             <span key={t} style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 20, background: "#9f1239", color: "#fff", fontSize: 12, fontWeight: 700, fontFamily: "Manrope,sans-serif" }}>
               {t}
-              <button onClick={() => removeTag(t)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.8)", display: "flex", alignItems: "center", padding: 0 }}>
+              <button onClick={() => removeTag(t)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.85)", display: "flex", alignItems: "center", padding: 0 }}>
                 <Icon name="x" size={12} />
               </button>
             </span>
           ))}
           <input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={addTag}
             placeholder="+ Add tag (Enter)"
-            style={{ border: "1px dashed #ddd", borderRadius: 20, padding: "4px 12px", fontSize: 12, outline: "none", background: "transparent", color: "#666", minWidth: 110 }} />
+            style={{ border: "1px dashed var(--border-color)", borderRadius: 20, padding: "4px 12px", fontSize: 12, outline: "none", background: "var(--bg-card)", color: "var(--text-primary)", minWidth: 120 }} />
         </div>
 
-        {/* Format toolbar */}
+        {/* Formatting Toolbar */}
         <div style={{
-          display: "flex", gap: 4, overflowX: "auto", padding: "8px 0 8px",
-          borderTop: "1px solid #eee", borderBottom: "1px solid #eee", marginBottom: 16, scrollbarWidth: "none"
+          display: "flex", gap: 6, overflowX: "auto", padding: "10px 0",
+          borderTop: "1px solid var(--border-color)", borderBottom: "1px solid var(--border-color)",
+          marginBottom: 16, scrollbarWidth: "none"
         }}>
           {([
-            { icon: "bold" as IconName, cmd: "bold", label: "B" },
-            { icon: "italic" as IconName, cmd: "italic", label: "I" },
-            { icon: "underline" as IconName, cmd: "underline", label: "U" },
+            { cmd: "bold", label: "B", title: "Bold" },
+            { cmd: "italic", label: "I", title: "Italic" },
+            { cmd: "underline", label: "U", title: "Underline" },
           ]).map(f => (
-            <button key={f.cmd} type="button"
+            <button key={f.cmd} type="button" title={f.title}
               onMouseDown={e => { e.preventDefault(); formatText(f.cmd); }}
-              style={{ minWidth: 36, height: 34, border: "1px solid #eee", borderRadius: 8, background: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 14, fontFamily: "serif", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {f.cmd === "bold" ? <strong>B</strong> : f.cmd === "italic" ? <em style={{ fontStyle: "italic" }}>I</em> : <u>U</u>}
+              style={{
+                minWidth: 38, height: 36, border: "1px solid var(--border-color)", borderRadius: 8,
+                background: "var(--bg-card)", cursor: "pointer", fontWeight: 800, fontSize: 15,
+                display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-primary)",
+                transition: "background 0.15s"
+              }}>
+              {f.cmd === "bold" ? <strong>B</strong> : f.cmd === "italic" ? <em style={{ fontStyle: "italic", fontFamily: "serif" }}>I</em> : <u>U</u>}
             </button>
           ))}
-          <div style={{ width: 1, background: "#eee", margin: "4px 2px" }} />
+
+          <div style={{ width: 1, background: "var(--border-color)", margin: "4px 2px" }} />
+
           {([
-            { label: "H1", cmd: "formatBlock", val: "h1" },
-            { label: "H2", cmd: "formatBlock", val: "h2" },
-            { label: "• List", cmd: "insertUnorderedList", val: undefined },
-            { label: '" Quote', cmd: "formatBlock", val: "blockquote" },
+            { label: "H1", cmd: "formatBlock", val: "h1", title: "Heading 1" },
+            { label: "H2", cmd: "formatBlock", val: "h2", title: "Heading 2" },
+            { label: "• List", cmd: "insertUnorderedList", val: undefined, title: "Bullet List" },
+            { label: '" Quote', cmd: "formatBlock", val: "blockquote", title: "Blockquote" },
           ]).map(f => (
-            <button key={f.label} type="button"
+            <button key={f.label} type="button" title={f.title}
               onMouseDown={e => { e.preventDefault(); formatText(f.cmd, f.val); }}
-              style={{ minWidth: 44, height: 34, border: "1px solid #eee", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 700, fontFamily: "Manrope,sans-serif", whiteSpace: "nowrap", padding: "0 8px" }}>
+              style={{
+                minWidth: 44, height: 36, border: "1px solid var(--border-color)", borderRadius: 8,
+                background: "var(--bg-card)", cursor: "pointer", fontSize: 12, fontWeight: 800,
+                fontFamily: "Manrope,sans-serif", whiteSpace: "nowrap", padding: "0 10px",
+                color: "var(--text-primary)", transition: "background 0.15s"
+              }}>
               {f.label}
             </button>
           ))}
         </div>
 
-        {/* Content blocks */}
+        {/* Samsung Notes Blocks (Text, Images, Videos) */}
         <div>
           {blocks.map((block, idx) => {
             if (block.type === "text") {
               return (
-                <div key={block.id} ref={el => { if (el) editorRefs.current.set(block.id, el); }}
-                  contentEditable suppressContentEditableWarning
-                  dangerouslySetInnerHTML={{ __html: block.html || "" }}
-                  onInput={() => markDirty()}
-                  data-placeholder={idx === 0 ? "Start writing your note…" : "Continue writing…"}
+                <div
+                  key={block.id}
+                  ref={el => setRef(el, block.id, block.html || "")}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onFocus={() => { activeBlockRef.current = block.id; }}
+                  onInput={markDirty}
+                  data-placeholder={idx === 0 ? "Start typing your note here…" : "Continue writing…"}
+                  dir="ltr"
+                  className="note-text-block"
                   style={{
                     minHeight: 48, outline: "none", fontSize: 15, lineHeight: 1.7,
-                    color: "#241d21", fontFamily: "DM Sans, sans-serif",
-                    position: "relative"
+                    color: "var(--text-primary)", fontFamily: "DM Sans, sans-serif",
+                    position: "relative", direction: "ltr", textAlign: "left",
+                    unicodeBidi: "plaintext"
                   }}
                 />
               );
             } else if (block.type === "image") {
               return (
-                <div key={block.id} style={{ margin: "12px 0", position: "relative", borderRadius: 14, overflow: "hidden" }}>
+                <div key={block.id} style={{ margin: "14px 0", position: "relative", borderRadius: 14, overflow: "hidden", border: "1px solid var(--border-color)" }}>
                   <img src={block.src} alt="" style={{ width: "100%", display: "block", borderRadius: 14 }} />
                   <button onClick={() => deleteBlock(block.id)} style={{
-                    position: "absolute", top: 8, right: 8, width: 30, height: 30, borderRadius: "50%",
-                    background: "rgba(0,0,0,0.65)", border: "none", display: "flex", alignItems: "center",
+                    position: "absolute", top: 8, right: 8, width: 32, height: 32, borderRadius: "50%",
+                    background: "rgba(0,0,0,0.7)", border: "none", display: "flex", alignItems: "center",
                     justifyContent: "center", cursor: "pointer", color: "#fff"
-                  }}><Icon name="x" size={16} /></button>
+                  }} title="Remove image"><Icon name="x" size={16} /></button>
                 </div>
               );
             } else {
               return (
-                <div key={block.id} style={{ margin: "12px 0", position: "relative", borderRadius: 14, overflow: "hidden" }}>
+                <div key={block.id} style={{ margin: "14px 0", position: "relative", borderRadius: 14, overflow: "hidden", border: "1px solid var(--border-color)" }}>
                   <video src={block.src} controls style={{ width: "100%", borderRadius: 14, display: "block" }} />
                   <button onClick={() => deleteBlock(block.id)} style={{
-                    position: "absolute", top: 8, right: 8, width: 30, height: 30, borderRadius: "50%",
-                    background: "rgba(0,0,0,0.65)", border: "none", display: "flex", alignItems: "center",
+                    position: "absolute", top: 8, right: 8, width: 32, height: 32, borderRadius: "50%",
+                    background: "rgba(0,0,0,0.7)", border: "none", display: "flex", alignItems: "center",
                     justifyContent: "center", cursor: "pointer", color: "#fff"
-                  }}><Icon name="x" size={16} /></button>
+                  }} title="Remove video"><Icon name="x" size={16} /></button>
                 </div>
               );
             }
@@ -793,28 +881,29 @@ function NoteEditorScreen({ onNavigate, headerProps, note, onSave }: {
         </div>
       </div>
 
-      {/* Fixed bottom toolbar */}
+      {/* Fixed Bottom Action Toolbar */}
       <div style={{
-        position: "fixed", bottom: "env(safe-area-inset-bottom)", left: 0, right: 0,
-        background: "rgba(255,255,255,0.97)", borderTop: "1px solid #eee8dd",
-        display: "flex", alignItems: "center", gap: 4, padding: "10px 16px",
-        backdropFilter: "blur(14px)", zIndex: 30
+        position: "fixed", bottom: 0, left: 0, right: 0,
+        background: "var(--bg-nav)", borderTop: "1px solid var(--border-color)",
+        display: "flex", alignItems: "center", gap: 8,
+        padding: "10px 16px calc(10px + env(safe-area-inset-bottom))",
+        backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", zIndex: 30,
+        transition: "background 0.2s, border-color 0.2s"
       }}>
-        <label style={{ display: "flex", alignItems: "center", padding: 10, cursor: "pointer", borderRadius: 10, background: "#f5f0eb" }} title="Insert image">
-          <Icon name="image" size={22} />
+        <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", cursor: "pointer", borderRadius: 10, background: "var(--bg-chip)", color: "var(--text-primary)", fontSize: 12, fontWeight: 700 }} title="Insert image">
+          <Icon name="image" size={18} />
+          <span>Image</span>
           <input type="file" accept="image/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && addImageBlock(e.target.files[0])} />
         </label>
-        <label style={{ display: "flex", alignItems: "center", padding: 10, cursor: "pointer", borderRadius: 10, background: "#f5f0eb" }} title="Insert video">
-          <Icon name="video" size={22} />
+        <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", cursor: "pointer", borderRadius: 10, background: "var(--bg-chip)", color: "var(--text-primary)", fontSize: 12, fontWeight: 700 }} title="Insert video">
+          <Icon name="video" size={18} />
+          <span>Video</span>
           <input type="file" accept="video/*" style={{ display: "none" }} onChange={e => e.target.files?.[0] && addVideoBlock(e.target.files[0])} />
         </label>
-        <button onClick={() => { setBlocks(p => [...p, { id: uid(), type: "text", html: "" }]); markDirty(); }}
-          style={{ display: "flex", alignItems: "center", padding: 10, cursor: "pointer", borderRadius: 10, background: "#f5f0eb", border: "none" }} title="Add text block">
-          <Icon name="plus" size={22} />
-        </button>
-        <div style={{ flex: 1 }} />
-        <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, background: "#f5f0eb", border: "none", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
-          <Icon name="share" size={16} /> Share
+        <button onClick={() => { const nb: NoteBlock = { id: uid(), type: "text", html: "" }; const newBlocks = [...blocks, nb]; setBlocks(newBlocks); scheduleSave(title, tags, newBlocks); }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", cursor: "pointer", borderRadius: 10, background: "var(--bg-chip)", border: "none", color: "var(--text-primary)", fontSize: 12, fontWeight: 700 }} title="Add text section">
+          <Icon name="plus" size={18} />
+          <span>Text</span>
         </button>
       </div>
     </main>
@@ -832,12 +921,6 @@ function UploadsScreen({ onNavigate, headerProps, files, onAddFiles, onDeleteFil
   const [viewing, setViewing] = useState<UploadFile | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-
-  function handleRename(id: string, name: string) {
-     const newName = name.trim() || "Untitled";
-     onRenameFile(id, newName);
-     setEditingId(null);
-  }
 
   function handleAdd(e: ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? []);
@@ -896,10 +979,10 @@ function UploadsScreen({ onNavigate, headerProps, files, onAddFiles, onDeleteFil
   }
 
   return (
-    <main style={{ minHeight: "100vh", background: "#f7f6f3", paddingBottom: 76 }}>
+    <main style={{ minHeight: "100vh", background: "var(--bg-page)", color: "var(--text-primary)", paddingBottom: 80, transition: "background 0.2s" }}>
       <AppHeader title="Uploads" screen="uploads" {...headerProps}
         rightExtra={
-          <label style={{ ...iconBtnStyle, cursor: "pointer" }} aria-label="Upload file">
+          <label style={{ ...iconBtnStyle, cursor: "pointer" }} aria-label="Upload file" title="Upload file">
             <Icon name="plus" size={22} />
             <input type="file" multiple style={{ display: "none" }}
               accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
@@ -910,76 +993,91 @@ function UploadsScreen({ onNavigate, headerProps, files, onAddFiles, onDeleteFil
 
       <div style={{ padding: "16px 18px" }}>
         {/* Drop zone */}
-        <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "24px 16px", background: "#fff", border: "2px dashed #e0d8d5", borderRadius: 20, cursor: "pointer", marginBottom: 16, textAlign: "center" }}>
+        <label style={{
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
+          padding: "24px 16px", background: "var(--bg-card)", border: "2px dashed var(--border-color)",
+          borderRadius: 20, cursor: "pointer", marginBottom: 16, textAlign: "center",
+          boxShadow: "var(--shadow-card)", transition: "background 0.2s"
+        }}>
           <Icon name="upload" size={28} />
-          <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 14 }}>Upload files</strong>
-          <small style={{ color: "#999", fontSize: 12 }}>PDF, Images, Word, Excel, Video, ZIP</small>
-          <span style={{ padding: "6px 16px", background: "#9f1239", color: "#fff", borderRadius: 20, fontSize: 12, fontWeight: 700 }}>Browse files</span>
+          <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 14, color: "var(--text-primary)" }}>Upload files</strong>
+          <small style={{ color: "var(--text-secondary)", fontSize: 12 }}>PDF, Images, Word, Excel, Video, ZIP</small>
+          <span style={{ padding: "6px 16px", background: "#9f1239", color: "#fff", borderRadius: 20, fontSize: 12, fontWeight: 700, marginTop: 4 }}>Browse files</span>
           <input type="file" multiple style={{ display: "none" }}
             accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
             onChange={handleAdd} />
         </label>
 
         {/* Search */}
-        <label style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", borderRadius: 13, padding: "0 13px", height: 44, border: "1px solid #eee8dd", marginBottom: 12 }}>
+        <label style={{
+          display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card)",
+          borderRadius: 13, padding: "0 13px", height: 44, border: "1px solid var(--border-color)",
+          marginBottom: 12, boxShadow: "var(--shadow-card)", color: "var(--text-primary)"
+        }}>
           <Icon name="search" size={16} />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search uploads…"
-            style={{ flex: 1, border: "none", outline: "none", fontSize: 13, background: "transparent" }} />
-          {query && <button onClick={() => setQuery("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#bbb" }}><Icon name="x" size={14} /></button>}
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search uploaded files…"
+            style={{ flex: 1, border: "none", outline: "none", fontSize: 13, background: "transparent", color: "var(--text-primary)" }} />
+          {query && <button onClick={() => setQuery("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><Icon name="x" size={14} /></button>}
         </label>
 
         {/* Filter chips */}
         <div style={{ display: "flex", gap: 8, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16 }}>
           {["All", "Images", "PDF", "Docs", "Videos"].map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
-              padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer",
+              padding: "6px 14px", borderRadius: 20, border: "1px solid var(--border-color)", cursor: "pointer",
               fontSize: 12, fontWeight: 700, fontFamily: "Manrope,sans-serif", whiteSpace: "nowrap",
-              background: filter === f ? "#9f1239" : "#fff", color: filter === f ? "#fff" : "#666",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.06)"
+              background: filter === f ? "#9f1239" : "var(--bg-card)",
+              color: filter === f ? "#fff" : "var(--text-secondary)",
+              boxShadow: "var(--shadow-card)", transition: "background 0.15s, color 0.15s"
             }}>{f}</button>
           ))}
         </div>
 
         {/* File list */}
         {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px 0", color: "#bbb" }}>
-            {query ? `No files matching "${query}"` : "No files yet."}
+          <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
+            {query ? `No files matching "${query}"` : "No files uploaded yet."}
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {filtered.map(file => (
               <div key={file.id} onClick={() => setViewing(file)} style={{
                 display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 12,
-                padding: "12px 14px", background: "#fff", borderRadius: 14, cursor: "pointer",
-                border: "1px solid rgba(60,50,54,0.07)", boxShadow: "0 2px 8px rgba(40,30,34,0.04)",
-                transition: "transform 0.12s"
+                padding: "12px 14px", background: "var(--bg-card)", borderRadius: 14, cursor: "pointer",
+                border: "1px solid var(--border-subtle)", boxShadow: "var(--shadow-card)",
+                transition: "transform 0.12s, background 0.2s"
               }}>
                 <span style={{
                   width: 42, height: 42, borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center",
-                  background: isImage(file) ? "#e3f8fd" : isPDF(file) ? "#fde8e8" : isVideo(file) ? "#e8eafd" : "#fef5e0",
-                  color: isImage(file) ? "#0ea5e9" : isPDF(file) ? "#e53e3e" : isVideo(file) ? "#6366f1" : "#d97706"
+                  background: isImage(file) ? "rgba(8,127,128,0.15)" : isPDF(file) ? "rgba(159,18,57,0.15)" : isVideo(file) ? "rgba(135,86,141,0.15)" : "rgba(166,109,0,0.15)",
+                  color: isImage(file) ? "#087f80" : isPDF(file) ? "#b2213d" : isVideo(file) ? "#87568d" : "#a66d00"
                 }}>
                   <Icon name={isImage(file) ? "image" : isVideo(file) ? "video" : "file"} size={20} />
                 </span>
-                <span style={{ minWidth: 0, flex: 1 }}>
+
+                <div style={{ minWidth: 0 }}>
                   {editingId === file.id ? (
-                     <div style={{ display: "flex", gap: 8, marginBottom: 4 }} onClick={e => e.stopPropagation()}>
-                       <input autoFocus value={editName} onChange={e => setEditName(e.target.value)} onKeyDown={e => e.key === "Enter" && handleRename(file.id, editName)} style={{ flex: 1, border: "1px solid #9f1239", borderRadius: 6, padding: "4px 8px", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
-                       <button onClick={() => handleRename(file.id, editName)} style={{ background: "#9f1239", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>✓</button>
-                     </div>
+                    <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}>
+                      <input autoFocus value={editName} onChange={e => setEditName(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && (onRenameFile(file.id, editName.trim() || file.name), setEditingId(null))}
+                        style={{ flex: 1, border: "1px solid #9f1239", borderRadius: 6, padding: "4px 8px", fontSize: 13, outline: "none", color: "var(--text-primary)", background: "var(--bg-card)" }} />
+                      <button onClick={() => { onRenameFile(file.id, editName.trim() || file.name); setEditingId(null); }}
+                        style={{ background: "#9f1239", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>✓</button>
+                    </div>
                   ) : (
-                    <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 13, fontWeight: 700, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</strong>
+                    <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 13, fontWeight: 700, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-primary)" }}>{file.name}</strong>
                   )}
-                  <small style={{ color: "#aaa", fontSize: 11, display: "flex", gap: 10, alignItems: "center" }}>
-                    <span>{file.size} · {new Date(file.addedAt).toLocaleDateString()}</span>
-                    {editingId !== file.id && (
-                       <button onClick={e => { e.stopPropagation(); setEditingId(file.id); setEditName(file.name); }} style={{ background: "none", border: "none", color: "#9f1239", fontSize: 11, padding: 0, fontWeight: 600, cursor: "pointer" }}>Rename</button>
-                    )}
-                  </small>
-                </span>
-                <button onClick={e => { e.stopPropagation(); onDeleteFile(file.id); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#ddd", padding: 6 }}>
-                  <Icon name="trash" size={17} />
-                </button>
+                  <small style={{ color: "var(--text-secondary)", fontSize: 10, marginTop: 2, display: "block" }}>{file.size} &bull; {new Date(file.addedAt).toLocaleDateString()}</small>
+                </div>
+
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }} onClick={e => e.stopPropagation()}>
+                  <button onClick={() => { setEditingId(file.id); setEditName(file.name); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 11, fontWeight: 700 }}>Rename</button>
+                  <button onClick={() => onDeleteFile(file.id)}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "#e05" }} title="Delete">
+                    <Icon name="trash" size={15} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -1002,14 +1100,14 @@ function CaptureScreen({ onNavigate, headerProps }: { onNavigate: (s: Screen) =>
   }
 
   function savePDF() {
-    alert("PDF saved to Uploads! (In production, this converts the image to PDF on the server)");
+    alert("Document saved to your Uploads list!");
     onNavigate("uploads");
   }
 
   function reset() { setPhase("idle"); setPreview(null); }
 
   return (
-    <main style={{ minHeight: "100vh", background: "#f7f6f3", paddingBottom: 76 }}>
+    <main style={{ minHeight: "100vh", background: "var(--bg-page)", color: "var(--text-primary)", paddingBottom: 80, transition: "background 0.2s" }}>
       <AppHeader title="Capture" screen="capture" {...headerProps} />
 
       <div style={{ padding: "20px 18px" }}>
@@ -1017,32 +1115,32 @@ function CaptureScreen({ onNavigate, headerProps }: { onNavigate: (s: Screen) =>
         <div style={{ borderRadius: 20, overflow: "hidden", marginBottom: 20, background: "linear-gradient(150deg,#9f1239,#6e082b)", color: "#fff", padding: "20px 20px 16px", position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
             <span style={{ background: "rgba(255,255,255,0.2)", borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>
-              {phase === "done" ? "✓ Complete" : "✦ AI Scanner"}
+              {phase === "done" ? "✓ Complete" : "✦ Document Scanner"}
             </span>
           </div>
-          <h2 style={{ margin: "0 0 6px", fontFamily: "Manrope,sans-serif", fontSize: 20, fontWeight: 800 }}>
+          <h2 style={{ margin: "0 0 6px", fontFamily: "Manrope,sans-serif", fontSize: 20, fontWeight: 800, color: "#fff" }}>
             {phase === "done" ? "Document captured!" : "Scan your document"}
           </h2>
-          <p style={{ margin: 0, opacity: 0.8, fontSize: 13 }}>
-            {phase === "done" ? "Your document is ready. Save it as PDF or retake." : "Use your native camera to snap a document. AI will enhance it."}
+          <p style={{ margin: 0, opacity: 0.85, fontSize: 13 }}>
+            {phase === "done" ? "Your document is ready. Save it as PDF or retake." : "Use your camera to snap high quality documents, receipts, or notes."}
           </p>
         </div>
 
         {/* Idle */}
         {phase === "idle" && (
           <>
-            <div style={{ borderRadius: 20, background: "#f0eae8", aspectRatio: "4/3", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 16 }}>
+            <div style={{ borderRadius: 20, background: "var(--bg-card)", border: "1px solid var(--border-color)", aspectRatio: "4/3", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, marginBottom: 18, boxShadow: "var(--shadow-card)" }}>
               <Icon name="camera" size={48} />
-              <p style={{ margin: 0, color: "#888", fontSize: 14 }}>Ready to scan</p>
+              <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: 14 }}>Ready to scan document</p>
             </div>
 
             {/* Buttons */}
-            <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "center" }}>
-              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "12px 20px", borderRadius: 16, background: "#fff", border: "1px solid #eee", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "center", justifyContent: "center" }}>
+              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "12px 20px", borderRadius: 16, background: "var(--bg-card)", border: "1px solid var(--border-color)", cursor: "pointer", fontSize: 12, fontWeight: 700, color: "var(--text-primary)", boxShadow: "var(--shadow-card)" }}>
                 <Icon name="image" size={24} /> Gallery
                 <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleCapture} />
               </label>
-              <label style={{ width: 72, height: 72, borderRadius: "50%", background: "#9f1239", border: "4px solid #fff", boxShadow: "0 4px 20px rgba(159,18,57,0.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
+              <label style={{ width: 72, height: 72, borderRadius: "50%", background: "#9f1239", border: "4px solid #fff", boxShadow: "0 4px 20px rgba(159,18,57,0.4)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }} title="Take Photo">
                 <Icon name="camera" size={28} />
                 <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleCapture} />
               </label>
@@ -1053,9 +1151,9 @@ function CaptureScreen({ onNavigate, headerProps }: { onNavigate: (s: Screen) =>
         {/* Done */}
         {phase === "done" && (
           <div>
-            {preview && <img src={preview} alt="" style={{ width: "100%", borderRadius: 16, marginBottom: 20, boxShadow: "0 8px 30px rgba(0,0,0,0.15)" }} />}
+            {preview && <img src={preview} alt="" style={{ width: "100%", borderRadius: 16, marginBottom: 20, boxShadow: "0 8px 30px rgba(0,0,0,0.2)" }} />}
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={reset} style={{ flex: 1, padding: "14px", borderRadius: 14, border: "1px solid #eee", background: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
+              <button onClick={reset} style={{ flex: 1, padding: "14px", borderRadius: 14, border: "1px solid var(--border-color)", background: "var(--bg-card)", color: "var(--text-primary)", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
                 Retake
               </button>
               <button onClick={savePDF} style={{ flex: 1, padding: "14px", borderRadius: 14, border: "none", background: "#9f1239", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer" }}>
@@ -1112,26 +1210,29 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
   );
 
   return (
-    <main style={{ minHeight: "100vh", background: "#f7f6f3", paddingBottom: 76 }}>
+    <main style={{ minHeight: "100vh", background: "var(--bg-page)", color: "var(--text-primary)", paddingBottom: 80, transition: "background 0.2s" }}>
       <AppHeader title="Links" screen="links" {...headerProps} />
 
       <div style={{ padding: "16px 18px" }}>
-        {/* Add form */}
-        <form onSubmit={addLink} style={{ background: "#fff", borderRadius: 18, padding: "16px", marginBottom: 16, border: "1px solid #eee8dd", boxShadow: "0 2px 8px rgba(40,30,34,0.04)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "#f0e8ed", display: "flex", alignItems: "center", justifyContent: "center", color: "#9f1239" }}>
+        {/* Add link card */}
+        <form onSubmit={addLink} style={{
+          background: "var(--bg-card)", borderRadius: 18, padding: "16px", marginBottom: 16,
+          border: "1px solid var(--border-color)", boxShadow: "var(--shadow-card)", transition: "background 0.2s"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(159,18,57,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "#9f1239" }}>
               <Icon name="link" size={18} />
             </div>
             <div>
-              <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 14, fontWeight: 700 }}>Save a link</strong>
-              <p style={{ margin: 0, fontSize: 11, color: "#aaa" }}>YouTube, articles, any URL</p>
+              <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Save a link</strong>
+              <p style={{ margin: 0, fontSize: 11, color: "var(--text-secondary)" }}>YouTube, articles, any URL</p>
             </div>
           </div>
           <input value={customTitle} onChange={e => setCustomTitle(e.target.value)} placeholder="Custom title (optional)"
-            style={{ width: "100%", border: "1px solid #eee", borderRadius: 10, padding: "9px 12px", fontSize: 13, outline: "none", marginBottom: 8, boxSizing: "border-box", fontFamily: "inherit" }} />
+            style={{ width: "100%", border: "1px solid var(--border-color)", borderRadius: 10, padding: "9px 12px", fontSize: 13, outline: "none", marginBottom: 8, boxSizing: "border-box", fontFamily: "inherit", background: "var(--bg-input)", color: "var(--text-primary)" }} />
           <div style={{ display: "flex", gap: 8 }}>
             <input value={url} onChange={e => setUrl(e.target.value)} placeholder="Paste URL or YouTube link…" type="url"
-              style={{ flex: 1, border: "1px solid #eee", borderRadius: 10, padding: "9px 12px", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
+              style={{ flex: 1, border: "1px solid var(--border-color)", borderRadius: 10, padding: "9px 12px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "var(--bg-input)", color: "var(--text-primary)" }} />
             <button type="submit" style={{ padding: "9px 18px", background: "#9f1239", color: "#fff", border: "none", borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "Manrope,sans-serif" }}>
               Save
             </button>
@@ -1139,16 +1240,20 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
         </form>
 
         {/* Search */}
-        <label style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", borderRadius: 13, padding: "0 13px", height: 44, border: "1px solid #eee8dd", marginBottom: 16 }}>
+        <label style={{
+          display: "flex", alignItems: "center", gap: 8, background: "var(--bg-card)",
+          borderRadius: 13, padding: "0 13px", height: 44, border: "1px solid var(--border-color)",
+          marginBottom: 16, boxShadow: "var(--shadow-card)", color: "var(--text-primary)"
+        }}>
           <Icon name="search" size={16} />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search links…"
-            style={{ flex: 1, border: "none", outline: "none", fontSize: 13, background: "transparent" }} />
-          {query && <button onClick={() => setQuery("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#bbb" }}><Icon name="x" size={14} /></button>}
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search saved links…"
+            style={{ flex: 1, border: "none", outline: "none", fontSize: 13, background: "transparent", color: "var(--text-primary)" }} />
+          {query && <button onClick={() => setQuery("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}><Icon name="x" size={14} /></button>}
         </label>
 
         {/* Links grid */}
         {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px 0", color: "#bbb" }}>
+          <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-muted)" }}>
             {query ? `No links matching "${query}"` : "No links saved yet."}
           </div>
         ) : (
@@ -1159,17 +1264,17 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
               const thumb = link.thumb || (ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : null);
 
               return (
-                <article key={link.id} style={{ background: "#fff", borderRadius: 18, overflow: "hidden", border: "1px solid rgba(60,50,54,0.07)", boxShadow: "0 3px 12px rgba(40,30,34,0.05)" }}>
+                <article key={link.id} style={{ background: "var(--bg-card)", borderRadius: 18, overflow: "hidden", border: "1px solid var(--border-subtle)", boxShadow: "var(--shadow-card)", transition: "background 0.2s" }}>
                   {/* Thumbnail / Embed */}
-                  <div style={{ width: "100%", height: 200, background: "#f0ece8", position: "relative", cursor: "pointer" }}
+                  <div style={{ width: "100%", height: 200, background: "var(--bg-chip)", position: "relative", cursor: "pointer" }}
                     onClick={() => window.open(link.url, "_blank")}>
                     {thumb ? (
                       <img src={thumb} alt={link.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-                        onError={e => (e.currentTarget.parentElement!.style.background = "#f0ece8")} />
+                        onError={e => (e.currentTarget.parentElement!.style.background = "var(--bg-chip)")} />
                     ) : (
-                      <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "#ccc" }}>
+                      <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--text-secondary)" }}>
                         <Icon name="external" size={36} />
-                        <small style={{ fontSize: 12, color: "#bbb" }}>{link.url.replace(/^https?:\/\//, "").split("/")[0]}</small>
+                        <small style={{ fontSize: 12, color: "var(--text-secondary)" }}>{link.url.replace(/^https?:\/\//, "").split("/")[0]}</small>
                       </div>
                     )}
                     {isYT && (
@@ -1187,14 +1292,14 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
                       <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
                         <input autoFocus value={editTitle} onChange={e => setEditTitle(e.target.value)}
                           onKeyDown={e => e.key === "Enter" && (onRenameLink(link.id, editTitle), setEditingId(null))}
-                          style={{ flex: 1, border: "1px solid #9f1239", borderRadius: 8, padding: "6px 10px", fontSize: 13, outline: "none", fontFamily: "inherit" }} />
+                          style={{ flex: 1, border: "1px solid #9f1239", borderRadius: 8, padding: "6px 10px", fontSize: 13, outline: "none", fontFamily: "inherit", background: "var(--bg-card)", color: "var(--text-primary)" }} />
                         <button onClick={() => { onRenameLink(link.id, editTitle); setEditingId(null); }}
                           style={{ background: "#9f1239", color: "#fff", border: "none", borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>✓</button>
                       </div>
                     ) : (
-                      <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 14, fontWeight: 700, display: "block", lineHeight: 1.4, marginBottom: 4 }}>{link.title}</strong>
+                      <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 14, fontWeight: 700, display: "block", lineHeight: 1.4, marginBottom: 4, color: "var(--text-primary)" }}>{link.title}</strong>
                     )}
-                    <div style={{ fontSize: 11, color: "#aaa", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", maxWidth: "55%", whiteSpace: "nowrap" }}>
                         {link.url.replace(/^https?:\/\//, "").split("/")[0]}
                       </span>
@@ -1202,9 +1307,9 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
                         <button onClick={() => { setEditingId(link.id); setEditTitle(link.title); }}
                           style={{ background: "none", border: "none", cursor: "pointer", color: "#9f1239", fontSize: 11, fontWeight: 700 }}>Rename</button>
                         <button onClick={() => window.open(link.url, "_blank")}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#666", fontSize: 11 }}>Open ↗</button>
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 11 }}>Open ↗</button>
                         <button onClick={() => onDeleteLink(link.id)}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#e05" }}>
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#e05" }} title="Delete">
                           <Icon name="trash" size={14} />
                         </button>
                       </div>
@@ -1237,7 +1342,7 @@ export default function App() {
   const [notes, setNotes] = useState<Note[]>(() => load<Note[]>(KEYS.notes, []) || []);
   const [uploads, setUploads] = useState<UploadFile[]>(() => load<UploadFile[]>(KEYS.uploads, []) || []);
   const [links, setLinks] = useState<SavedLink[]>(() => load<SavedLink[]>(KEYS.links, []) || []);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem("ownly_dark_mode") === "true");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
@@ -1246,12 +1351,19 @@ export default function App() {
   useEffect(() => { save(KEYS.notes, notes); }, [notes]);
   useEffect(() => { save(KEYS.links, links); }, [links]);
   useEffect(() => { if (user) save(KEYS.user, user); }, [user]);
+
+  // Dark mode class sync on HTML and BODY
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark-mode");
+      document.body.classList.add("dark-mode");
+      document.documentElement.setAttribute("data-theme", "dark");
     } else {
       document.documentElement.classList.remove("dark-mode");
+      document.body.classList.remove("dark-mode");
+      document.documentElement.removeAttribute("data-theme");
     }
+    localStorage.setItem("ownly_dark_mode", String(darkMode));
   }, [darkMode]);
 
   // Auth check
@@ -1259,7 +1371,6 @@ export default function App() {
     const token = localStorage.getItem("ownly_auth_token");
     if (token) {
       setScreen("dashboard");
-      // Try to load from server
       api.getUserProfile().then(p => { if (p) setUser({ name: p.name, email: p.email, plan: p.plan }); }).catch(() => {});
       api.getNotes().then(n => { if (n?.length) setNotes(n); }).catch(() => {});
       api.getLinks().then(l => { if (l?.length) setLinks(l); }).catch(() => {});
@@ -1306,8 +1417,10 @@ export default function App() {
   function renameLink(id: string, title: string) { setLinks(p => p.map(l => l.id === id ? { ...l, title } : l)); }
 
   const headerProps: HeaderProps = {
-    user, onOpenAccount: () => setDrawerOpen(true),
-    onToggleDark: () => setDarkMode(d => !d), darkMode
+    user,
+    onOpenAccount: () => setDrawerOpen(true),
+    onToggleDark: () => setDarkMode(d => !d),
+    darkMode
   };
 
   const activeNote = notes.find(n => n.id === activeNoteId);
@@ -1323,24 +1436,128 @@ export default function App() {
   return (
     <>
       <style>{`
+        /* ── CSS VARIABLES (Dark Mode & Themes) ── */
+        :root {
+          --bg-page: #f7f6f3;
+          --bg-card: #ffffff;
+          --bg-header: rgba(255, 255, 255, 0.96);
+          --bg-nav: rgba(255, 255, 255, 0.97);
+          --bg-input: #ffffff;
+          --bg-chip: #f3eee8;
+          --text-primary: #19161b;
+          --text-secondary: #6e6770;
+          --text-muted: #9c9498;
+          --border-color: #eee8dd;
+          --border-subtle: rgba(60, 50, 54, 0.08);
+          --shadow-card: 0 3px 12px rgba(40, 30, 34, 0.05);
+          --note-bg: #fcfbf9;
+        }
+        .dark-mode {
+          --bg-page: #0d0d11;
+          --bg-card: #18181f;
+          --bg-header: rgba(13, 13, 17, 0.96);
+          --bg-nav: rgba(13, 13, 17, 0.97);
+          --bg-input: #22222c;
+          --bg-chip: #22222c;
+          --text-primary: #f5f0f8;
+          --text-secondary: #a39ca8;
+          --text-muted: #6b6572;
+          --border-color: #2a2736;
+          --border-subtle: rgba(255, 255, 255, 0.08);
+          --shadow-card: 0 4px 18px rgba(0, 0, 0, 0.45);
+          --note-bg: #111116;
+        }
+        html { color-scheme: light; }
+        html.dark-mode { color-scheme: dark; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; padding: 0; overflow-x: hidden; }
-        [data-placeholder]:empty:before { content: attr(data-placeholder); color: #bbb; pointer-events: none; position: absolute; }
-        h2 { letter-spacing: -0.3px; }
+        body {
+          margin: 0; padding: 0; overflow-x: hidden;
+          background: var(--bg-page); color: var(--text-primary);
+          font-family: 'DM Sans', sans-serif;
+          transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        h1, h2, h3, h4, h5, h6 { color: var(--text-primary); }
+        input, textarea, select { color: var(--text-primary); }
+        ::placeholder { color: var(--text-muted); opacity: 0.8; }
+
+        /* Note block rich text styles */
+        .note-text-block {
+          min-height: 48px;
+          outline: none;
+          font-size: 15px;
+          line-height: 1.7;
+          color: var(--text-primary);
+          font-family: 'DM Sans', sans-serif;
+          direction: ltr !important;
+          text-align: left !important;
+          unicode-bidi: plaintext;
+        }
+        .note-text-block:empty:before {
+          content: attr(data-placeholder);
+          color: var(--text-muted);
+          pointer-events: none;
+          position: absolute;
+        }
+        .note-text-block h1 {
+          font-size: 1.65rem;
+          font-weight: 800;
+          margin: 0.5em 0 0.2em;
+          line-height: 1.25;
+          color: var(--text-primary);
+          font-family: 'Manrope', sans-serif;
+        }
+        .note-text-block h2 {
+          font-size: 1.35rem;
+          font-weight: 700;
+          margin: 0.4em 0 0.2em;
+          line-height: 1.3;
+          color: var(--text-primary);
+          font-family: 'Manrope', sans-serif;
+        }
+        .note-text-block blockquote {
+          border-left: 3px solid #9f1239;
+          margin: 0.6em 0;
+          padding: 6px 14px;
+          color: var(--text-secondary);
+          font-style: italic;
+          background: var(--bg-chip);
+          border-radius: 0 8px 8px 0;
+        }
+        .note-text-block ul, .note-text-block ol {
+          padding-left: 22px;
+          margin: 0.4em 0;
+        }
+        .note-text-block li {
+          margin-bottom: 4px;
+        }
+        .note-text-block b, .note-text-block strong {
+          font-weight: 700;
+        }
+        .note-text-block i, .note-text-block em {
+          font-style: italic;
+        }
+        .note-text-block u {
+          text-decoration: underline;
+        }
+
+        /* Chips and Icons */
         .icon-chip { width:29px;height:29px;display:grid;place-items:center;border-radius:9px; }
-        .icon-chip.cyan { color:#087f80;background:#d9f5f2; }
-        .icon-chip.yellow { color:#a66d00;background:#fff0bd; }
-        .icon-chip.green { color:#347b60;background:#dff1e8; }
-        .icon-chip.orange { color:#b45a28;background:#fae5d7; }
+        .icon-chip.cyan { color:#087f80;background:rgba(8,127,128,0.15); }
+        .icon-chip.yellow { color:#a66d00;background:rgba(166,109,0,0.15); }
+        .icon-chip.green { color:#347b60;background:rgba(52,123,96,0.15); }
+        .icon-chip.orange { color:#b45a28;background:rgba(180,90,40,0.15); }
+
         .action-icon { width:39px;height:39px;display:grid;place-items:center;border-radius:50%; }
-        .action-icon.cyan { color:#087f80;background:#d9f5f2; }
-        .action-icon.purple { color:#87568d;background:#f1e4f3; }
-        .action-icon.green { color:#347b60;background:#dff1e8; }
-        .action-icon.orange { color:#b45a28;background:#fae5d7; }
+        .action-icon.cyan { color:#087f80;background:rgba(8,127,128,0.15); }
+        .action-icon.purple { color:#87568d;background:rgba(135,86,141,0.15); }
+        .action-icon.green { color:#347b60;background:rgba(52,123,96,0.15); }
+        .action-icon.orange { color:#b45a28;background:rgba(180,90,40,0.15); }
+
         @keyframes wave { 0%,100%{transform:rotate(0)} 20%{transform:rotate(-10deg)} 60%{transform:rotate(14deg)} 80%{transform:rotate(-8deg)} }
         @keyframes spin { to{transform:rotate(360deg)} }
         @keyframes screenIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         .screen-enter { animation: screenIn 0.28s ease both; }
+
         .login-screen {
           position:relative;display:grid;place-items:center;min-height:100vh;
           padding:clamp(60px,14vh,120px) 24px 30px;overflow:hidden;color:white;

@@ -503,7 +503,7 @@ export const UploadSection: React.FC<UploadSectionProps> = ({ images, setImages 
                 {viewer.type === 'doc' && viewer.src && (
                   <div className="w-full h-full rounded-xl border border-white/10 overflow-hidden bg-white text-black" style={{ minHeight: '70vh' }}>
                     <DocViewer 
-                      documents={[{ uri: viewer.uri, fileType: viewer.ext, fileName: viewer.name }]} 
+                      documents={[{ uri: viewer.uri || '', fileType: viewer.ext, fileName: viewer.name }]} 
                       pluginRenderers={DocViewerRenderers} 
                     />
                   </div>
