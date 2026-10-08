@@ -139,19 +139,9 @@ function AppHeader({
     }}>
       {/* Left: back or avatar */}
       <div style={{ display: "flex", alignItems: "center", paddingBottom: 14, paddingTop: 14 }}>
-        {showBack ? (
+        {showBack && (
           <button onClick={onBack} style={iconBtnStyle}>
             <Icon name="arrow-left" size={22} />
-          </button>
-        ) : (
-          <button onClick={onOpenAccount} aria-label="Account" style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}>
-            {user?.avatarUrl ? (
-              <img src={user.avatarUrl} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }} />
-            ) : (
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: avatarBg, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: "#fff", fontSize: 14, fontFamily: "Manrope, sans-serif" }}>
-                {initials}
-              </div>
-            )}
           </button>
         )}
       </div>
@@ -167,9 +157,6 @@ function AppHeader({
       {/* Right: dark mode + user icon */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, paddingBottom: 14, paddingTop: 14 }}>
         {rightExtra}
-        <button onClick={onToggleDark} aria-label="Toggle dark mode" style={iconBtnStyle}>
-          <Icon name={darkMode ? "sun" : "moon"} size={20} />
-        </button>
         <button onClick={onOpenAccount} aria-label="Open account" style={{
           ...iconBtnStyle, width: 36, height: 36, borderRadius: "50%",
           background: avatarBg, color: "#fff", fontWeight: 800, fontSize: 13,
@@ -411,16 +398,16 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links }: {
   const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening";
   const firstName = headerProps.user?.name?.split(" ")[0] || "there";
 
-  const recentNotes = notes.filter(n =>
-    !search || n.title.toLowerCase().includes(search.toLowerCase()) || n.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
+  const recentNotes = (notes || []).filter(n =>
+    !search || (n.title || "").toLowerCase().includes(search.toLowerCase()) || (n.tags || []).some(t => t.toLowerCase().includes(search.toLowerCase()))
   );
   const shown = viewAll ? recentNotes : recentNotes.slice(0, 3);
 
   const stats = [
-    { count: notes.length, label: "Notes", icon: "note" as IconName, screen: "notes" as Screen, color: "cyan" },
-    { count: uploads.length, label: "Uploads", icon: "upload" as IconName, screen: "uploads" as Screen, color: "yellow" },
+    { count: notes?.length || 0, label: "Notes", icon: "note" as IconName, screen: "notes" as Screen, color: "cyan" },
+    { count: uploads?.length || 0, label: "Uploads", icon: "upload" as IconName, screen: "uploads" as Screen, color: "yellow" },
     { count: 0, label: "Scans", icon: "camera" as IconName, screen: "capture" as Screen, color: "green" },
-    { count: links.length, label: "Links", icon: "link" as IconName, screen: "links" as Screen, color: "orange" },
+    { count: links?.length || 0, label: "Links", icon: "link" as IconName, screen: "links" as Screen, color: "orange" },
   ];
 
   return (
@@ -465,7 +452,7 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links }: {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <h2 style={{ margin: 0, fontFamily: "Manrope,sans-serif", fontSize: 15, fontWeight: 800 }}>Quick actions</h2>
             <span style={{ display: "flex", alignItems: "center", gap: 4, color: "#8a8589", fontSize: 10 }}>
-              <Icon name="flame" size={14} />{notes.length + uploads.length} items
+              <Icon name="flame" size={14} />{(notes?.length || 0) + (uploads?.length || 0)} items
             </span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
@@ -512,7 +499,7 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links }: {
                     <Icon name="note" size={22} />
                   </span>
                   <span style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
-                    {note.tags.length > 0 && (
+                    {note.tags && note.tags.length > 0 && (
                       <span style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                         {note.tags.slice(0, 2).map(t => (
                           <span key={t} style={{ padding: "2px 7px", borderRadius: 10, background: "#f8e8ed", color: "#8f2241", fontSize: 9, fontWeight: 700, fontFamily: "Manrope,sans-serif" }}>{t}</span>
@@ -543,9 +530,9 @@ function NotesListScreen({ onNavigate, headerProps, notes, onNewNote, onOpenNote
   notes: Note[]; onNewNote: () => void; onOpenNote: (id: string) => void; onDeleteNote: (id: string) => void;
 }) {
   const [search, setSearch] = useState("");
-  const filtered = notes.filter(n =>
-    n.title.toLowerCase().includes(search.toLowerCase()) ||
-    n.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
+  const filtered = (notes || []).filter(n =>
+    (n.title || "").toLowerCase().includes(search.toLowerCase()) ||
+    (n.tags || []).some(t => t.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
@@ -578,7 +565,7 @@ function NotesListScreen({ onNavigate, headerProps, notes, onNewNote, onOpenNote
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {filtered.map(note => {
-              const textBlock = note.blocks.find(b => b.type === "text" && b.html);
+              const textBlock = (note.blocks || []).find(b => b.type === "text" && b.html);
               const preview = textBlock?.html ? textBlock.html.replace(/<[^>]+>/g, "").slice(0, 80) : "No content";
               return (
                 <div key={note.id} style={{ background: "#fff", borderRadius: 16, border: "1px solid rgba(60,50,54,0.07)", boxShadow: "0 2px 8px rgba(40,30,34,0.04)", overflow: "hidden" }}>
@@ -587,7 +574,7 @@ function NotesListScreen({ onNavigate, headerProps, notes, onNewNote, onOpenNote
                       <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 15, fontWeight: 700, flex: 1, marginRight: 8 }}>{note.title || "Untitled"}</strong>
                       <span style={{ fontSize: 10, color: "#bbb", whiteSpace: "nowrap" }}>{new Date(note.updatedAt).toLocaleDateString()}</span>
                     </div>
-                    {note.tags.length > 0 && (
+                    {note.tags && note.tags.length > 0 && (
                       <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 8 }}>
                         {note.tags.map(t => (
                           <span key={t} style={{ padding: "2px 8px", borderRadius: 10, background: "#f8e8ed", color: "#8f2241", fontSize: 10, fontWeight: 700, fontFamily: "Manrope,sans-serif" }}>{t}</span>
@@ -623,10 +610,10 @@ function NoteEditorScreen({ onNavigate, headerProps, note, onSave }: {
   note: Note; onSave: (n: Note) => void;
 }) {
   const [title, setTitle] = useState(note.title);
-  const [tags, setTags] = useState<string[]>(note.tags);
+  const [tags, setTags] = useState<string[]>(note.tags || []);
   const [tagInput, setTagInput] = useState("");
   const [blocks, setBlocks] = useState<NoteBlock[]>(
-    note.blocks.length ? note.blocks : [{ id: "b1", type: "text", html: "" }]
+    note.blocks && note.blocks.length ? note.blocks : [{ id: "b1", type: "text", html: "" }]
   );
   const [saved, setSaved] = useState(true);
   const editorRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -1288,9 +1275,9 @@ type HeaderProps = {
 export default function App() {
   const [screen, setScreen] = useState<Screen>("login");
   const [user, setUser] = useState<AppUser | null>(() => load<AppUser | null>(KEYS.user, null));
-  const [notes, setNotes] = useState<Note[]>(() => load<Note[]>(KEYS.notes, []));
-  const [uploads, setUploads] = useState<UploadFile[]>(() => load<UploadFile[]>(KEYS.uploads, []));
-  const [links, setLinks] = useState<SavedLink[]>(() => load<SavedLink[]>(KEYS.links, []));
+  const [notes, setNotes] = useState<Note[]>(() => load<Note[]>(KEYS.notes, []) || []);
+  const [uploads, setUploads] = useState<UploadFile[]>(() => load<UploadFile[]>(KEYS.uploads, []) || []);
+  const [links, setLinks] = useState<SavedLink[]>(() => load<SavedLink[]>(KEYS.links, []) || []);
   const [darkMode, setDarkMode] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
