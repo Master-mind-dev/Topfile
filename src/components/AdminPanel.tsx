@@ -23,6 +23,23 @@ interface ResetRequest {
   created_at: string;
 }
 
+export function OwnlyAdminLogo({ size = 48 }: { size?: number }) {
+  return (
+    <div className="relative inline-flex items-center justify-center">
+      <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="OWNLY Admin">
+        <rect x="2" y="2" width="44" height="44" rx="14" fill="#111111" stroke="#d9ad52" strokeWidth="1.5" />
+        <rect x="9" y="9" width="30" height="30" rx="8" fill="white" opacity="0.95" />
+        <path d="M24 13 L18 20 L24 27 L30 20 Z" fill="#9f1239" />
+        <rect x="22" y="27" width="4" height="9" rx="2" fill="#9f1239" />
+        <rect x="2" y="2" width="44" height="6" rx="14" fill="white" opacity="0.08" />
+      </svg>
+      <div className="absolute -bottom-1 -right-1 bg-[#d9ad52] text-[#20140b] p-1 rounded-full shadow-lg border-2 border-black flex items-center justify-center">
+        <Shield className="w-3 h-3 fill-current" />
+      </div>
+    </div>
+  );
+}
+
 export function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
@@ -250,11 +267,14 @@ export function AdminPanel() {
           className="bg-zinc-950 p-8 rounded-[28px] border border-zinc-800/50 shadow-2xl w-full max-w-md relative z-10"
         >
           <div className="text-center mb-8">
-            <div className="inline-flex p-3 bg-[#d9ad52]/10 rounded-2xl mb-4 text-[#d9ad52]">
-              <Shield className="w-8 h-8" />
+            <div className="mb-4">
+              <OwnlyAdminLogo size={56} />
             </div>
-            <h1 className="text-2xl font-black">Admin Access</h1>
-            <p className="text-zinc-500 text-sm mt-2">Log in with your administrator credentials</p>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#d9ad52]/10 border border-[#d9ad52]/25 text-[#d9ad52] text-xs font-bold uppercase tracking-widest mb-2">
+              <Shield className="w-3.5 h-3.5" /> Administrator App
+            </div>
+            <h1 className="text-2xl font-black text-white">OWNLY Admin</h1>
+            <p className="text-zinc-400 text-sm mt-1">Sign in to control and monitor the OWNLY platform</p>
           </div>
           
           <form onSubmit={handleAdminLogin} className="space-y-4">
@@ -274,14 +294,14 @@ export function AdminPanel() {
             {error && <p className="text-red-400 text-sm text-center font-medium bg-red-500/10 py-2 rounded-lg">{error}</p>}
             
             <button type="submit" disabled={loginLoading}
-              className="w-full bg-[#d9ad52] hover:bg-[#f4dfb0] text-[#20140b] font-black py-3.5 rounded-xl transition-all disabled:opacity-50 mt-2"
+              className="w-full bg-[#d9ad52] hover:bg-[#f4dfb0] text-[#20140b] font-black py-3.5 rounded-xl transition-all disabled:opacity-50 mt-2 shadow-lg shadow-[#d9ad52]/20"
             >
-              {loginLoading ? 'Authenticating...' : 'Enter Dashboard'}
+              {loginLoading ? 'Authenticating...' : 'Sign In as Admin'}
             </button>
           </form>
           
-          <button onClick={() => window.location.href = '/'} className="w-full text-center text-sm text-zinc-500 hover:text-white mt-6 transition-colors">
-            ← Back to App
+          <button onClick={() => window.location.href = '/'} className="w-full text-center text-sm text-zinc-500 hover:text-white mt-6 transition-colors flex items-center justify-center gap-2">
+            ← Switch to OWNLY User App
           </button>
         </motion.div>
       </div>
@@ -291,16 +311,17 @@ export function AdminPanel() {
   return (
     <div className="min-h-screen bg-black text-white pb-24 lg:pb-8">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl border-b border-white/10">
+      <div className="sticky top-0 z-30 bg-black/90 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto flex justify-between items-center px-4 sm:px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#d9ad52]/10 rounded-xl">
-              <Database className="w-6 h-6 text-[#d9ad52]" />
-            </div>
+            <OwnlyAdminLogo size={42} />
             <div>
-              <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white font-['Outfit']">OWNLY</h1>
+                <span className="px-2 py-0.5 rounded-md bg-[#d9ad52]/15 border border-[#d9ad52]/30 text-[#d9ad52] text-[11px] font-extrabold uppercase tracking-wider">Admin App</span>
+              </div>
               <p className="text-xs text-white/40 mt-0.5">
-                {users.length} users
+                {users.length} users registered
                 {stats && <span className="ml-2 text-green-400">· {stats.liveConnections} live</span>}
                 {stats?.pendingResets! > 0 && <span className="ml-2 text-amber-400">· {stats?.pendingResets} reset request{stats?.pendingResets !== 1 ? 's' : ''}</span>}
               </p>
@@ -308,9 +329,9 @@ export function AdminPanel() {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => { localStorage.removeItem('ownly_admin_token'); window.location.href = '/'; }}
-              className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 rounded-full text-sm transition-all border border-zinc-800"
+              className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 rounded-full text-sm font-semibold transition-all border border-zinc-800 text-zinc-300 hover:text-white"
             >
-              <LogOut className="w-4 h-4" /> Exit
+              <LogOut className="w-4 h-4" /> Sign Out
             </button>
           </div>
         </div>

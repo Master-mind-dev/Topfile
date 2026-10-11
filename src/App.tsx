@@ -12,10 +12,9 @@ import ConnectedKnowledge from './components/ConnectedKnowledge';
 import { SmartConverter } from './components/SmartConverter';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
 import InstallAppModal from './components/InstallAppModal';
-import { AdminPanel } from './components/AdminPanel';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
-type Screen = "login" | "dashboard" | "notes" | "note-editor" | "uploads" | "capture" | "converter" | "links" | "knowledge" | "admin";
+type Screen = "login" | "dashboard" | "notes" | "note-editor" | "uploads" | "capture" | "converter" | "links" | "knowledge";
 
 interface NoteBlock {
   id: string;
@@ -264,11 +263,10 @@ function BottomNav({ active, onNavigate }: { active: Screen; onNavigate: (s: Scr
 
 // ─── ACCOUNT DRAWER ───────────────────────────────────────────────────────────
 function AccountDrawer({
-  user, onLogout, onClose, onUpdateAvatar, darkMode, toggleDark, onOpenAdmin
+  user, onLogout, onClose, onUpdateAvatar, darkMode, toggleDark
 }: {
   user: AppUser | null; onLogout: () => void; onClose: () => void;
   onUpdateAvatar: (url: string) => void; darkMode: boolean; toggleDark: () => void;
-  onOpenAdmin?: () => void;
 }) {
   const initials = user?.name ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?";
   const fileRef = useRef<HTMLInputElement>(null);
@@ -311,26 +309,6 @@ function AccountDrawer({
 
         {/* Settings */}
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
-          {onOpenAdmin && (
-            <div style={{ padding: "12px 24px", borderBottom: "1px solid var(--border-subtle)" }}>
-              <button
-                type="button"
-                onClick={() => { onClose(); onOpenAdmin(); }}
-                style={{
-                  width: "100%", padding: "11px 14px", borderRadius: 12,
-                  background: "linear-gradient(135deg, rgba(217, 173, 82, 0.15) 0%, rgba(217, 173, 82, 0.05) 100%)",
-                  border: "1px solid rgba(217, 173, 82, 0.35)", color: "#d9ad52",
-                  fontWeight: 800, fontSize: 13, fontFamily: "Manrope, sans-serif",
-                  display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer"
-                }}
-              >
-                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span>🛡️</span> Admin Portal
-                </span>
-                <span style={{ fontSize: 11, opacity: 0.8 }}>Manage Users ↗</span>
-              </button>
-            </div>
-          )}
           <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)" }}>Dark Mode</div>
@@ -1437,9 +1415,7 @@ type HeaderProps = {
 export default function App() {
   // If a token exists, start on dashboard immediately (eliminates login delay)
   const hasToken = !!localStorage.getItem("ownly_auth_token");
-  const isAdminPath = typeof window !== "undefined" && (window.location.pathname === "/admin" || window.location.search.includes("admin=true"));
   const [screen, setScreen] = useState<Screen>(() => {
-    if (isAdminPath) return "admin";
     return (hasToken && load<AppUser | null>(KEYS.user, null)) ? "dashboard" : "login";
   });
   const [user, setUser] = useState<AppUser | null>(() => load<AppUser | null>(KEYS.user, null));
@@ -1449,7 +1425,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem("ownly_dark_mode") === "true");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [installModalOpen, setInstallModalOpen] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(!hasToken && !isAdminPath);
+  const [checkingAuth, setCheckingAuth] = useState(!hasToken);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 
   // Scanner & file-viewer overlay state
@@ -1892,27 +1868,9 @@ export default function App() {
         />
       )}
 
-      {screen === "admin" && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 300, overflowY: 'auto' }}>
-          <button
-            onClick={() => setScreen('dashboard')}
-            style={{
-              position: 'fixed', top: 16, left: 16, zIndex: 310,
-              background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: 50,
-              width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', color: '#fff', backdropFilter: 'blur(8px)'
-            }}
-          >
-            <Icon name="arrow-left" size={20} />
-          </button>
-          <AdminPanel />
-        </div>
-      )}
-
       {drawerOpen && (
         <AccountDrawer user={user} onLogout={handleLogout} onClose={() => setDrawerOpen(false)}
-          onUpdateAvatar={handleUpdateAvatar} darkMode={darkMode} toggleDark={() => setDarkMode(d => !d)}
-        onOpenAdmin={user?.isAdmin ? () => setScreen("admin") : undefined} />
+          onUpdateAvatar={handleUpdateAvatar} darkMode={darkMode} toggleDark={() => setDarkMode(d => !d)} />
       )}
 
       {installModalOpen && (
