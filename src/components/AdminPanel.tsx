@@ -55,10 +55,11 @@ export function AdminPanel() {
 
   const token = localStorage.getItem('ownly_admin_token');
   const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const ADMIN_BASE = 'https://topfile.onrender.com/api/admin';
 
   const fetchResetRequests = async () => {
     try {
-      const res = await fetch('/api/admin/reset-requests', { headers: authHeaders });
+      const res = await fetch(`${ADMIN_BASE}/reset-requests`, { headers: authHeaders });
       const data = await res.json();
       if (data.success) setResetRequests(data.requests);
     } catch { /* silent */ }
@@ -67,7 +68,7 @@ export function AdminPanel() {
   const fetchStats = async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/admin/stats', { headers: authHeaders });
+      const res = await fetch(`${ADMIN_BASE}/stats`, { headers: authHeaders });
       const data = await res.json();
       if (data.success) setStats(data.stats);
     } catch { /* silently ignore */ }
@@ -83,7 +84,7 @@ export function AdminPanel() {
     const init = async () => {
       if (!token) { setLoading(false); return; }
       try {
-        const res = await fetch('/api/admin/users', { headers: authHeaders });
+        const res = await fetch(`${ADMIN_BASE}/users`, { headers: authHeaders });
         const data = await res.json();
         if (data.success) {
           setIsAuthenticated(true);
@@ -103,7 +104,7 @@ export function AdminPanel() {
     setLoginLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/admin/login', {
+      const res = await fetch(`${ADMIN_BASE}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: adminEmail, password: adminPassword })
@@ -123,7 +124,7 @@ export function AdminPanel() {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/user/${email}`, { headers: authHeaders });
+      const res = await fetch(`${ADMIN_BASE}/user/${email}`, { headers: authHeaders });
       const data = await res.json();
       if (data.success) {
         setSelectedUser(data);
@@ -139,7 +140,7 @@ export function AdminPanel() {
     if (!confirm(`Delete ${email} and ALL their data? This cannot be undone!`)) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/user/${email}`, { method: 'DELETE', headers: authHeaders });
+      const res = await fetch(`${ADMIN_BASE}/user/${email}`, { method: 'DELETE', headers: authHeaders });
       const data = await res.json();
       if (data.success) { setUsers(users.filter((u) => u.email !== email)); setSelectedUser(null); }
       else setError(data.error);
@@ -150,7 +151,7 @@ export function AdminPanel() {
   const toggleAdmin = async (email: string, current: boolean) => {
     if (!confirm(`${current ? 'Remove admin from' : 'Make admin'}: ${email}?`)) return;
     try {
-      const res = await fetch(`/api/admin/user/${email}/role`, {
+      const res = await fetch(`${ADMIN_BASE}/user/${email}/role`, {
         method: 'PUT', headers: authHeaders,
         body: JSON.stringify({ isAdmin: !current }),
       });
@@ -170,7 +171,7 @@ export function AdminPanel() {
     }
     setRequestLoading((l) => ({ ...l, [req.id]: true }));
     try {
-      const res = await fetch(`/api/admin/reset-requests/${req.id}/fulfil`, {
+      const res = await fetch(`${ADMIN_BASE}/reset-requests/${req.id}/fulfil`, {
         method: 'PUT', headers: authHeaders,
         body: JSON.stringify({ newPassword: pw }),
       });
@@ -190,7 +191,7 @@ export function AdminPanel() {
 
   const dismissRequest = async (id: string) => {
     try {
-      await fetch(`/api/admin/reset-requests/${id}`, { method: 'DELETE', headers: authHeaders });
+      await fetch(`${ADMIN_BASE}/reset-requests/${id}`, { method: 'DELETE', headers: authHeaders });
       setResetRequests((r) => r.filter((x) => x.id !== id));
     } catch { /* silent */ }
   };
@@ -200,7 +201,7 @@ export function AdminPanel() {
     if (resetPwNew.length < 6) { setResetPwErr('Minimum 6 characters'); return; }
     setResetPwLoading(true); setResetPwErr(''); setResetPwMsg('');
     try {
-      const res = await fetch(`/api/admin/user/${resetPwEmail}/password`, {
+      const res = await fetch(`${ADMIN_BASE}/user/${resetPwEmail}/password`, {
         method: 'PUT', headers: authHeaders,
         body: JSON.stringify({ newPassword: resetPwNew }),
       });

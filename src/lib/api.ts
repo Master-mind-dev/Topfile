@@ -117,6 +117,7 @@ export function formatUserProfile(u: any): UserProfile | null {
     plan: u.plan || 'Personal Pro',
     storageUsedMb: Number(u.storage_used_mb ?? u.storageUsedMb ?? 0),
     totalStorageMb: Number(u.total_storage_mb ?? u.totalStorageMb ?? 1024),
+    isAdmin: Boolean(u.is_admin || u.isAdmin),
   };
 }
 
@@ -237,6 +238,14 @@ export async function createImage(image: any) {
 
 export async function deleteImage(id: string) {
   await apiRequest(`/images/${id}`, { method: 'DELETE' });
+}
+
+export async function updateImage(id: string, updates: { name?: string }) {
+  const data = await apiRequest(`/images/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+  return data.image;
 }
 
 // ============ LINKS ============

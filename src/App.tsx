@@ -12,9 +12,10 @@ import ConnectedKnowledge from './components/ConnectedKnowledge';
 import { SmartConverter } from './components/SmartConverter';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
 import InstallAppModal from './components/InstallAppModal';
+import { AdminPanel } from './components/AdminPanel';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
-type Screen = "login" | "dashboard" | "notes" | "note-editor" | "uploads" | "capture" | "converter" | "links" | "knowledge";
+type Screen = "login" | "dashboard" | "notes" | "note-editor" | "uploads" | "capture" | "converter" | "links" | "knowledge" | "admin";
 
 interface NoteBlock {
   id: string;
@@ -59,6 +60,7 @@ interface AppUser {
   email: string;
   plan?: string;
   avatarUrl?: string;
+  isAdmin?: boolean;
 }
 
 // ─── STORAGE (localStorage with API fallback) ─────────────────────────────────
@@ -262,10 +264,11 @@ function BottomNav({ active, onNavigate }: { active: Screen; onNavigate: (s: Scr
 
 // ─── ACCOUNT DRAWER ───────────────────────────────────────────────────────────
 function AccountDrawer({
-  user, onLogout, onClose, onUpdateAvatar, darkMode, toggleDark
+  user, onLogout, onClose, onUpdateAvatar, darkMode, toggleDark, onOpenAdmin
 }: {
   user: AppUser | null; onLogout: () => void; onClose: () => void;
   onUpdateAvatar: (url: string) => void; darkMode: boolean; toggleDark: () => void;
+  onOpenAdmin?: () => void;
 }) {
   const initials = user?.name ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?";
   const fileRef = useRef<HTMLInputElement>(null);
@@ -308,6 +311,26 @@ function AccountDrawer({
 
         {/* Settings */}
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+          {onOpenAdmin && (
+            <div style={{ padding: "12px 24px", borderBottom: "1px solid var(--border-subtle)" }}>
+              <button
+                type="button"
+                onClick={() => { onClose(); onOpenAdmin(); }}
+                style={{
+                  width: "100%", padding: "11px 14px", borderRadius: 12,
+                  background: "linear-gradient(135deg, rgba(217, 173, 82, 0.15) 0%, rgba(217, 173, 82, 0.05) 100%)",
+                  border: "1px solid rgba(217, 173, 82, 0.35)", color: "#d9ad52",
+                  fontWeight: 800, fontSize: 13, fontFamily: "Manrope, sans-serif",
+                  display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer"
+                }}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span>🛡️</span> Admin Portal
+                </span>
+                <span style={{ fontSize: 11, opacity: 0.8 }}>Manage Users ↗</span>
+              </button>
+            </div>
+          )}
           <div style={{ padding: "16px 24px", borderBottom: "1px solid var(--border-subtle)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <div style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)" }}>Dark Mode</div>
@@ -973,6 +996,26 @@ function UploadsScreen({ onNavigate, headerProps, files, onAddFiles, onDeleteFil
   const [viewing, setViewing] = useState<UploadFile | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [loadingFileId, setLoadingFileId] = useState<string | null>(null);
+
+  async function openFile(file: UploadFile) {
+    if (file.uri && !file.uri.startsWith('__lazy__')) {
+      setViewing(file);
+      return;
+    }
+    // Lazy-load: fetch full image data (data_url) from server
+    setLoadingFileId(file.id);
+    try {
+      const data = await api.getImage(file.id);
+      const fullUri = (data as any)?.dataUrl || (data as any)?.data_url || '';
+      setViewing({ ...file, uri: fullUri });
+    } catch (err) {
+      console.error('Failed to load file:', err);
+      alert('Could not load file. Please try again.');
+    } finally {
+      setLoadingFileId(null);
+    }
+  }
 
   function handleAdd(e: ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? []);
@@ -1093,10 +1136,12 @@ function UploadsScreen({ onNavigate, headerProps, files, onAddFiles, onDeleteFil
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {filtered.map(file => (
-              <div key={file.id} onClick={() => setViewing(file)} style={{
+              <div key={file.id} onClick={() => openFile(file)} style={{
                 display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 12,
-                padding: "12px 14px", background: "var(--bg-card)", borderRadius: 14, cursor: "pointer",
+                padding: "12px 14px", background: "var(--bg-card)", borderRadius: 14,
+                cursor: loadingFileId === file.id ? "wait" : "pointer",
                 border: "1px solid var(--border-subtle)", boxShadow: "var(--shadow-card)",
+                opacity: loadingFileId === file.id ? 0.6 : 1,
                 transition: "transform 0.12s, background 0.2s"
               }}>
                 <span style={{
@@ -1392,7 +1437,11 @@ type HeaderProps = {
 export default function App() {
   // If a token exists, start on dashboard immediately (eliminates login delay)
   const hasToken = !!localStorage.getItem("ownly_auth_token");
-  const [screen, setScreen] = useState<Screen>(() => (hasToken && load<AppUser | null>(KEYS.user, null)) ? "dashboard" : "login");
+  const isAdminPath = typeof window !== "undefined" && (window.location.pathname === "/admin" || window.location.search.includes("admin=true"));
+  const [screen, setScreen] = useState<Screen>(() => {
+    if (isAdminPath) return "admin";
+    return (hasToken && load<AppUser | null>(KEYS.user, null)) ? "dashboard" : "login";
+  });
   const [user, setUser] = useState<AppUser | null>(() => load<AppUser | null>(KEYS.user, null));
   const [notes, setNotes] = useState<Note[]>(() => load<Note[]>(KEYS.notes, []) || []);
   const [uploads, setUploads] = useState<UploadFile[]>(() => load<UploadFile[]>(KEYS.uploads, []) || []);
@@ -1400,7 +1449,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem("ownly_dark_mode") === "true");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [installModalOpen, setInstallModalOpen] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(!hasToken);
+  const [checkingAuth, setCheckingAuth] = useState(!hasToken && !isAdminPath);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 
   // Scanner & file-viewer overlay state
@@ -1432,7 +1481,11 @@ export default function App() {
     const token = localStorage.getItem("ownly_auth_token");
     if (token) {
       // Already on dashboard (from initial state). Silently refresh in background.
-      api.getUserProfile().then(p => { if (p) setUser({ name: p.name, email: p.email, plan: p.plan }); }).catch(() => {});
+      api.getUserProfile().then(p => {
+        if (p) {
+          setUser({ name: p.name, email: p.email, plan: p.plan, isAdmin: p.isAdmin });
+        }
+      }).catch(() => {});
       api.getNotes().then(n => {
         if (n && n.length > 0) {
           setNotes(n.map((x: any) => ({
@@ -1591,18 +1644,20 @@ export default function App() {
       }
     }).catch(() => {});
     api.getImages().then((imgs) => {
-      if (imgs && imgs.length > 0) {
-        setUploads(
-          imgs.map((im: any) => ({
-            id: im.id,
-            name: im.name,
-            size: im.fileSize || "1.2 MB",
-            type: "image/jpeg",
-            uri: im.dataUrl,
-            addedAt: im.createdAt || new Date().toISOString(),
-          }))
-        );
-      }
+      // Always replace uploads from DB (even empty = user deleted everything)
+      setUploads(
+        (imgs || []).map((im: any) => ({
+          id: im.id,
+          name: im.name,
+          size: im.fileSize || "1.2 MB",
+          type: im.name?.match(/\.(mp4|mov|webm|avi)$/i) ? "video/mp4"
+               : im.name?.match(/\.pdf$/i) ? "application/pdf"
+               : "image/jpeg",
+          // URI is lazy-loaded when user opens the file; store a placeholder for now
+          uri: im.dataUrl || `__lazy__${im.id}`,
+          addedAt: im.createdAt || new Date().toISOString(),
+        }))
+      );
     }).catch(() => {});
   }
   function handleLogout() {
@@ -1649,9 +1704,60 @@ export default function App() {
   }
 
   // Uploads & Files
-  function addUploadFiles(files: UploadFile[]) { setUploads(p => [...files, ...p]); }
-  function deleteUpload(id: string) { setUploads(p => p.filter(f => f.id !== id)); }
-  function renameUpload(id: string, name: string) { setUploads(p => p.map(f => f.id === id ? { ...f, name } : f)); }
+  async function addUploadFiles(files: UploadFile[]) {
+    // Optimistic update first
+    setUploads(p => [...files, ...p]);
+    // Persist each file to the database
+    for (const f of files) {
+      try {
+        let dataUrl: string | undefined = f.uri;
+        // If it's a blob URL (from file input), convert to base64 for persistence
+        if (f.uri && f.uri.startsWith('blob:') && (f as any).file) {
+          dataUrl = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.readAsDataURL((f as any).file);
+          });
+        }
+        const created = await api.createImage({
+          id: f.id,
+          name: f.name,
+          dataUrl,
+          fileSize: f.size,
+          source: 'upload',
+        });
+        // Replace temp URI with the persisted one so it survives reload
+        if (created?.id) {
+          setUploads(p => p.map(x => x.id === f.id ? { ...x, uri: dataUrl || x.uri } : x));
+        }
+      } catch (err) {
+        console.error('Failed to persist file to DB:', err);
+      }
+    }
+  }
+  function deleteUpload(id: string) {
+    // Optimistic UI update
+    setUploads(p => p.filter(f => f.id !== id));
+    // Persist deletion to database
+    api.deleteImage(id).catch((err) => {
+      console.error('Failed to delete file from DB:', err);
+      // If deletion fails, re-fetch from DB to restore accurate state
+      api.getImages().then((imgs) => {
+        setUploads((imgs || []).map((im: any) => ({
+          id: im.id, name: im.name,
+          size: im.fileSize || '1.2 MB',
+          type: im.name?.match(/\.(mp4|mov|webm|avi)$/i) ? 'video/mp4'
+               : im.name?.match(/\.pdf$/i) ? 'application/pdf' : 'image/jpeg',
+          uri: im.dataUrl || `__lazy__${im.id}`,
+          addedAt: im.createdAt || new Date().toISOString(),
+        })));
+      }).catch(() => {});
+    });
+  }
+  function renameUpload(id: string, name: string) {
+    setUploads(p => p.map(f => f.id === id ? { ...f, name } : f));
+    api.updateImage(id, { name }).catch((err) => console.error('Failed to rename file in DB:', err));
+  }
   function duplicateUpload(file: ExtFile) {
     const newFile = { ...file, id: `f-${Date.now()}`, name: `Copy of ${file.name}`, addedAt: new Date().toISOString(), isFavorite: false };
     setUploads(p => [newFile, ...p]);
@@ -1786,9 +1892,14 @@ export default function App() {
         />
       )}
 
+      {screen === "admin" && (
+        <AdminPanel />
+      )}
+
       {drawerOpen && (
         <AccountDrawer user={user} onLogout={handleLogout} onClose={() => setDrawerOpen(false)}
-          onUpdateAvatar={handleUpdateAvatar} darkMode={darkMode} toggleDark={() => setDarkMode(d => !d)} />
+          onUpdateAvatar={handleUpdateAvatar} darkMode={darkMode} toggleDark={() => setDarkMode(d => !d)}
+          onOpenAdmin={() => setScreen("admin")} />
       )}
 
       {installModalOpen && (

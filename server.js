@@ -415,6 +415,19 @@ async function startServer() {
             res.status(500).json({ success: false, error: 'Failed to fetch image' });
         }
     });
+    // Rename image
+    app.patch('/api/images/:id', verifyToken, async (req, res) => {
+        try {
+            const { name } = req.body;
+            if (!name) return res.status(400).json({ success: false, error: 'Name is required' });
+            const result = await query('UPDATE images SET name = $1 WHERE id = $2 AND user_id = $3 RETURNING *', [name, req.params.id, req.user.id]);
+            if (result.rowCount === 0) return res.status(404).json({ success: false, error: 'Image not found' });
+            res.json({ success: true, image: result.rows[0] });
+        } catch (err) {
+            console.error('Rename image error:', err);
+            res.status(500).json({ success: false, error: 'Failed to rename image' });
+        }
+    });
     // ============ LINKS ENDPOINTS ============
     // Get all links for user
     app.get('/api/links', verifyToken, async (req, res) => {
