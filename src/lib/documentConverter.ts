@@ -1,6 +1,7 @@
 import { PDFDocument } from "pdf-lib";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType } from "docx";
-import * as XLSX from "xlsx";
+import * as _XLSX from "xlsx";
+const XLSX = (_XLSX as any).default || _XLSX;
 
 /**
  * Converts array of image files or data URIs to a multi-page PDF blob & download URL.
