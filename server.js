@@ -803,6 +803,8 @@ async function startServer() {
                 if (fs.existsSync(indexPath)) {
                     let html = fs.readFileSync(indexPath, 'utf8');
                     html = html.replace('/manifest.json', '/admin-manifest.json')
+                               .replace('/apple-touch-icon.png', '/icons/icon-admin-192.svg')
+                               .replace('content="OWNLY"', 'content="OWNLY Admin"')
                                .replace('<title>OWNLY — Your Personal Knowledge Space</title>', '<title>OWNLY Admin</title>');
                     res.setHeader('Content-Type', 'text/html; charset=utf-8');
                     return res.send(html);
