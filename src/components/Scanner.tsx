@@ -91,6 +91,7 @@ export default function Scanner({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const directCameraInputRef = useRef<HTMLInputElement | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -121,20 +122,48 @@ export default function Scanner({
         setStream(null);
       }
 
-      try {
-        if (!navigator?.mediaDevices?.getUserMedia) {
-          setCameraError("Camera API not supported in this browser. Please use gallery upload.");
-          return;
-        }
+      // Check if mediaDevices exists or polyfill legacy
+      const getUM =
+        navigator?.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices) ||
+        (navigator as any)?.getUserMedia?.bind(navigator) ||
+        (navigator as any)?.webkitGetUserMedia?.bind(navigator) ||
+        (navigator as any)?.mozGetUserMedia?.bind(navigator);
 
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: targetFacing,
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          audio: false,
-        });
+      // Check secure context
+      const isSecure = window.isSecureContext || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+      if (!getUM || !isSecure) {
+        if (!isSecure) {
+          setCameraError(
+            "Live video stream requires HTTPS. On plain HTTP or local network IP, browsers block getUserMedia. Tap 'Take Photo' to use your device camera directly."
+          );
+        } else {
+          setCameraError(
+            "Live camera stream is not supported in this browser environment. Tap 'Take Photo' to open your camera."
+          );
+        }
+        return;
+      }
+
+      try {
+        let newStream: MediaStream;
+        try {
+          // Attempt ideal resolution
+          newStream = await getUM({
+            video: {
+              facingMode: { ideal: targetFacing },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+            },
+            audio: false,
+          });
+        } catch {
+          // Fallback to basic video constraint if ideal failed
+          newStream = await getUM({
+            video: true,
+            audio: false,
+          });
+        }
 
         setStream(newStream);
         setFacingMode(targetFacing);
@@ -149,8 +178,8 @@ export default function Scanner({
         setIsCameraActive(false);
         setCameraError(
           err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError"
-            ? "Camera permission denied. Please allow camera access in browser settings or choose from gallery."
-            : "Could not open camera stream. Choose photo from gallery or try again."
+            ? "Camera permission was denied. Tap 'Take Photo' or allow camera in browser address bar."
+            : "Could not initialize live stream. Tap 'Take Photo' below to snap a picture."
         );
       }
     },
@@ -446,30 +475,36 @@ export default function Scanner({
               <p style={{ margin: "0 0 20px", color: "rgba(255,255,255,0.7)", fontSize: 13, maxWidth: 300 }}>
                 {cameraError}
               </p>
-              <div style={{ display: "flex", gap: 12 }}>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
                 <button
-                  onClick={() => startCamera(facingMode)}
+                  onClick={() => directCameraInputRef.current?.click()}
                   style={{
-                    padding: "10px 18px",
-                    borderRadius: 12,
+                    padding: "12px 22px",
+                    borderRadius: 14,
                     background: "#e11d48",
                     color: "#fff",
                     border: "none",
-                    fontWeight: 700,
+                    fontWeight: 800,
+                    fontSize: 14,
                     cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    boxShadow: "0 6px 20px rgba(225,29,72,0.4)",
                   }}
                 >
-                  Retry Camera
+                  <Camera size={18} /> Take Photo Now
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   style={{
-                    padding: "10px 18px",
-                    borderRadius: 12,
+                    padding: "12px 20px",
+                    borderRadius: 14,
                     background: "rgba(255,255,255,0.15)",
                     color: "#fff",
                     border: "none",
                     fontWeight: 700,
+                    fontSize: 13,
                     cursor: "pointer",
                   }}
                 >
@@ -479,6 +514,16 @@ export default function Scanner({
             </div>
           )}
         </div>
+
+        {/* Hidden direct camera input (works on all devices, HTTP & HTTPS) */}
+        <input
+          ref={directCameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: "none" }}
+          onChange={handleGalleryUpload}
+        />
 
         {/* Bottom Shutter & Controls */}
         <div
@@ -525,8 +570,13 @@ export default function Scanner({
 
           {/* Large Shutter Button */}
           <button
-            onClick={handleShutterCapture}
-            disabled={!isCameraActive}
+            onClick={() => {
+              if (isCameraActive) {
+                handleShutterCapture();
+              } else {
+                directCameraInputRef.current?.click();
+              }
+            }}
             style={{
               width: 78,
               height: 78,
@@ -537,8 +587,7 @@ export default function Scanner({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              cursor: isCameraActive ? "pointer" : "default",
-              opacity: isCameraActive ? 1 : 0.4,
+              cursor: "pointer",
               transition: "transform 0.1s ease",
             }}
             title="Capture Document"
