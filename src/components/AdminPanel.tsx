@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Users, Trash2, Eye, LogOut, ShieldAlert, Shield, Database, Search,
   Mail, Calendar, Wifi, FileText, Image, Link, KeyRound,
-  CheckCircle2, XCircle, Lock, Bell, Clock, Check, X,
+  CheckCircle2, XCircle, Lock, Bell, Clock, Check, X, Download, Smartphone,
 } from 'lucide-react';
+import { AdminInstallModal } from './AdminInstallModal';
 
 interface AdminStats {
   totalUsers: number;
@@ -86,6 +87,39 @@ export function AdminPanel() {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [installModalOpen, setInstallModalOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Switch manifest to admin-manifest when viewing Admin
+    let link = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
+    if (link) {
+      link.href = '/admin-manifest.json';
+    }
+
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+      setIsStandalone(true);
+    }
+
+    const handlePrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handlePrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handlePrompt);
+  }, []);
+
+  const triggerInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') setIsStandalone(true);
+      setDeferredPrompt(null);
+    } else {
+      setInstallModalOpen(true);
+    }
+  };
 
   const token = localStorage.getItem('ownly_admin_token');
   const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -317,10 +351,26 @@ export function AdminPanel() {
             </button>
           </form>
           
-          <button onClick={() => window.location.href = '/'} className="w-full text-center text-sm text-zinc-500 hover:text-white mt-6 transition-colors flex items-center justify-center gap-2">
-            ← Switch to OWNLY User App
-          </button>
+          <div className="pt-3 border-t border-white/10 space-y-2">
+            <button
+              type="button"
+              onClick={triggerInstall}
+              className="w-full py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-[#d9ad52] border border-[#d9ad52]/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Download className="w-4 h-4 text-[#d9ad52]" />
+              Install Admin App on Phone / PC
+            </button>
+            <button onClick={() => window.location.href = '/'} className="w-full text-center text-xs text-zinc-500 hover:text-white py-1 transition-colors flex items-center justify-center gap-1.5">
+              ← Switch to OWNLY User App
+            </button>
+          </div>
         </motion.div>
+
+        <AdminInstallModal
+          isOpen={installModalOpen}
+          onClose={() => setInstallModalOpen(false)}
+          deferredPrompt={deferredPrompt}
+        />
       </div>
     );
   }
@@ -345,6 +395,14 @@ export function AdminPanel() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={triggerInstall}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#d9ad52]/10 hover:bg-[#d9ad52]/20 rounded-full text-xs font-bold text-[#d9ad52] border border-[#d9ad52]/30 transition-all cursor-pointer"
+              title="Install Admin App"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Install App</span>
+            </button>
             <button onClick={() => { localStorage.removeItem('ownly_admin_token'); window.location.href = '/'; }}
               className="flex items-center gap-2 px-4 py-2 bg-zinc-900 hover:bg-zinc-800 rounded-full text-sm font-semibold transition-all border border-zinc-800 text-zinc-300 hover:text-white"
             >
@@ -655,6 +713,12 @@ export function AdminPanel() {
           </>
         )}
       </div>
+
+      <AdminInstallModal
+        isOpen={installModalOpen}
+        onClose={() => setInstallModalOpen(false)}
+        deferredPrompt={deferredPrompt}
+      />
     </div>
   );
 }
