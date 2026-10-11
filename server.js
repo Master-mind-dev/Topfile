@@ -794,6 +794,20 @@ async function startServer() {
     else {
         const distPath = path.join(process.cwd(), 'dist');
         app.use(express.static(distPath));
+
+        // Dedicated /admin endpoint serving HTML with /admin-manifest.json pre-injected in HTML
+        app.get(['/admin', '/admin/*'], (req, res) => {
+            const indexPath = path.join(distPath, 'index.html');
+            if (fs.existsSync(indexPath)) {
+                let html = fs.readFileSync(indexPath, 'utf8');
+                html = html.replace('/manifest.json', '/admin-manifest.json')
+                           .replace('<title>OWNLY — Your Personal Knowledge Space</title>', '<title>OWNLY Admin</title>');
+                res.setHeader('Content-Type', 'text/html; charset=utf-8');
+                return res.send(html);
+            }
+            res.sendFile(indexPath);
+        });
+
         app.use((req, res) => {
             res.sendFile(path.join(distPath, 'index.html'));
         });
