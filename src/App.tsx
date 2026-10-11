@@ -11,6 +11,7 @@ import FileManager, { type ExtFile } from './components/FileManager';
 import ConnectedKnowledge from './components/ConnectedKnowledge';
 import { SmartConverter } from './components/SmartConverter';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
+import InstallAppModal from './components/InstallAppModal';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 type Screen = "login" | "dashboard" | "notes" | "note-editor" | "uploads" | "capture" | "converter" | "links" | "knowledge";
@@ -90,7 +91,7 @@ type IconName =
   "clock" | "file" | "flame" | "home" | "image" | "link" | "more" | "note" |
   "paperclip" | "plus" | "search" | "share" | "sparkle" | "upload" | "video" |
   "moon" | "sun" | "user" | "x" | "edit" | "trash" | "tag" | "bold" | "italic" |
-  "underline" | "list" | "quote" | "h1" | "h2" | "external" | "converter";
+  "underline" | "list" | "quote" | "h1" | "h2" | "external" | "converter" | "download";
 
 function Icon({ name, size = 20, sw = 1.8, className = "" }: {
   name: IconName; size?: number; sw?: number; className?: string;
@@ -133,6 +134,7 @@ function Icon({ name, size = 20, sw = 1.8, className = "" }: {
     h2: <><path d="M4 12h8M4 18V6M12 18V6M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1" /></>,
     external: <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></>,
     converter: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></>,
+    download: <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>,
   };
   return (
     <svg aria-hidden className={className} fill="none" height={size} viewBox="0 0 24 24"
@@ -144,11 +146,12 @@ function Icon({ name, size = 20, sw = 1.8, className = "" }: {
 
 // ─── APP HEADER ───────────────────────────────────────────────────────────────
 function AppHeader({
-  title, screen, onBack, onOpenAccount, onToggleDark, darkMode, user, rightExtra
+  title, screen, onBack, onOpenAccount, onToggleDark, darkMode, user, rightExtra, onOpenInstall
 }: {
   title: string; screen: Screen; onBack?: () => void;
   onOpenAccount: () => void; onToggleDark: () => void;
   darkMode: boolean; user: AppUser | null; rightExtra?: ReactNode;
+  onOpenInstall?: () => void;
 }) {
   const initials = user?.name ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?";
   const avatarBg = user?.avatarUrl ? "transparent" : "#9f1239";
@@ -181,8 +184,13 @@ function AppHeader({
         </span>
       </div>
 
-      {/* Right: user icon */}
+      {/* Right: user icon & install icon */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+        {onOpenInstall && (
+          <button onClick={onOpenInstall} aria-label="Download and install app" title="Download & Install App (Android / iOS)" style={{ ...iconBtnStyle, color: "#e11d48" }}>
+            <Icon name="download" size={20} />
+          </button>
+        )}
         {rightExtra}
         <button onClick={onOpenAccount} aria-label="Open account" style={{
           ...iconBtnStyle, width: 36, height: 36, borderRadius: "50%",
@@ -455,17 +463,40 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpe
             <p style={{ margin: 0, fontSize: 13, color: "var(--text-secondary)" }}>Ready for another focused session?</p>
           </div>
           
-          <button onClick={headerProps.onOpenAccount} aria-label="Open account" style={{
-            width: 44, height: 44, borderRadius: "50%", border: "none", cursor: "pointer",
-            background: headerProps.user?.avatarUrl ? "transparent" : "#9f1239", color: "#fff", 
-            fontWeight: 800, fontSize: 15, fontFamily: "Manrope, sans-serif", position: "relative",
-            boxShadow: "var(--shadow-card)", display: "flex", alignItems: "center", justifyContent: "center"
-          }} title="Profile">
-            {headerProps.user?.avatarUrl ? (
-              <img src={headerProps.user.avatarUrl} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} />
-            ) : (headerProps.user?.name ? headerProps.user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?")}
-            <span style={{ position: "absolute", right: 2, bottom: 2, width: 10, height: 10, borderRadius: "50%", background: "#4fe2d9", border: "2px solid #fff" }} />
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              onClick={headerProps.onOpenInstall}
+              aria-label="Download and install app"
+              title="Download & Install App (Android & iOS)"
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: "50%",
+                border: "1px solid var(--border-subtle)",
+                cursor: "pointer",
+                background: "var(--bg-card)",
+                color: "#e11d48",
+                boxShadow: "var(--shadow-card)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "transform 0.15s, background 0.2s"
+              }}
+            >
+              <Icon name="download" size={20} />
+            </button>
+            <button onClick={headerProps.onOpenAccount} aria-label="Open account" style={{
+              width: 44, height: 44, borderRadius: "50%", border: "none", cursor: "pointer",
+              background: headerProps.user?.avatarUrl ? "transparent" : "#9f1239", color: "#fff", 
+              fontWeight: 800, fontSize: 15, fontFamily: "Manrope, sans-serif", position: "relative",
+              boxShadow: "var(--shadow-card)", display: "flex", alignItems: "center", justifyContent: "center"
+            }} title="Profile">
+              {headerProps.user?.avatarUrl ? (
+                <img src={headerProps.user.avatarUrl} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover" }} />
+              ) : (headerProps.user?.name ? headerProps.user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?")}
+              <span style={{ position: "absolute", right: 2, bottom: 2, width: 10, height: 10, borderRadius: "50%", background: "#4fe2d9", border: "2px solid #fff" }} />
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -1354,6 +1385,7 @@ type HeaderProps = {
   onOpenAccount: () => void;
   onToggleDark: () => void;
   darkMode: boolean;
+  onOpenInstall?: () => void;
 };
 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
@@ -1367,6 +1399,7 @@ export default function App() {
   const [links, setLinks] = useState<SavedLink[]>(() => load<SavedLink[]>(KEYS.links, []) || []);
   const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem("ownly_dark_mode") === "true");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [installModalOpen, setInstallModalOpen] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(!hasToken);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 
@@ -1642,7 +1675,8 @@ export default function App() {
     user,
     onOpenAccount: () => setDrawerOpen(true),
     onToggleDark: () => setDarkMode(d => !d),
-    darkMode
+    darkMode,
+    onOpenInstall: () => setInstallModalOpen(true),
   };
 
   const activeNote = notes.find(n => n.id === activeNoteId);
@@ -1755,6 +1789,10 @@ export default function App() {
       {drawerOpen && (
         <AccountDrawer user={user} onLogout={handleLogout} onClose={() => setDrawerOpen(false)}
           onUpdateAvatar={handleUpdateAvatar} darkMode={darkMode} toggleDark={() => setDarkMode(d => !d)} />
+      )}
+
+      {installModalOpen && (
+        <InstallAppModal isOpen={installModalOpen} onClose={() => setInstallModalOpen(false)} />
       )}
     </>
   );
