@@ -25,15 +25,13 @@ interface ResetRequest {
 
 export function OwnlyAdminLogo({ size = 48 }: { size?: number }) {
   return (
-    <div className="relative inline-flex items-center justify-center">
-      <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="OWNLY Admin">
-        <rect x="2" y="2" width="44" height="44" rx="14" fill="#111111" stroke="#d9ad52" strokeWidth="1.5" />
-        <rect x="9" y="9" width="30" height="30" rx="8" fill="white" opacity="0.95" />
-        <path d="M24 13 L18 20 L24 27 L30 20 Z" fill="#9f1239" />
-        <rect x="22" y="27" width="4" height="9" rx="2" fill="#9f1239" />
-        <rect x="2" y="2" width="44" height="6" rx="14" fill="white" opacity="0.08" />
-      </svg>
-      <div className="absolute -bottom-1 -right-1 bg-[#d9ad52] text-[#20140b] p-1 rounded-full shadow-lg border-2 border-black flex items-center justify-center">
+    <div className="relative inline-flex items-center justify-center select-none" style={{ width: size, height: size }}>
+      <img
+        src="/icons/icon-192.svg"
+        alt="OWNLY Admin"
+        className="w-full h-full object-contain rounded-2xl drop-shadow-md"
+      />
+      <div className="absolute -bottom-1 -right-1 bg-[#d9ad52] text-[#111] p-1 rounded-full shadow-lg border-2 border-black flex items-center justify-center">
         <Shield className="w-3 h-3 fill-current" />
       </div>
     </div>
