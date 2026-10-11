@@ -1,8 +1,10 @@
 {
+  "id": "ownly-workspace-user-app",
   "name": "Ownly Workspace",
   "short_name": "Ownly",
   "description": "Your personal workspace — Notes, Uploads, Links & Camera",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",

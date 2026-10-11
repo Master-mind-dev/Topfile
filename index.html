@@ -10,7 +10,19 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="OWNLY" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.json" />
+    <link id="app-manifest" rel="manifest" href="/manifest.json" />
+    <script>
+      (function() {
+        var p = window.location.pathname.toLowerCase();
+        var h = window.location.hash.toLowerCase();
+        var s = window.location.search.toLowerCase();
+        if (p.startsWith('/admin') || h === '#admin' || s.indexOf('admin') !== -1) {
+          var m = document.getElementById('app-manifest');
+          if (m) m.href = '/admin-manifest.json';
+          document.title = 'OWNLY Admin';
+        }
+      })();
+    </script>
 
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/favicon.png" />
