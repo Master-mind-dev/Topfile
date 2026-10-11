@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f0f14" />
+      <stop offset="100%" stop-color="#1f0810" />
+    </linearGradient>
+    <linearGradient id="gemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb7185" />
+      <stop offset="50%" stop-color="#e11d48" />
+      <stop offset="100%" stop-color="#9f1239" />
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="10.56" fill="url(#bgGrad)" />
+  <rect x="7.68" y="7.68" width="32.64" height="32.64" rx="7.68" fill="#ffffff" opacity="0.06" />
+  <path d="M 24 10.56 L 14.399999999999999 21.12 L 24 31.68 L 33.599999999999994 21.12 Z" fill="url(#gemGrad)" />
+  <rect x="22.080000000000002" y="31.68" width="3.84" height="7.68" rx="1.92" fill="url(#gemGrad)" />
+  <text x="24" y="44.160000000000004" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="4.32" fill="#ffffff" letter-spacing="0.72" text-anchor="middle">OWNLY</text>
+</svg>
