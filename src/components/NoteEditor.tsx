@@ -584,7 +584,8 @@ export default function NoteEditor({
         position: "fixed",
         inset: 0,
         zIndex: 250,
-        background: "var(--bg-main, #0f0f13)",
+        background: "var(--bg-page, #ffffff)",
+        color: "var(--text-primary, #0f172a)",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -598,8 +599,8 @@ export default function NoteEditor({
           alignItems: "center",
           justifyContent: "space-between",
           padding: "12px 18px",
-          borderBottom: "1px solid var(--border-color, rgba(255,255,255,0.08))",
-          background: "var(--bg-nav, rgba(15,15,19,0.92))",
+          borderBottom: "1px solid var(--border-color, rgba(0,0,0,0.08))",
+          background: "var(--bg-header, rgba(255,255,255,0.95))",
           backdropFilter: "blur(14px)",
           flexShrink: 0,
         }}
@@ -610,7 +611,7 @@ export default function NoteEditor({
             style={{
               background: "none",
               border: "none",
-              color: "var(--text-primary, #fff)",
+              color: "var(--text-primary, #0f172a)",
               cursor: "pointer",
               padding: 6,
               display: "flex",
@@ -691,8 +692,8 @@ export default function NoteEditor({
           alignItems: "center",
           gap: 6,
           padding: "8px 16px",
-          borderBottom: "1px solid var(--border-color, rgba(255,255,255,0.08))",
-          background: "var(--bg-card, rgba(25,25,32,0.85))",
+          borderBottom: "1px solid var(--border-color, rgba(0,0,0,0.08))",
+          background: "var(--bg-card, #ffffff)",
           overflowX: "auto",
           scrollbarWidth: "none",
           flexShrink: 0,
@@ -700,25 +701,25 @@ export default function NoteEditor({
       >
         <TBtn d={IC.undo} onMD={(e) => { e.preventDefault(); exec("undo"); }} title="Undo" />
         <TBtn d={IC.redo} onMD={(e) => { e.preventDefault(); exec("redo"); }} title="Redo" />
-        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.12)", margin: "0 2px" }} />
+        <div style={{ width: 1, height: 20, background: "var(--border-color, rgba(0,0,0,0.1))", margin: "0 2px" }} />
 
         <TBtn label="H1" onMD={(e) => { e.preventDefault(); exec("formatBlock", "h1"); }} title="Heading 1" />
         <TBtn label="H2" onMD={(e) => { e.preventDefault(); exec("formatBlock", "h2"); }} title="Heading 2" />
         <TBtn label="P" onMD={(e) => { e.preventDefault(); exec("formatBlock", "p"); }} title="Paragraph" />
-        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.12)", margin: "0 2px" }} />
+        <div style={{ width: 1, height: 20, background: "var(--border-color, rgba(0,0,0,0.1))", margin: "0 2px" }} />
 
         <TBtn d={IC.bold} active={fmts.bold} onMD={(e) => { e.preventDefault(); exec("bold"); }} title="Bold" />
         <TBtn d={IC.italic} active={fmts.italic} onMD={(e) => { e.preventDefault(); exec("italic"); }} title="Italic" />
         <TBtn d={IC.under} active={fmts.underline} onMD={(e) => { e.preventDefault(); exec("underline"); }} title="Underline" />
         <TBtn d={IC.strike} active={fmts.strike} onMD={(e) => { e.preventDefault(); exec("strikeThrough"); }} title="Strikethrough" />
-        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.12)", margin: "0 2px" }} />
+        <div style={{ width: 1, height: 20, background: "var(--border-color, rgba(0,0,0,0.1))", margin: "0 2px" }} />
 
         <TBtn d={IC.ul} onMD={(e) => { e.preventDefault(); exec("insertUnorderedList"); }} title="Bullet list" />
         <TBtn d={IC.ol} onMD={(e) => { e.preventDefault(); exec("insertOrderedList"); }} title="Numbered list" />
         <TBtn d={IC.check} onMD={(e) => { e.preventDefault(); exec("insertChecklist"); }} title="To-do checklist" />
         <TBtn d={IC.quote} onMD={(e) => { e.preventDefault(); exec("formatBlock", "blockquote"); }} title="Quote" />
         <TBtn d={IC.link} onMD={(e) => { e.preventDefault(); saveCaretSelection(); setShowLink(true); }} title="Add link" />
-        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.12)", margin: "0 2px" }} />
+        <div style={{ width: 1, height: 20, background: "var(--border-color, rgba(0,0,0,0.1))", margin: "0 2px" }} />
 
         {/* Inline Photo Insert button */}
         <label
@@ -727,10 +728,10 @@ export default function NoteEditor({
             minWidth: 34,
             height: 34,
             padding: "0 10px",
-            border: "1px solid rgba(16,185,129,0.3)",
+            border: "1px solid rgba(16,185,129,0.35)",
             borderRadius: 9,
             background: "rgba(16,185,129,0.12)",
-            color: "#34d399",
+            color: "#059669",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
@@ -762,12 +763,12 @@ export default function NoteEditor({
             top: imgToolbarPos.top,
             left: imgToolbarPos.left,
             zIndex: 400,
-            background: "rgba(18,18,24,0.95)",
+            background: "var(--bg-card, #1e1e24)",
             backdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.2)",
+            border: "1px solid var(--border-color, rgba(0,0,0,0.15))",
             borderRadius: 14,
             padding: "4px 8px",
-            boxShadow: "0 12px 36px rgba(0,0,0,0.6)",
+            boxShadow: "0 12px 36px rgba(0,0,0,0.25)",
             display: "flex",
             alignItems: "center",
             gap: 6,
@@ -775,44 +776,44 @@ export default function NoteEditor({
         >
           <button
             onClick={() => handleResize("35%")}
-            style={{ background: "none", border: "none", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 6px", cursor: "pointer" }}
+            style={{ background: "none", border: "none", color: "var(--text-primary, inherit)", fontSize: 11, fontWeight: 700, padding: "4px 6px", cursor: "pointer" }}
             title="Small"
           >
             25%
           </button>
           <button
             onClick={() => handleResize("60%")}
-            style={{ background: "none", border: "none", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 6px", cursor: "pointer" }}
+            style={{ background: "none", border: "none", color: "var(--text-primary, inherit)", fontSize: 11, fontWeight: 700, padding: "4px 6px", cursor: "pointer" }}
             title="Medium"
           >
             50%
           </button>
           <button
             onClick={() => handleResize("100%")}
-            style={{ background: "none", border: "none", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 6px", cursor: "pointer" }}
+            style={{ background: "none", border: "none", color: "var(--text-primary, inherit)", fontSize: 11, fontWeight: 700, padding: "4px 6px", cursor: "pointer" }}
             title="Full width"
           >
             100%
           </button>
 
-          <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.2)" }} />
+          <div style={{ width: 1, height: 16, background: "var(--border-color, rgba(0,0,0,0.15))" }} />
 
-          <button onClick={handleMoveUp} style={{ background: "none", border: "none", color: "#fff", padding: 4, cursor: "pointer" }} title="Move up">
+          <button onClick={handleMoveUp} style={{ background: "none", border: "none", color: "var(--text-primary, inherit)", padding: 4, cursor: "pointer" }} title="Move up">
             <Ic d={IC.up} size={15} />
           </button>
-          <button onClick={handleMoveDown} style={{ background: "none", border: "none", color: "#fff", padding: 4, cursor: "pointer" }} title="Move down">
+          <button onClick={handleMoveDown} style={{ background: "none", border: "none", color: "var(--text-primary, inherit)", padding: 4, cursor: "pointer" }} title="Move down">
             <Ic d={IC.down} size={15} />
           </button>
-          <button onClick={handleDuplicate} style={{ background: "none", border: "none", color: "#fff", padding: 4, cursor: "pointer" }} title="Duplicate">
+          <button onClick={handleDuplicate} style={{ background: "none", border: "none", color: "var(--text-primary, inherit)", padding: 4, cursor: "pointer" }} title="Duplicate">
             <Ic d={IC.copy} size={15} />
           </button>
-          <button onClick={handleReplaceClick} style={{ background: "none", border: "none", color: "#38bdf8", padding: 4, cursor: "pointer" }} title="Replace image">
+          <button onClick={handleReplaceClick} style={{ background: "none", border: "none", color: "#0284c7", padding: 4, cursor: "pointer" }} title="Replace image">
             <Ic d={IC.replace} size={15} />
           </button>
-          <button onClick={handleOCRFromSelected} style={{ background: "none", border: "none", color: "#fbbf24", padding: 4, cursor: "pointer" }} title="Extract text (OCR)">
+          <button onClick={handleOCRFromSelected} style={{ background: "none", border: "none", color: "#d97706", padding: 4, cursor: "pointer" }} title="Extract text (OCR)">
             <Ic d={IC.ocr} size={15} />
           </button>
-          <button onClick={handleDeleteImage} style={{ background: "none", border: "none", color: "#f43f5e", padding: 4, cursor: "pointer" }} title="Delete">
+          <button onClick={handleDeleteImage} style={{ background: "none", border: "none", color: "#e11d48", padding: 4, cursor: "pointer" }} title="Delete">
             <Ic d={IC.trash} size={15} />
           </button>
         </div>
@@ -853,7 +854,7 @@ export default function NoteEditor({
             fontSize: "clamp(24px, 4vw, 34px)",
             fontWeight: 800,
             fontFamily: "Manrope, sans-serif",
-            color: "var(--text-primary, #ffffff)",
+            color: "var(--text-primary, #0f172a)",
             marginBottom: 14,
             padding: 0,
           }}
@@ -869,7 +870,7 @@ export default function NoteEditor({
                 alignItems: "center",
                 gap: 5,
                 background: "rgba(225,29,72,0.12)",
-                color: "#fb7185",
+                color: "#be123c",
                 borderRadius: 20,
                 padding: "3px 10px",
                 fontSize: 11,
@@ -894,7 +895,7 @@ export default function NoteEditor({
               background: "transparent",
               border: "none",
               outline: "none",
-              color: "var(--text-secondary, rgba(255,255,255,0.5))",
+              color: "var(--text-secondary, #334155)",
               fontSize: 12,
               width: 80,
             }}
@@ -920,7 +921,7 @@ export default function NoteEditor({
             outline: "none",
             fontSize: 16,
             lineHeight: 1.7,
-            color: "var(--text-primary, #ffffff)",
+            color: "var(--text-primary, #0f172a)",
             wordBreak: "break-word",
           }}
         />
@@ -1008,41 +1009,64 @@ export default function NoteEditor({
 
       {/* ─ STYLES ─ */}
       <style>{`
+        .samsung-note-content {
+          color: var(--text-primary, #0f172a) !important;
+        }
+        html.dark-mode .samsung-note-content {
+          color: #ffffff !important;
+        }
         .samsung-note-content:empty:before {
           content: attr(data-ph);
-          color: rgba(255,255,255,0.25);
+          color: var(--text-muted, #64748b) !important;
           pointer-events: none;
+        }
+        html.dark-mode .samsung-note-content:empty:before {
+          color: #9ca3af !important;
         }
         .samsung-note-content h1 {
           font-size: 26px;
           font-weight: 800;
           margin: 1.2em 0 0.4em;
           font-family: Manrope, sans-serif;
+          color: var(--text-primary, #0f172a);
+        }
+        html.dark-mode .samsung-note-content h1 {
+          color: #ffffff;
         }
         .samsung-note-content h2 {
           font-size: 21px;
           font-weight: 700;
           margin: 1em 0 0.3em;
           font-family: Manrope, sans-serif;
+          color: var(--text-primary, #0f172a);
+        }
+        html.dark-mode .samsung-note-content h2 {
+          color: #ffffff;
         }
         .samsung-note-content p {
           margin: 0.5em 0;
           min-height: 1.2em;
+          color: inherit;
         }
         .samsung-note-content blockquote {
           border-left: 3px solid #e11d48;
           padding-left: 14px;
           margin: 1em 0;
-          color: rgba(255,255,255,0.7);
+          color: var(--text-secondary, #334155);
           font-style: italic;
+        }
+        html.dark-mode .samsung-note-content blockquote {
+          color: #d1d5db;
         }
         .samsung-note-content ul {
           padding-left: 24px;
           margin: 0.5em 0;
+          color: inherit;
         }
         .samsung-note-content ol {
           padding-left: 24px;
           margin: 0.5em 0;
+          color: inherit;
         }
         .samsung-note-img:hover {
           outline: 2px solid #e11d48;

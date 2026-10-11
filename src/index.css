@@ -6,21 +6,21 @@
    ══════════════════════════════════════════════════════ */
 
 :root {
-  --bg-page:   #f7f6f3;
+  --bg-page:   #ffffff;
   --bg-card:   #ffffff;
-  --bg-header: rgba(255, 255, 255, 0.96);
-  --bg-nav:    rgba(255, 255, 255, 0.97);
-  --bg-input:  #ffffff;
-  --bg-chip:   #f3eee8;
-  --note-bg:   #fcfbf9;
+  --bg-header: rgba(255, 255, 255, 0.98);
+  --bg-nav:    rgba(255, 255, 255, 0.98);
+  --bg-input:  #f8f9fa;
+  --bg-chip:   #f1f3f5;
+  --note-bg:   #ffffff;
 
-  --text-primary:   #19161b;
-  --text-secondary: #6e6770;
-  --text-muted:     #9c9498;
+  --text-primary:   #0f172a;
+  --text-secondary: #334155;
+  --text-muted:     #64748b;
 
-  --border-color:  #eee8dd;
-  --border-subtle: rgba(60, 50, 54, 0.08);
-  --shadow-card:   0 3px 12px rgba(40, 30, 34, 0.05);
+  --border-color:  #e2e8f0;
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --shadow-card:   0 3px 12px rgba(0, 0, 0, 0.06);
 
   --accent: #9f1239;
 
@@ -32,21 +32,21 @@
 
 /* ── DARK MODE ─────────────────────────────────────── */
 html.dark-mode {
-  --bg-page:   #0d0d11;
-  --bg-card:   #18181f;
-  --bg-header: rgba(13, 13, 17, 0.96);
-  --bg-nav:    rgba(13, 13, 17, 0.97);
-  --bg-input:  #22222c;
-  --bg-chip:   #22222c;
-  --note-bg:   #111116;
+  --bg-page:   #09090b;
+  --bg-card:   #121217;
+  --bg-header: rgba(9, 9, 11, 0.96);
+  --bg-nav:    rgba(9, 9, 11, 0.97);
+  --bg-input:  #18181f;
+  --bg-chip:   #1f1f28;
+  --note-bg:   #0d0d12;
 
-  --text-primary:   #f5f0f8;
-  --text-secondary: #a39ca8;
-  --text-muted:     #6b6572;
+  --text-primary:   #ffffff;
+  --text-secondary: #d1d5db;
+  --text-muted:     #9ca3af;
 
-  --border-color:  #2a2736;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --shadow-card:   0 4px 18px rgba(0, 0, 0, 0.45);
+  --border-color:  #27272a;
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --shadow-card:   0 4px 18px rgba(0, 0, 0, 0.6);
 
   color-scheme: dark;
 }
