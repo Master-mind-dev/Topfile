@@ -1512,16 +1512,16 @@ export default function App() {
         }
       }).catch(() => {});
       api.getImages().then(imgs => {
-        if (imgs && imgs.length > 0) {
-          setUploads(imgs.map((im: any) => ({
-            id: im.id,
-            name: im.name,
-            size: im.fileSize || "1.2 MB",
-            type: "image/jpeg",
-            uri: im.dataUrl,
-            addedAt: im.createdAt || new Date().toISOString(),
-          })));
-        }
+        // Always replace (even empty = user deleted everything on another device)
+        setUploads((imgs || []).map((im: any) => ({
+          id: im.id,
+          name: im.name,
+          size: im.fileSize || '1.2 MB',
+          type: im.name?.match(/\.(mp4|mov|webm|avi)$/i) ? 'video/mp4'
+               : im.name?.match(/\.pdf$/i) ? 'application/pdf' : 'image/jpeg',
+          uri: im.dataUrl || `__lazy__${im.id}`,
+          addedAt: im.createdAt || new Date().toISOString(),
+        })));
       }).catch(() => {});
     }
     setCheckingAuth(false);
@@ -1893,13 +1893,26 @@ export default function App() {
       )}
 
       {screen === "admin" && (
-        <AdminPanel />
+        <div style={{ position: 'fixed', inset: 0, zIndex: 300, overflowY: 'auto' }}>
+          <button
+            onClick={() => setScreen('dashboard')}
+            style={{
+              position: 'fixed', top: 16, left: 16, zIndex: 310,
+              background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: 50,
+              width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: '#fff', backdropFilter: 'blur(8px)'
+            }}
+          >
+            <Icon name="arrow-left" size={20} />
+          </button>
+          <AdminPanel />
+        </div>
       )}
 
       {drawerOpen && (
         <AccountDrawer user={user} onLogout={handleLogout} onClose={() => setDrawerOpen(false)}
           onUpdateAvatar={handleUpdateAvatar} darkMode={darkMode} toggleDark={() => setDarkMode(d => !d)}
-          onOpenAdmin={() => setScreen("admin")} />
+        onOpenAdmin={user?.isAdmin ? () => setScreen("admin") : undefined} />
       )}
 
       {installModalOpen && (
