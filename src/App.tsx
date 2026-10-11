@@ -10,6 +10,7 @@ import FileViewer, { type ViewableFile } from './components/FileViewer';
 import FileManager, { type ExtFile } from './components/FileManager';
 import ConnectedKnowledge from './components/ConnectedKnowledge';
 import { SmartConverter } from './components/SmartConverter';
+import { useRealtimeSync } from './hooks/useRealtimeSync';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 type Screen = "login" | "dashboard" | "notes" | "note-editor" | "uploads" | "capture" | "converter" | "links" | "knowledge";
@@ -1399,14 +1400,177 @@ export default function App() {
     if (token) {
       // Already on dashboard (from initial state). Silently refresh in background.
       api.getUserProfile().then(p => { if (p) setUser({ name: p.name, email: p.email, plan: p.plan }); }).catch(() => {});
-      api.getNotes().then(n => { if (n?.length) setNotes(n); }).catch(() => {});
-      api.getLinks().then(l => { if (l?.length) setLinks(l); }).catch(() => {});
+      api.getNotes().then(n => {
+        if (n && n.length > 0) {
+          setNotes(n.map((x: any) => ({
+            id: x.id,
+            title: x.title,
+            tags: [x.category || "General"],
+            blocks: typeof x.content === "string" && x.content.startsWith("[")
+              ? JSON.parse(x.content)
+              : [{ id: "b1", type: "text", html: x.content || "" }],
+            createdAt: x.createdAt || new Date().toISOString(),
+            updatedAt: x.updatedAt || new Date().toISOString(),
+          })));
+        }
+      }).catch(() => {});
+      api.getLinks().then(l => {
+        if (l && l.length > 0) {
+          setLinks(l.map((x: any) => ({
+            id: x.id,
+            url: x.url,
+            title: x.title,
+            description: x.description,
+            addedAt: x.createdAt || new Date().toISOString(),
+          })));
+        }
+      }).catch(() => {});
+      api.getImages().then(imgs => {
+        if (imgs && imgs.length > 0) {
+          setUploads(imgs.map((im: any) => ({
+            id: im.id,
+            name: im.name,
+            size: im.fileSize || "1.2 MB",
+            type: "image/jpeg",
+            uri: im.dataUrl,
+            addedAt: im.createdAt || new Date().toISOString(),
+          })));
+        }
+      }).catch(() => {});
     }
     setCheckingAuth(false);
   }, []);
 
+  // Multi-Device WebSocket Realtime Synchronization
+  useRealtimeSync(hasToken || !!user, {
+    onNoteCreated: (n) => {
+      setNotes((prev) => {
+        if (prev.some((x) => x.id === n.id)) return prev;
+        return [
+          {
+            id: n.id,
+            title: n.title,
+            tags: [n.category || "General"],
+            blocks: typeof n.content === "string" && n.content.startsWith("[")
+              ? JSON.parse(n.content)
+              : [{ id: "b1", type: "text", html: n.content || "" }],
+            createdAt: n.createdAt,
+            updatedAt: n.updatedAt,
+          },
+          ...prev,
+        ];
+      });
+    },
+    onNoteUpdated: (n) => {
+      setNotes((prev) =>
+        prev.map((x) =>
+          x.id === n.id
+            ? {
+                ...x,
+                title: n.title,
+                tags: [n.category || "General"],
+                blocks: typeof n.content === "string" && n.content.startsWith("[")
+                  ? JSON.parse(n.content)
+                  : [{ id: "b1", type: "text", html: n.content || "" }],
+                updatedAt: n.updatedAt,
+              }
+            : x
+        )
+      );
+    },
+    onNoteDeleted: (id) => {
+      setNotes((prev) => prev.filter((x) => x.id !== id));
+    },
+    onImageCreated: (im) => {
+      setUploads((prev) => {
+        if (prev.some((x) => x.id === im.id)) return prev;
+        return [
+          {
+            id: im.id,
+            name: im.name,
+            size: im.fileSize || "1.2 MB",
+            type: "image/jpeg",
+            uri: im.dataUrl,
+            addedAt: im.createdAt,
+          },
+          ...prev,
+        ];
+      });
+    },
+    onImageDeleted: (id) => {
+      setUploads((prev) => prev.filter((x) => x.id !== id));
+    },
+    onLinkCreated: (l) => {
+      setLinks((prev) => {
+        if (prev.some((x) => x.id === l.id)) return prev;
+        return [
+          {
+            id: l.id,
+            url: l.url,
+            title: l.title,
+            description: l.description,
+            addedAt: l.createdAt,
+          },
+          ...prev,
+        ];
+      });
+    },
+    onLinkDeleted: (id) => {
+      setLinks((prev) => prev.filter((x) => x.id !== id));
+    },
+    onProfileUpdated: (p) => {
+      setUser((prev) => (prev ? { ...prev, name: p.name, email: p.email, plan: p.plan } : prev));
+    },
+  });
+
   function handleLogin(u: AppUser) {
-    setUser(u); save(KEYS.user, u); setScreen("dashboard");
+    setUser(u);
+    save(KEYS.user, u);
+    setScreen("dashboard");
+    // Refresh all data from database for this account
+    api.getNotes().then((n) => {
+      if (n && n.length > 0) {
+        setNotes(
+          n.map((x: any) => ({
+            id: x.id,
+            title: x.title,
+            tags: [x.category || "General"],
+            blocks: typeof x.content === "string" && x.content.startsWith("[")
+              ? JSON.parse(x.content)
+              : [{ id: "b1", type: "text", html: x.content || "" }],
+            createdAt: x.createdAt || new Date().toISOString(),
+            updatedAt: x.updatedAt || new Date().toISOString(),
+          }))
+        );
+      }
+    }).catch(() => {});
+    api.getLinks().then((l) => {
+      if (l && l.length > 0) {
+        setLinks(
+          l.map((x: any) => ({
+            id: x.id,
+            url: x.url,
+            title: x.title,
+            description: x.description,
+            addedAt: x.createdAt || new Date().toISOString(),
+          }))
+        );
+      }
+    }).catch(() => {});
+    api.getImages().then((imgs) => {
+      if (imgs && imgs.length > 0) {
+        setUploads(
+          imgs.map((im: any) => ({
+            id: im.id,
+            name: im.name,
+            size: im.fileSize || "1.2 MB",
+            type: "image/jpeg",
+            uri: im.dataUrl,
+            addedAt: im.createdAt || new Date().toISOString(),
+          }))
+        );
+      }
+    }).catch(() => {});
   }
   function handleLogout() {
     api.logout(); localStorage.clear(); setUser(null); setScreen("login"); setDrawerOpen(false);
