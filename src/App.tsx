@@ -9,9 +9,10 @@ import Scanner, { type ScannedPage } from './components/Scanner';
 import FileViewer, { type ViewableFile } from './components/FileViewer';
 import FileManager, { type ExtFile } from './components/FileManager';
 import ConnectedKnowledge from './components/ConnectedKnowledge';
+import { SmartConverter } from './components/SmartConverter';
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
-type Screen = "login" | "dashboard" | "notes" | "note-editor" | "uploads" | "capture" | "links" | "knowledge";
+type Screen = "login" | "dashboard" | "notes" | "note-editor" | "uploads" | "capture" | "converter" | "links" | "knowledge";
 
 interface NoteBlock {
   id: string;
@@ -88,7 +89,7 @@ type IconName =
   "clock" | "file" | "flame" | "home" | "image" | "link" | "more" | "note" |
   "paperclip" | "plus" | "search" | "share" | "sparkle" | "upload" | "video" |
   "moon" | "sun" | "user" | "x" | "edit" | "trash" | "tag" | "bold" | "italic" |
-  "underline" | "list" | "quote" | "h1" | "h2" | "external";
+  "underline" | "list" | "quote" | "h1" | "h2" | "external" | "converter";
 
 function Icon({ name, size = 20, sw = 1.8, className = "" }: {
   name: IconName; size?: number; sw?: number; className?: string;
@@ -130,6 +131,7 @@ function Icon({ name, size = 20, sw = 1.8, className = "" }: {
     h1: <><path d="M4 12h8M4 18V6M12 18V6M17 12l3-2v8" /></>,
     h2: <><path d="M4 12h8M4 18V6M12 18V6M21 18h-4c0-4 4-3 4-6 0-1.5-2-2.5-4-1" /></>,
     external: <><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></>,
+    converter: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></>,
   };
   return (
     <svg aria-hidden className={className} fill="none" height={size} viewBox="0 0 24 24"
@@ -501,15 +503,16 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpe
               <Icon name="flame" size={14} />{(notes?.length || 0) + (uploads?.length || 0) + (links?.length || 0)} items
             </span>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 8 }}>
             {[
               { l: "New note", i: "plus" as IconName, c: "cyan", s: "notes" as Screen },
               { l: "Upload", i: "upload" as IconName, c: "purple", s: "uploads" as Screen },
               { l: "Scan", i: "camera" as IconName, c: "green", s: "capture" as Screen },
+              { l: "Convert", i: "converter" as IconName, c: "rose", s: "converter" as Screen },
               { l: "Add link", i: "link" as IconName, c: "orange", s: "links" as Screen },
             ].map(a => (
               <button key={a.l} onClick={() => onNavigate(a.s)} style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "12px 3px 10px",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: 7, padding: "12px 2px 10px",
                 border: "1px solid var(--border-subtle)", borderRadius: 15, background: "var(--bg-card)",
                 fontSize: 9, fontWeight: 700, fontFamily: "Manrope,sans-serif", cursor: "pointer",
                 transition: "transform 0.15s, box-shadow 0.15s, background 0.2s", color: "var(--text-primary)"
@@ -1543,6 +1546,34 @@ export default function App() {
             setScreen("uploads");
           }} />
         </div>
+      )}
+      {screen === "converter" && (
+        <SmartConverter
+          onBack={() => setScreen("dashboard")}
+          onSaveToFiles={(doc) => {
+            const newFile: UploadFile = {
+              id: doc.id,
+              name: doc.name,
+              size: doc.size,
+              type: doc.type,
+              uri: doc.uri,
+              addedAt: doc.addedAt,
+            };
+            addUploadFiles([newFile]);
+          }}
+          onSaveToNotes={(text, title) => {
+            const id = `n-${Date.now()}`;
+            const newNote: Note = {
+              id,
+              title: title || "Converted Document",
+              tags: ["Converted"],
+              blocks: [{ id: "b1", type: "text", html: `<p>${text.replace(/\n/g, "<br>")}</p>` }],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            };
+            setNotes((prev) => [newNote, ...prev]);
+          }}
+        />
       )}
       {screen === "links" && (
         <LinksScreen onNavigate={setScreen} headerProps={headerProps} links={links}
