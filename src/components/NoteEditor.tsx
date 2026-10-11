@@ -1,23 +1,45 @@
-import { useState, useRef, useEffect, useCallback, ChangeEvent, KeyboardEvent } from "react";
+import React, { useState, useRef, useEffect, useCallback, ChangeEvent, KeyboardEvent } from "react";
 
 // ── TYPES ──────────────────────────────────────────────────────────────────────
 export interface NoteAttachment {
-  id: string; name: string; type: string; size: string; uri: string; addedAt: string;
+  id: string;
+  name: string;
+  type: string;
+  size: string;
+  uri: string;
+  addedAt: string;
 }
+
 export interface NoteBlock {
-  id: string; type: "text" | "image" | "video" | "attachment";
-  html?: string; src?: string; attachment?: NoteAttachment;
+  id: string;
+  type: "text" | "image" | "video" | "attachment";
+  html?: string;
+  src?: string;
+  attachment?: NoteAttachment;
 }
+
 export interface Note {
-  id: string; title: string; tags: string[]; blocks: NoteBlock[];
-  createdAt: string; updatedAt: string;
+  id: string;
+  title: string;
+  tags: string[];
+  blocks: NoteBlock[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 // ── TINY SVG ICON ─────────────────────────────────────────────────────────────
 function Ic({ d, size = 18, sw = 1.8 }: { d: string; size?: number; sw?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={sw}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d={d} />
     </svg>
   );
@@ -29,67 +51,75 @@ const IC = {
   italic: "M19 4h-9M14 20H5M15 4 9 20",
   under: "M6 3v7a6 6 0 0 0 12 0V3M4 21h16",
   strike: "M18 6C18 3.8 16.2 2 14 2h-1.5a3.5 3.5 0 0 0 0 7h3a3.5 3.5 0 0 1 0 7H10c-2.2 0-4-1.8-4-4M5 12h14",
+  h1: "M4 12h8M4 6v12M12 6v12M17 12l3-3v9",
+  h2: "M4 12h8M4 6v12M12 6v12M21 18h-4c0-4 4-3 4-6 0-1.5-1-2.5-2.5-2.5S16 8.5 16 10",
   ul: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
   ol: "M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2",
   check: "M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",
   quote: "M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z",
-  code: "M16 18l6-6-6-6M8 6l-6 6 6 6",
   link: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71",
-  aL: "M3 6h18M3 12h12M3 18h18",
-  aC: "M3 6h18M6 12h12M3 18h18",
-  aR: "M3 6h18M9 12h12M3 18h18",
-  ind: "M3 6h18M3 12h10M3 18h18M21 12l-4-4v8z",
-  out: "M3 6h18M3 12h10M3 18h18M17 12l4-4v8z",
   undo: "M3 7v6h6M3 13A9 9 0 1 0 5.27 5.27",
   redo: "M21 7v6h-6M21 13A9 9 0 1 1 18.73 5.27",
   img: "M15 8h.01M3 8a5 5 0 0 1 5-5h8a5 5 0 0 1 5 5v8a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5zM3 16l5-5 5 5 4-4 4 4",
   vid: "M15 10l4.553-2.069A1 1 0 0 1 21 8.82v6.36a1 1 0 0 1-1.447.89L15 14M3 8a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
-  clip: "m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48",
   cam: "M14.5 4 16 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3l1.5-3zM9 13a3 3 0 1 0 6 0 3 3 0 0 0-6 0",
   more: "M5 12h.01M12 12h.01M19 12h.01",
   tag: "M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82zM7 7h.01",
   x: "M18 6 6 18M6 6l12 12",
   trash: "M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6",
-  file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8",
+  copy: "M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2zM4 16V4a2 2 0 0 1 2-2h8",
+  replace: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15",
+  up: "M18 15l-6-6-6 6",
+  down: "M6 9l6 6 6-6",
+  expand: "M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7",
+  ocr: "M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z",
+  checkFilled: "M22 11.08V12a10 10 0 1 1-5.93-9.14 M22 4L12 14.01l-3-3"
 };
 
 function TBtn({
-  d, label, active, onMD, style: s
+  d,
+  label,
+  active,
+  onMD,
+  title,
+  style: s,
 }: {
-  d: string; label?: string; active?: boolean;
+  d?: string;
+  label?: string;
+  active?: boolean;
   onMD: (e: React.MouseEvent) => void;
+  title?: string;
   style?: React.CSSProperties;
 }) {
   return (
-    <button type="button" onMouseDown={onMD}
+    <button
+      type="button"
+      title={title || label}
+      onMouseDown={onMD}
       style={{
-        minWidth: label ? "auto" : 34, height: 34, padding: label ? "0 9px" : 0,
-        border: `1px solid ${active ? "#9f1239" : "var(--border-color)"}`,
-        borderRadius: 8, flexShrink: 0,
-        background: active ? "rgba(159,18,57,0.1)" : "var(--bg-card)",
-        color: active ? "#9f1239" : "var(--text-primary)",
-        cursor: "pointer", display: "flex", alignItems: "center",
-        justifyContent: "center", gap: 4,
-        fontSize: 11, fontWeight: 800, fontFamily: "Manrope,sans-serif",
-        transition: "all 0.12s", ...s,
-      }}>
-      {label ? label : <Ic d={d} size={16} />}
+        minWidth: label ? "auto" : 34,
+        height: 34,
+        padding: label ? "0 10px" : 0,
+        border: `1px solid ${active ? "#e11d48" : "var(--border-color, rgba(255,255,255,0.12))"}`,
+        borderRadius: 9,
+        flexShrink: 0,
+        background: active ? "rgba(225,29,72,0.15)" : "var(--bg-card, rgba(255,255,255,0.06))",
+        color: active ? "#fb7185" : "var(--text-primary, #ffffff)",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
+        fontSize: 12,
+        fontWeight: 700,
+        fontFamily: "Manrope, sans-serif",
+        transition: "all 0.12s ease",
+        ...s,
+      }}
+    >
+      {label ? label : d ? <Ic d={d} size={16} /> : null}
     </button>
   );
-}
-
-// ── HELPERS ───────────────────────────────────────────────────────────────────
-function fmtBytes(b: number) {
-  return b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.round(b / 1024)} KB`;
-}
-function fileStyle(type: string, name: string) {
-  if (type.startsWith("image/")) return { color: "#087f80", bg: "rgba(8,127,128,.14)", d: IC.img };
-  if (type.startsWith("video/")) return { color: "#87568d", bg: "rgba(135,86,141,.14)", d: IC.vid };
-  if (type === "application/pdf" || /\.pdf$/i.test(name)) return { color: "#b2213d", bg: "rgba(178,33,61,.14)", d: IC.file };
-  if (/\.(doc|docx)$/i.test(name)) return { color: "#2457b3", bg: "rgba(36,87,179,.14)", d: IC.file };
-  if (/\.(xls|xlsx|csv)$/i.test(name)) return { color: "#1a7a45", bg: "rgba(26,122,69,.14)", d: IC.file };
-  if (/\.(ppt|pptx)$/i.test(name)) return { color: "#c4500a", bg: "rgba(196,80,10,.14)", d: IC.file };
-  return { color: "#6e6770", bg: "rgba(110,103,112,.14)", d: IC.file };
 }
 
 async function doOCR(uri: string): Promise<string> {
@@ -99,7 +129,10 @@ async function doOCR(uri: string): Promise<string> {
     const { data } = await w.recognize(uri);
     await w.terminate();
     return data.text.trim();
-  } catch { return ""; }
+  } catch (err) {
+    console.warn("OCR failed:", err);
+    return "";
+  }
 }
 
 // ── LINK DIALOG ───────────────────────────────────────────────────────────────
@@ -107,79 +140,183 @@ function LinkDialog({ onOK, onCancel }: { onOK(url: string, txt: string): void; 
   const [url, setUrl] = useState("https://");
   const [txt, setTxt] = useState("");
   return (
-    <div style={{ position:"fixed",inset:0,zIndex:999,display:"flex",alignItems:"center",justifyContent:"center" }} onClick={onCancel}>
-      <div style={{ position:"absolute",inset:0,background:"rgba(0,0,0,.55)" }} />
-      <div onClick={e => e.stopPropagation()} style={{ position:"relative",zIndex:1,background:"var(--bg-card)",borderRadius:20,padding:24,width:"88%",maxWidth:360,boxShadow:"0 20px 60px rgba(0,0,0,.4)" }}>
-        <strong style={{ display:"block",fontFamily:"Manrope,sans-serif",fontSize:16,fontWeight:800,marginBottom:14,color:"var(--text-primary)" }}>Insert Link</strong>
-        {[{ ph:"Display text (optional)", v:txt, set:setTxt },
-          { ph:"https://…", v:url, set:setUrl }].map((f,i) => (
-          <input key={i} value={f.v} onChange={e => f.set(e.target.value)} placeholder={f.ph}
-            style={{ width:"100%",border:"1px solid var(--border-color)",borderRadius:10,padding:"9px 12px",
-              fontSize:13,outline:"none",marginBottom:10,boxSizing:"border-box" as const,
-              background:"var(--bg-input)",color:"var(--text-primary)",fontFamily:"inherit" }} />
+    <div
+      style={{ position: "fixed", inset: 0, zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center" }}
+      onClick={onCancel}
+    >
+      <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.65)", backdropFilter: "blur(6px)" }} />
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: "relative",
+          zIndex: 1,
+          background: "var(--bg-card, #1a1a1f)",
+          borderRadius: 20,
+          padding: 24,
+          width: "90%",
+          maxWidth: 360,
+          boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+          border: "1px solid var(--border-color, rgba(255,255,255,0.1))",
+        }}
+      >
+        <strong style={{ display: "block", fontFamily: "Manrope,sans-serif", fontSize: 16, fontWeight: 800, marginBottom: 14, color: "var(--text-primary, #fff)" }}>
+          Insert Link
+        </strong>
+        {[
+          { ph: "Display text (optional)", v: txt, set: setTxt },
+          { ph: "https://…", v: url, set: setUrl },
+        ].map((f, i) => (
+          <input
+            key={i}
+            value={f.v}
+            onChange={(e) => f.set(e.target.value)}
+            placeholder={f.ph}
+            style={{
+              width: "100%",
+              border: "1px solid var(--border-color, rgba(255,255,255,0.15))",
+              borderRadius: 10,
+              padding: "10px 12px",
+              fontSize: 13,
+              outline: "none",
+              marginBottom: 10,
+              boxSizing: "border-box" as const,
+              background: "var(--bg-input, rgba(255,255,255,0.06))",
+              color: "var(--text-primary, #fff)",
+              fontFamily: "inherit",
+            }}
+          />
         ))}
-        <div style={{ display:"flex",gap:10,marginTop:4 }}>
-          <button onClick={onCancel} style={{ flex:1,padding:12,border:"1px solid var(--border-color)",borderRadius:12,background:"var(--bg-card)",color:"var(--text-primary)",fontWeight:700,cursor:"pointer" }}>Cancel</button>
-          <button onClick={() => onOK(url,txt)} style={{ flex:1,padding:12,border:"none",borderRadius:12,background:"#9f1239",color:"#fff",fontWeight:700,cursor:"pointer" }}>Insert</button>
+        <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+          <button
+            onClick={onCancel}
+            style={{
+              flex: 1,
+              padding: 12,
+              border: "1px solid var(--border-color, rgba(255,255,255,0.15))",
+              borderRadius: 12,
+              background: "transparent",
+              color: "var(--text-primary, #fff)",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onOK(url, txt)}
+            style={{
+              flex: 1,
+              padding: 12,
+              border: "none",
+              borderRadius: 12,
+              background: "#e11d48",
+              color: "#fff",
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            Insert
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// ── MAIN EDITOR ───────────────────────────────────────────────────────────────
-export default function NoteEditor({ note, onSave, onBack, onOpenScanner, onOpenViewer }: {
+// ── MAIN NOTE EDITOR ──────────────────────────────────────────────────────────
+export default function NoteEditor({
+  note,
+  onSave,
+  onBack,
+  onOpenScanner,
+  onOpenViewer,
+}: {
   note: Note;
   onSave(n: Note): void;
   onBack(): void;
   onOpenScanner(): void;
   onOpenViewer(a: NoteAttachment): void;
 }) {
-  const [title, setTitle]         = useState(note.title);
-  const [tags, setTags]           = useState<string[]>(note.tags || []);
-  const [tagInput, setTagInput]   = useState("");
-  const [blocks, setBlocks]       = useState<NoteBlock[]>(
-    note.blocks?.length ? note.blocks : [{ id:"b1", type:"text", html:"" }]
-  );
-  const [saved, setSaved]         = useState(true);
-  const [showLink, setShowLink]   = useState(false);
-  const [moreOpen, setMoreOpen]   = useState(false);
-  const [ocrLoad, setOcrLoad]     = useState<string|null>(null);
-  const [ocrResult, setOcrResult] = useState<{id:string;text:string}|null>(null);
-  const [fmts, setFmts]           = useState<Record<string,boolean>>({});
+  const [title, setTitle] = useState(note.title);
+  const [tags, setTags] = useState<string[]>(note.tags || []);
+  const [tagInput, setTagInput] = useState("");
+  const [saved, setSaved] = useState(true);
+  const [showLink, setShowLink] = useState(false);
+  const [ocrLoad, setOcrLoad] = useState<string | null>(null);
+  const [ocrResult, setOcrResult] = useState<{ text: string } | null>(null);
+  const [fmts, setFmts] = useState<Record<string, boolean>>({});
 
-  const edRef   = useRef<HTMLDivElement>(null);
-  const timer   = useRef<ReturnType<typeof setTimeout>|null>(null);
-  const counter = useRef(Date.now());
-  const uid = () => `b${counter.current++}`;
+  // Contextual Image Selection State (Samsung Notes style)
+  const [selectedImgEl, setSelectedImgEl] = useState<HTMLImageElement | null>(null);
+  const [imgToolbarPos, setImgToolbarPos] = useState<{ top: number; left: number } | null>(null);
 
-  // Seed editor HTML on note change
+  const edRef = useRef<HTMLDivElement>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedSelectionRange = useRef<Range | null>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize editor HTML on note load
   useEffect(() => {
     if (!edRef.current) return;
-    const html = blocks.filter(b => b.type === "text").map(b => b.html || "").join("");
-    edRef.current.innerHTML = html;
-    const r = document.createRange(), s = window.getSelection();
-    r.selectNodeContents(edRef.current); r.collapse(false);
-    s?.removeAllRanges(); s?.addRange(r);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    // Combine any existing text block or legacy blocks into the unified canvas
+    let initialHtml = "";
+    if (note.blocks && note.blocks.length > 0) {
+      initialHtml = note.blocks
+        .map((b) => {
+          if (b.type === "text") return b.html || "";
+          if (b.type === "image" && b.src) {
+            return `<div class="note-img-block" contenteditable="false" style="text-align:center;margin:16px 0;"><img src="${b.src}" class="samsung-note-img" style="max-width:100%;border-radius:12px;cursor:pointer;display:inline-block;" alt="" /></div><p><br></p>`;
+          }
+          return "";
+        })
+        .join("");
+    }
+
+    if (!initialHtml.trim()) {
+      initialHtml = "<p><br></p>";
+    }
+
+    edRef.current.innerHTML = initialHtml;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note.id]);
 
-  // Auto-save
-  function touch(t=title, tg=tags, bl=blocks) {
+  // Keep track of cursor position so inserting image/links puts it right at caret
+  const saveCaretSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0 && edRef.current?.contains(sel.anchorNode)) {
+      savedSelectionRange.current = sel.getRangeAt(0).cloneRange();
+    }
+  };
+
+  const restoreCaretSelection = () => {
+    if (savedSelectionRange.current) {
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(savedSelectionRange.current);
+    }
+  };
+
+  // Auto-save logic
+  const touch = useCallback((newTitle = title, newTags = tags) => {
     setSaved(false);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
       const html = edRef.current?.innerHTML || "";
-      const updated: NoteBlock[] = [
-        { id: bl.find(b=>b.type==="text")?.id || "b1", type:"text", html },
-        ...bl.filter(b => b.type !== "text"),
-      ];
-      onSave({ ...note, title:t, tags:tg, blocks:updated, updatedAt:new Date().toISOString() });
+      const updatedBlocks: NoteBlock[] = [{ id: "b-unified", type: "text", html }];
+      onSave({
+        ...note,
+        title: newTitle,
+        tags: newTags,
+        blocks: updatedBlocks,
+        updatedAt: new Date().toISOString(),
+      });
       setSaved(true);
     }, 600);
-  }
+  }, [note, onSave, tags, title]);
 
-  // Update active format indicators
+  // Sync active format states
   function syncFmts() {
     setFmts({
       bold: document.queryCommandState("bold"),
@@ -187,306 +324,734 @@ export default function NoteEditor({ note, onSave, onBack, onOpenScanner, onOpen
       underline: document.queryCommandState("underline"),
       strike: document.queryCommandState("strikeThrough"),
     });
+    saveCaretSelection();
   }
 
-  // Execute formatting commands
-  const exec = useCallback((cmd: string, val?: string) => {
-    const el = edRef.current; if (!el) return;
+  // Formatting commands
+  const exec = useCallback(
+    (cmd: string, val?: string) => {
+      const el = edRef.current;
+      if (!el) return;
+      el.focus();
+      restoreCaretSelection();
+
+      const sel = window.getSelection();
+      if (!sel?.rangeCount || !el.contains(sel.anchorNode)) {
+        const r = document.createRange();
+        r.selectNodeContents(el);
+        r.collapse(false);
+        sel?.removeAllRanges();
+        sel?.addRange(r);
+      }
+
+      switch (cmd) {
+        case "formatBlock":
+          document.execCommand("formatBlock", false, val || "p");
+          break;
+        case "insertHTML":
+          document.execCommand("insertHTML", false, val);
+          break;
+        case "insertChecklist":
+          document.execCommand(
+            "insertHTML",
+            false,
+            `<ul style="list-style:none;padding-left:4px;margin:.6em 0"><li style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><input type="checkbox" style="width:18px;height:18px;cursor:pointer;accent-color:#e11d48;" /><span>Task item</span></li></ul><p><br></p>`
+          );
+          break;
+        default:
+          document.execCommand(cmd, false, val);
+      }
+      syncFmts();
+      touch();
+    },
+    [touch]
+  );
+
+  // Position contextual toolbar over selected image
+  const updateToolbarPosition = (img: HTMLImageElement) => {
+    const rect = img.getBoundingClientRect();
+    setImgToolbarPos({
+      top: Math.max(70, rect.top - 54),
+      left: Math.max(12, Math.min(window.innerWidth - 320, rect.left + rect.width / 2 - 160)),
+    });
+  };
+
+  // Image Selection Click Handler
+  const handleEditorClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName.toLowerCase() === "img") {
+      const img = target as HTMLImageElement;
+      setSelectedImgEl(img);
+      updateToolbarPosition(img);
+    } else {
+      setSelectedImgEl(null);
+      setImgToolbarPos(null);
+    }
+  };
+
+  // Reposition toolbar on scroll
+  useEffect(() => {
+    const onScroll = () => {
+      if (selectedImgEl) {
+        updateToolbarPosition(selectedImgEl);
+      }
+    };
+    window.addEventListener("scroll", onScroll, true);
+    return () => window.removeEventListener("scroll", onScroll, true);
+  }, [selectedImgEl]);
+
+  // CORE: Insert image directly at current cursor position (Samsung Notes Style)
+  const insertImageAtCursor = (imageUrl: string) => {
+    const el = edRef.current;
+    if (!el) return;
     el.focus();
-    const sel = window.getSelection();
-    if (!sel?.rangeCount || !el.contains(sel.anchorNode)) {
-      const r = document.createRange();
-      r.selectNodeContents(el); r.collapse(false);
-      sel?.removeAllRanges(); sel?.addRange(r);
-    }
-    switch (cmd) {
-      case "formatBlock": document.execCommand("formatBlock", false, val||"p"); break;
-      case "insertHTML":  document.execCommand("insertHTML", false, val); break;
-      case "insertChecklist":
-        document.execCommand("insertHTML", false,
-          `<ul style="list-style:none;padding-left:4px;margin:.4em 0"><li style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px"><input type="checkbox" style="width:16px;height:16px;margin-top:2px;cursor:pointer;accent-color:#9f1239;flex-shrink:0"/><span>To-do item</span></li></ul>`);
-        break;
-      default: document.execCommand(cmd, false, val);
-    }
-    syncFmts(); touch();
-  }, []);
+    restoreCaretSelection();
 
-  // Media / attachment blocks
-  function addImage(file: File)  { setBlocks(b=>[...b,{id:uid(),type:"image",src:URL.createObjectURL(file)}]); touch(); }
-  function addVideo(file: File)  { setBlocks(b=>[...b,{id:uid(),type:"video",src:URL.createObjectURL(file)}]); touch(); }
-  function addFile(file: File) {
-    if (file.type.startsWith("image/")) { addImage(file); return; }
-    if (file.type.startsWith("video/")) { addVideo(file); return; }
-    const att: NoteAttachment = { id:uid(), name:file.name, type:file.type||"application/octet-stream", size:fmtBytes(file.size), uri:URL.createObjectURL(file), addedAt:new Date().toISOString() };
-    setBlocks(b=>[...b,{id:uid(),type:"attachment",attachment:att}]);
+    const imgBlockHtml = `
+      <div class="note-img-block" contenteditable="false" style="text-align:center;margin:18px 0;position:relative;">
+        <img src="${imageUrl}" class="samsung-note-img" style="max-width:100%;width:auto;border-radius:12px;cursor:pointer;display:inline-block;box-shadow:0 6px 24px rgba(0,0,0,0.25);" alt="" />
+      </div>
+      <p><br></p>
+    `;
+
+    document.execCommand("insertHTML", false, imgBlockHtml);
     touch();
-  }
-  function rmBlock(id: string) { setBlocks(b=>b.filter(x=>x.id!==id)); touch(); }
 
-  // OCR
-  async function triggerOCR(id: string, src: string) {
-    setOcrLoad(id);
-    const text = await doOCR(src);
+    // Automatically focus on the paragraph below the image
+    const sel = window.getSelection();
+    if (sel && sel.focusNode) {
+      saveCaretSelection();
+    }
+  };
+
+  // Image Upload from File
+  const handleFileUpload = (file: File) => {
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          insertImageAtCursor(e.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Clipboard Paste (paste images directly into text)
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (file) handleFileUpload(file);
+        return;
+      }
+    }
+  };
+
+  // Drag and Drop (drop images directly onto text location)
+  const handleDrop = (e: React.DragEvent) => {
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type.startsWith("image/")) {
+      e.preventDefault();
+      // Position caret at drop location
+      if (document.caretRangeFromPoint) {
+        const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+        if (range) {
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          sel?.addRange(range);
+          savedSelectionRange.current = range;
+        }
+      }
+      handleFileUpload(files[0]);
+    }
+  };
+
+  // Contextual Toolbar Actions
+  const handleResize = (percentage: string) => {
+    if (!selectedImgEl) return;
+    selectedImgEl.style.width = percentage;
+    touch();
+  };
+
+  const handleMoveUp = () => {
+    if (!selectedImgEl) return;
+    const block = selectedImgEl.closest(".note-img-block");
+    if (block && block.previousElementSibling) {
+      block.parentNode?.insertBefore(block, block.previousElementSibling);
+      touch();
+      setTimeout(() => updateToolbarPosition(selectedImgEl), 50);
+    }
+  };
+
+  const handleMoveDown = () => {
+    if (!selectedImgEl) return;
+    const block = selectedImgEl.closest(".note-img-block");
+    if (block && block.nextElementSibling) {
+      block.parentNode?.insertBefore(block.nextElementSibling, block);
+      touch();
+      setTimeout(() => updateToolbarPosition(selectedImgEl), 50);
+    }
+  };
+
+  const handleDuplicate = () => {
+    if (!selectedImgEl) return;
+    const block = selectedImgEl.closest(".note-img-block");
+    if (block && block.parentNode) {
+      const clone = block.cloneNode(true) as HTMLElement;
+      block.parentNode.insertBefore(clone, block.nextSibling);
+      touch();
+    }
+  };
+
+  const handleDeleteImage = () => {
+    if (!selectedImgEl) return;
+    const block = selectedImgEl.closest(".note-img-block");
+    if (block) {
+      block.remove();
+    } else {
+      selectedImgEl.remove();
+    }
+    setSelectedImgEl(null);
+    setImgToolbarPos(null);
+    touch();
+  };
+
+  const handleReplaceClick = () => {
+    replaceInputRef.current?.click();
+  };
+
+  const handleReplaceFile = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && selectedImgEl) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        if (ev.target?.result && selectedImgEl) {
+          selectedImgEl.src = ev.target.result as string;
+          touch();
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleOCRFromSelected = async () => {
+    if (!selectedImgEl) return;
+    setOcrLoad("ocr");
+    const text = await doOCR(selectedImgEl.src);
     setOcrLoad(null);
-    if (text) setOcrResult({ id, text });
-    else alert("No text detected.");
-  }
-  function insertOCR() {
-    if (!ocrResult) return;
-    edRef.current?.focus();
-    document.execCommand("insertText", false, "\n\n" + ocrResult.text);
-    setOcrResult(null); touch();
-  }
+    if (text) {
+      setOcrResult({ text });
+    } else {
+      alert("No readable text detected in this image.");
+    }
+  };
+
+  const insertOCRText = () => {
+    if (!ocrResult || !edRef.current) return;
+    edRef.current.focus();
+    restoreCaretSelection();
+    document.execCommand("insertHTML", false, `<p>${ocrResult.text.replace(/\n/g, "<br>")}</p>`);
+    setOcrResult(null);
+    touch();
+  };
 
   // Tags
   function onTagKey(e: KeyboardEvent<HTMLInputElement>) {
-    if ((e.key==="Enter"||e.key===",") && tagInput.trim()) {
+    if ((e.key === "Enter" || e.key === ",") && tagInput.trim()) {
       e.preventDefault();
-      const t = tagInput.trim().replace(/,/g,"");
-      if (t && !tags.includes(t)) { const nt=[...tags,t]; setTags(nt); touch(title,nt,blocks); }
+      const t = tagInput.trim().replace(/,/g, "");
+      if (t && !tags.includes(t)) {
+        const nt = [...tags, t];
+        setTags(nt);
+        touch(title, nt);
+      }
       setTagInput("");
     }
   }
-  function rmTag(t: string) { const nt=tags.filter(x=>x!==t); setTags(nt); touch(title,nt,blocks); }
 
-  // Link insert
-  function onLinkOK(url: string, txt: string) {
-    setShowLink(false);
-    const el = edRef.current; if (!el) return;
-    el.focus();
-    const html = txt
-      ? `<a href="${url}" target="_blank" style="color:#3ddbd9;text-decoration:underline">${txt}</a>`
-      : `<a href="${url}" target="_blank" style="color:#3ddbd9;text-decoration:underline">${url}</a>`;
-    document.execCommand("insertHTML", false, html);
-    touch();
+  function rmTag(t: string) {
+    const nt = tags.filter((x) => x !== t);
+    setTags(nt);
+    touch(title, nt);
   }
 
-  const sep = <div style={{ width:1, background:"var(--border-color)", margin:"3px 2px", flexShrink:0 }} />;
-  const md = (fn: ()=>void) => (e: React.MouseEvent) => { e.preventDefault(); fn(); };
-
   return (
-    <div style={{ display:"flex", flexDirection:"column", minHeight:"100vh", background:"var(--note-bg)", color:"var(--text-primary)" }}>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 250,
+        background: "var(--bg-main, #0f0f13)",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        fontFamily: "'Inter', -apple-system, sans-serif",
+      }}
+    >
+      {/* ─ TOP HEADER ─ */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "12px 18px",
+          borderBottom: "1px solid var(--border-color, rgba(255,255,255,0.08))",
+          background: "var(--bg-nav, rgba(15,15,19,0.92))",
+          backdropFilter: "blur(14px)",
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            onClick={onBack}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--text-primary, #fff)",
+              cursor: "pointer",
+              padding: 6,
+              display: "flex",
+              alignItems: "center",
+              borderRadius: 8,
+            }}
+          >
+            <Ic d={IC.back} size={22} />
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: saved ? "#10b981" : "#f59e0b",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <span
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: saved ? "#10b981" : "#f59e0b",
+                  display: "inline-block",
+                }}
+              />
+              {saved ? "Saved" : "Saving…"}
+            </span>
+          </div>
+        </div>
 
-      {/* ─ TOP BAR ─ */}
-      <header style={{ position:"sticky", top:0, zIndex:60, display:"flex", alignItems:"center", gap:8, padding:"8px 12px", background:"var(--bg-header)", borderBottom:"1px solid var(--border-color)", backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)" }}>
-        <button onClick={onBack} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-primary)", display:"flex", padding:"4px 6px 4px 0" }}>
-          <Ic d={IC.back} size={22} />
-        </button>
-        <input value={title} onChange={e=>{setTitle(e.target.value);touch(e.target.value,tags,blocks);}}
-          placeholder="Note title…"
-          style={{ flex:1, border:"none", outline:"none", fontSize:17, fontWeight:800, fontFamily:"Manrope,sans-serif", background:"transparent", color:"var(--text-primary)", letterSpacing:-0.3 }} />
-        <span style={{ fontSize:11, color:saved?"#4caf50":"#ff9800", fontWeight:700, fontFamily:"Manrope,sans-serif", whiteSpace:"nowrap" }}>
-          {saved ? "✓ Saved" : "Saving…"}
-        </span>
-      </header>
-
-      {/* ─ FORMATTING TOOLBAR ─ */}
-      <div style={{ position:"sticky", top:53, zIndex:50, background:"var(--bg-header)", borderBottom:"1px solid var(--border-color)", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)" }}>
-        <div style={{ display:"flex", gap:4, padding:"5px 8px", overflowX:"auto", scrollbarWidth:"none", alignItems:"center" }}>
-          {/* Undo / Redo */}
-          <TBtn d={IC.undo} onMD={md(()=>exec("undo"))} />
-          <TBtn d={IC.redo} onMD={md(()=>exec("redo"))} />
-          {sep}
-          {/* Inline formatting */}
-          <TBtn d={IC.bold}   active={fmts.bold}    onMD={md(()=>exec("bold"))} />
-          <TBtn d={IC.italic} active={fmts.italic}  onMD={md(()=>exec("italic"))} />
-          <TBtn d={IC.under}  active={fmts.underline} onMD={md(()=>exec("underline"))} />
-          <TBtn d={IC.strike} active={fmts.strike}   onMD={md(()=>exec("strikeThrough"))} />
-          {sep}
-          {/* Block headings */}
-          <TBtn d="" label="H1" onMD={md(()=>exec("formatBlock","h1"))} />
-          <TBtn d="" label="H2" onMD={md(()=>exec("formatBlock","h2"))} />
-          <TBtn d="" label="H3" onMD={md(()=>exec("formatBlock","h3"))} />
-          <TBtn d="" label="¶"  onMD={md(()=>exec("formatBlock","p"))} style={{ color:"var(--text-secondary)" }} />
-          {sep}
-          {/* Lists */}
-          <TBtn d={IC.ul}    onMD={md(()=>exec("insertUnorderedList"))} />
-          <TBtn d={IC.ol}    onMD={md(()=>exec("insertOrderedList"))} />
-          <TBtn d={IC.check} onMD={md(()=>exec("insertChecklist"))} />
-          {sep}
-          {/* Semantic blocks */}
-          <TBtn d={IC.quote} onMD={md(()=>exec("formatBlock","blockquote"))} />
-          <TBtn d={IC.code}  onMD={md(()=>exec("formatBlock","pre"))} />
-          <TBtn d={IC.link}  onMD={md(()=>setShowLink(true))} />
-          {sep}
-          {/* Alignment */}
-          <TBtn d={IC.aL} onMD={md(()=>exec("justifyLeft"))} />
-          <TBtn d={IC.aC} onMD={md(()=>exec("justifyCenter"))} />
-          <TBtn d={IC.aR} onMD={md(()=>exec("justifyRight"))} />
-          {sep}
-          {/* Indent */}
-          <TBtn d={IC.ind} onMD={md(()=>exec("indent"))} />
-          <TBtn d={IC.out} onMD={md(()=>exec("outdent"))} />
+        {/* Quick Top Actions */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            onClick={onOpenScanner}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              background: "rgba(225,29,72,0.12)",
+              color: "#fb7185",
+              border: "1px solid rgba(225,29,72,0.3)",
+              borderRadius: 10,
+              padding: "6px 12px",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+            }}
+          >
+            <Ic d={IC.cam} size={15} />
+            <span>Scan doc</span>
+          </button>
+          <button
+            onClick={() => touch()}
+            style={{
+              background: "#e11d48",
+              color: "#fff",
+              border: "none",
+              borderRadius: 10,
+              padding: "6px 14px",
+              fontSize: 12,
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            Save
+          </button>
         </div>
       </div>
 
-      {/* ─ CONTENT ─ */}
-      <div style={{ flex:1, padding:"16px 16px 160px" }}>
+      {/* ─ RICH FORMATTING TOOLBAR (SAMSUNG NOTES STYLE) ─ */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "8px 16px",
+          borderBottom: "1px solid var(--border-color, rgba(255,255,255,0.08))",
+          background: "var(--bg-card, rgba(25,25,32,0.85))",
+          overflowX: "auto",
+          scrollbarWidth: "none",
+          flexShrink: 0,
+        }}
+      >
+        <TBtn d={IC.undo} onMD={(e) => { e.preventDefault(); exec("undo"); }} title="Undo" />
+        <TBtn d={IC.redo} onMD={(e) => { e.preventDefault(); exec("redo"); }} title="Redo" />
+        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.12)", margin: "0 2px" }} />
 
-        {/* Tags row */}
-        <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom:16, alignItems:"center" }}>
-          {tags.map(t => (
-            <span key={t} style={{ display:"flex", alignItems:"center", gap:4, padding:"3px 10px", borderRadius:20, background:"#9f1239", color:"#fff", fontSize:12, fontWeight:700, fontFamily:"Manrope,sans-serif" }}>
-              <Ic d={IC.tag} size={11} sw={2} /> {t}
-              <button onClick={()=>rmTag(t)} style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.85)",display:"flex",padding:0 }}>
+        <TBtn label="H1" onMD={(e) => { e.preventDefault(); exec("formatBlock", "h1"); }} title="Heading 1" />
+        <TBtn label="H2" onMD={(e) => { e.preventDefault(); exec("formatBlock", "h2"); }} title="Heading 2" />
+        <TBtn label="P" onMD={(e) => { e.preventDefault(); exec("formatBlock", "p"); }} title="Paragraph" />
+        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.12)", margin: "0 2px" }} />
+
+        <TBtn d={IC.bold} active={fmts.bold} onMD={(e) => { e.preventDefault(); exec("bold"); }} title="Bold" />
+        <TBtn d={IC.italic} active={fmts.italic} onMD={(e) => { e.preventDefault(); exec("italic"); }} title="Italic" />
+        <TBtn d={IC.under} active={fmts.underline} onMD={(e) => { e.preventDefault(); exec("underline"); }} title="Underline" />
+        <TBtn d={IC.strike} active={fmts.strike} onMD={(e) => { e.preventDefault(); exec("strikeThrough"); }} title="Strikethrough" />
+        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.12)", margin: "0 2px" }} />
+
+        <TBtn d={IC.ul} onMD={(e) => { e.preventDefault(); exec("insertUnorderedList"); }} title="Bullet list" />
+        <TBtn d={IC.ol} onMD={(e) => { e.preventDefault(); exec("insertOrderedList"); }} title="Numbered list" />
+        <TBtn d={IC.check} onMD={(e) => { e.preventDefault(); exec("insertChecklist"); }} title="To-do checklist" />
+        <TBtn d={IC.quote} onMD={(e) => { e.preventDefault(); exec("formatBlock", "blockquote"); }} title="Quote" />
+        <TBtn d={IC.link} onMD={(e) => { e.preventDefault(); saveCaretSelection(); setShowLink(true); }} title="Add link" />
+        <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.12)", margin: "0 2px" }} />
+
+        {/* Inline Photo Insert button */}
+        <label
+          onMouseDown={() => saveCaretSelection()}
+          style={{
+            minWidth: 34,
+            height: 34,
+            padding: "0 10px",
+            border: "1px solid rgba(16,185,129,0.3)",
+            borderRadius: 9,
+            background: "rgba(16,185,129,0.12)",
+            color: "#34d399",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            fontSize: 12,
+            fontWeight: 800,
+            flexShrink: 0,
+          }}
+          title="Insert image at cursor"
+        >
+          <Ic d={IC.img} size={16} />
+          <span>Image</span>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+          />
+        </label>
+      </div>
+
+      {/* ─ FLOATING IMAGE CONTEXTUAL TOOLBAR (ON CLICK) ─ */}
+      {selectedImgEl && imgToolbarPos && (
+        <div
+          style={{
+            position: "fixed",
+            top: imgToolbarPos.top,
+            left: imgToolbarPos.left,
+            zIndex: 400,
+            background: "rgba(18,18,24,0.95)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(255,255,255,0.2)",
+            borderRadius: 14,
+            padding: "4px 8px",
+            boxShadow: "0 12px 36px rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <button
+            onClick={() => handleResize("35%")}
+            style={{ background: "none", border: "none", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 6px", cursor: "pointer" }}
+            title="Small"
+          >
+            25%
+          </button>
+          <button
+            onClick={() => handleResize("60%")}
+            style={{ background: "none", border: "none", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 6px", cursor: "pointer" }}
+            title="Medium"
+          >
+            50%
+          </button>
+          <button
+            onClick={() => handleResize("100%")}
+            style={{ background: "none", border: "none", color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 6px", cursor: "pointer" }}
+            title="Full width"
+          >
+            100%
+          </button>
+
+          <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.2)" }} />
+
+          <button onClick={handleMoveUp} style={{ background: "none", border: "none", color: "#fff", padding: 4, cursor: "pointer" }} title="Move up">
+            <Ic d={IC.up} size={15} />
+          </button>
+          <button onClick={handleMoveDown} style={{ background: "none", border: "none", color: "#fff", padding: 4, cursor: "pointer" }} title="Move down">
+            <Ic d={IC.down} size={15} />
+          </button>
+          <button onClick={handleDuplicate} style={{ background: "none", border: "none", color: "#fff", padding: 4, cursor: "pointer" }} title="Duplicate">
+            <Ic d={IC.copy} size={15} />
+          </button>
+          <button onClick={handleReplaceClick} style={{ background: "none", border: "none", color: "#38bdf8", padding: 4, cursor: "pointer" }} title="Replace image">
+            <Ic d={IC.replace} size={15} />
+          </button>
+          <button onClick={handleOCRFromSelected} style={{ background: "none", border: "none", color: "#fbbf24", padding: 4, cursor: "pointer" }} title="Extract text (OCR)">
+            <Ic d={IC.ocr} size={15} />
+          </button>
+          <button onClick={handleDeleteImage} style={{ background: "none", border: "none", color: "#f43f5e", padding: 4, cursor: "pointer" }} title="Delete">
+            <Ic d={IC.trash} size={15} />
+          </button>
+        </div>
+      )}
+
+      {/* Hidden input for image replace */}
+      <input
+        ref={replaceInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={handleReplaceFile}
+      />
+
+      {/* ─ MAIN EDITABLE CANVAS ─ */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: "24px 20px 100px",
+          maxWidth: 820,
+          width: "100%",
+          margin: "0 auto",
+          boxSizing: "border-box",
+        }}
+        onClick={handleEditorClick}
+      >
+        {/* Title Input */}
+        <input
+          value={title}
+          onChange={(e) => { setTitle(e.target.value); touch(e.target.value, tags); }}
+          placeholder="Note title…"
+          style={{
+            width: "100%",
+            background: "transparent",
+            border: "none",
+            outline: "none",
+            fontSize: "clamp(24px, 4vw, 34px)",
+            fontWeight: 800,
+            fontFamily: "Manrope, sans-serif",
+            color: "var(--text-primary, #ffffff)",
+            marginBottom: 14,
+            padding: 0,
+          }}
+        />
+
+        {/* Tags */}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 20 }}>
+          {tags.map((t) => (
+            <span
+              key={t}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                background: "rgba(225,29,72,0.12)",
+                color: "#fb7185",
+                borderRadius: 20,
+                padding: "3px 10px",
+                fontSize: 11,
+                fontWeight: 700,
+              }}
+            >
+              #{t}
+              <button
+                onClick={() => rmTag(t)}
+                style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", padding: 0 }}
+              >
                 <Ic d={IC.x} size={11} />
               </button>
             </span>
           ))}
-          <input value={tagInput} onChange={e=>setTagInput(e.target.value)} onKeyDown={onTagKey}
-            placeholder="+ Add tag…"
-            style={{ border:"1px dashed var(--border-color)", borderRadius:20, padding:"4px 12px", fontSize:12, outline:"none", background:"var(--bg-card)", color:"var(--text-primary)", minWidth:110, fontFamily:"inherit" }} />
+          <input
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={onTagKey}
+            placeholder="+ tag…"
+            style={{
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              color: "var(--text-secondary, rgba(255,255,255,0.5))",
+              fontSize: 12,
+              width: 80,
+            }}
+          />
         </div>
 
-        {/* ─ RICH TEXT EDITOR ─ */}
-        <div ref={edRef} contentEditable suppressContentEditableWarning dir="ltr"
+        {/* ─ CONTENTEDITABLE CANVASS (MIXED TEXT & INLINE IMAGES) ─ */}
+        <div
+          ref={edRef}
+          contentEditable
+          suppressContentEditableWarning
+          dir="ltr"
           onInput={() => { syncFmts(); touch(); }}
-          onKeyUp={syncFmts} onMouseUp={syncFmts}
-          data-ph="Start writing your note…"
-          className="ownly-editor" />
-
-        {/* ─ MEDIA & ATTACHMENT BLOCKS ─ */}
-        {blocks.filter(b=>b.type!=="text").map(block => {
-          if (block.type === "image" && block.src) return (
-            <div key={block.id} style={{ margin:"16px 0", position:"relative", borderRadius:14, overflow:"hidden", border:"1px solid var(--border-color)" }}>
-              <img src={block.src} alt="" style={{ width:"100%", display:"block" }} />
-              <div style={{ position:"absolute", top:8, right:8, display:"flex", gap:6 }}>
-                {ocrLoad === block.id
-                  ? <span style={{ background:"rgba(0,0,0,.75)", borderRadius:20, padding:"4px 12px", color:"#fff", fontSize:11, fontWeight:700 }}>OCR…</span>
-                  : <button onClick={()=>triggerOCR(block.id, block.src!)} style={{ background:"rgba(0,0,0,.75)", border:"none", borderRadius:20, padding:"4px 12px", color:"#fff", fontSize:11, fontWeight:700, cursor:"pointer" }}>OCR</button>
-                }
-                <button onClick={()=>rmBlock(block.id)} style={{ background:"rgba(0,0,0,.75)", border:"none", borderRadius:"50%", width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff" }}>
-                  <Ic d={IC.x} size={14} />
-                </button>
-              </div>
-            </div>
-          );
-          if (block.type === "video" && block.src) return (
-            <div key={block.id} style={{ margin:"16px 0", position:"relative", borderRadius:14, overflow:"hidden", border:"1px solid var(--border-color)" }}>
-              <video src={block.src} controls style={{ width:"100%", display:"block" }} />
-              <button onClick={()=>rmBlock(block.id)} style={{ position:"absolute", top:8, right:8, background:"rgba(0,0,0,.75)", border:"none", borderRadius:"50%", width:28, height:28, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff" }}>
-                <Ic d={IC.x} size={14} />
-              </button>
-            </div>
-          );
-          if (block.type === "attachment" && block.attachment) {
-            const a = block.attachment, s = fileStyle(a.type, a.name);
-            return (
-              <div key={block.id} onClick={()=>onOpenViewer(a)}
-                style={{ margin:"12px 0", display:"flex", alignItems:"center", gap:12, padding:"12px 14px", background:"var(--bg-card)", borderRadius:14, border:"1px solid var(--border-subtle)", cursor:"pointer", transition:"transform .12s" }}>
-                <span style={{ width:42, height:42, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", background:s.bg, color:s.color, flexShrink:0 }}>
-                  <Ic d={s.d} size={22} />
-                </span>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <strong style={{ display:"block", fontSize:13, fontWeight:700, fontFamily:"Manrope,sans-serif", color:"var(--text-primary)", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{a.name}</strong>
-                  <small style={{ color:"var(--text-secondary)", fontSize:11 }}>{a.size} · Tap to open</small>
-                </div>
-                <button onClick={e=>{e.stopPropagation();rmBlock(block.id);}} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-muted)", padding:4 }}>
-                  <Ic d={IC.trash} size={15} />
-                </button>
-              </div>
-            );
-          }
-          return null;
-        })}
+          onKeyUp={syncFmts}
+          onMouseUp={syncFmts}
+          onPaste={handlePaste}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop}
+          data-ph="Start typing paragraphs, paste images, or drag and drop photos anywhere…"
+          className="samsung-note-content"
+          style={{
+            minHeight: "60vh",
+            outline: "none",
+            fontSize: 16,
+            lineHeight: 1.7,
+            color: "var(--text-primary, #ffffff)",
+            wordBreak: "break-word",
+          }}
+        />
       </div>
 
-      {/* ─ OCR RESULT PANEL ─ */}
+      {/* ─ OCR EXTRACT MODAL ─ */}
       {ocrResult && (
-        <div style={{ position:"fixed", bottom:76, left:16, right:16, zIndex:300, background:"var(--bg-card)", borderRadius:18, padding:16, boxShadow:"0 10px 40px rgba(0,0,0,.35)", border:"1px solid var(--border-color)" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-            <strong style={{ fontSize:13, fontWeight:800, fontFamily:"Manrope,sans-serif", color:"var(--text-primary)" }}>Extracted Text (OCR)</strong>
-            <button onClick={()=>setOcrResult(null)} style={{ background:"none",border:"none",cursor:"pointer",color:"var(--text-muted)" }}><Ic d={IC.x} size={16} /></button>
+        <div
+          style={{
+            position: "fixed",
+            bottom: 70,
+            left: 20,
+            right: 20,
+            maxWidth: 600,
+            margin: "0 auto",
+            zIndex: 500,
+            background: "var(--bg-card, #1a1a24)",
+            border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: 16,
+            padding: 16,
+            boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "#fff" }}>Detected Text (OCR)</span>
+            <button onClick={() => setOcrResult(null)} style={{ background: "none", border: "none", color: "#aaa", cursor: "pointer" }}>
+              <Ic d={IC.x} size={15} />
+            </button>
           </div>
-          <p style={{ margin:"0 0 12px", fontSize:12, color:"var(--text-secondary)", lineHeight:1.6, maxHeight:90, overflow:"auto" }}>{ocrResult.text.slice(0,300)}{ocrResult.text.length>300?"…":""}</p>
-          <div style={{ display:"flex", gap:8 }}>
-            <button onClick={insertOCR} style={{ flex:1,padding:"8px 12px",background:"#9f1239",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontSize:12,cursor:"pointer" }}>Insert into Note</button>
-            <button onClick={()=>navigator.clipboard?.writeText(ocrResult!.text)} style={{ flex:1,padding:"8px 12px",background:"var(--bg-chip)",color:"var(--text-primary)",border:"1px solid var(--border-color)",borderRadius:10,fontWeight:700,fontSize:12,cursor:"pointer" }}>Copy</button>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.75)", maxHeight: 120, overflowY: "auto", margin: "0 0 12px" }}>
+            {ocrResult.text}
+          </p>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={insertOCRText}
+              style={{
+                flex: 1,
+                padding: "8px 12px",
+                background: "#e11d48",
+                color: "#fff",
+                border: "none",
+                borderRadius: 10,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Insert into Note
+            </button>
+            <button
+              onClick={() => { navigator.clipboard?.writeText(ocrResult.text); alert("Copied!"); }}
+              style={{
+                padding: "8px 14px",
+                background: "rgba(255,255,255,0.1)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 10,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Copy
+            </button>
           </div>
         </div>
       )}
 
-      {/* ─ BOTTOM ACTIONS ─ */}
-      <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:200, background:"var(--bg-nav)", borderTop:"1px solid var(--border-color)", backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", padding:"7px 10px calc(7px + env(safe-area-inset-bottom))" }}>
-        <div style={{ display:"flex", gap:7, overflowX:"auto", scrollbarWidth:"none" }}>
-          <label style={btnWrap("#087f80")}>
-            <Ic d={IC.img} size={20} /><span>Photo</span>
-            <input type="file" accept="image/*" style={{ display:"none" }} onChange={(e:ChangeEvent<HTMLInputElement>)=>e.target.files?.[0]&&addImage(e.target.files[0])} />
-          </label>
-          <label style={btnWrap("#87568d")}>
-            <Ic d={IC.vid} size={20} /><span>Video</span>
-            <input type="file" accept="video/*" style={{ display:"none" }} onChange={(e:ChangeEvent<HTMLInputElement>)=>e.target.files?.[0]&&addVideo(e.target.files[0])} />
-          </label>
-          <label style={btnWrap("#a66d00")}>
-            <Ic d={IC.clip} size={20} /><span>File</span>
-            <input type="file" multiple accept="*/*" style={{ display:"none" }} onChange={(e:ChangeEvent<HTMLInputElement>)=>Array.from(e.target.files||[]).forEach(addFile)} />
-          </label>
-          <button onClick={onOpenScanner} style={{ ...btnWrapB("#9f1239") }}>
-            <Ic d={IC.cam} size={20} /><span>Scan</span>
-          </button>
-          <div style={{ flex:1 }} />
-          <button onClick={()=>setMoreOpen(v=>!v)} style={{ ...btnWrapB("var(--text-secondary)") }}>
-            <Ic d={IC.more} size={20} /><span>More</span>
-          </button>
-        </div>
-        {moreOpen && (
-          <div style={{ display:"flex", gap:7, paddingTop:8, marginTop:6, borderTop:"1px solid var(--border-color)", flexWrap:"wrap" }}>
-            {[
-              { label:"Divider", onMD:()=>exec("insertHTML",'<hr style="border:none;border-top:2px solid var(--border-color);margin:16px 0"/>') },
-              { label:"Quote",   onMD:()=>exec("formatBlock","blockquote") },
-              { label:"Code",    onMD:()=>exec("formatBlock","pre") },
-              { label:"Center",  onMD:()=>exec("justifyCenter") },
-              { label:"Checklist", onMD:()=>exec("insertChecklist") },
-            ].map(x=>(
-              <button key={x.label} onMouseDown={e=>{e.preventDefault();x.onMD();setMoreOpen(false);}}
-                style={{ padding:"6px 13px", borderRadius:20, border:"1px solid var(--border-color)", background:"var(--bg-chip)", color:"var(--text-primary)", fontSize:11, fontWeight:700, cursor:"pointer", fontFamily:"Manrope,sans-serif" }}>
-                {x.label}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* ─ LINK MODAL ─ */}
+      {showLink && (
+        <LinkDialog
+          onOK={(url, txt) => {
+            setShowLink(false);
+            edRef.current?.focus();
+            restoreCaretSelection();
+            const display = txt || url;
+            document.execCommand(
+              "insertHTML",
+              false,
+              `<a href="${url}" target="_blank" style="color:#38bdf8;text-decoration:underline;">${display}</a>`
+            );
+            touch();
+          }}
+          onCancel={() => setShowLink(false)}
+        />
+      )}
 
-      {showLink && <LinkDialog onOK={onLinkOK} onCancel={()=>setShowLink(false)} />}
-
-      {/* ─ EDITOR STYLES ─ */}
+      {/* ─ STYLES ─ */}
       <style>{`
-        .ownly-editor {
-          min-height:220px; outline:none; font:15px/1.78 "DM Sans",sans-serif;
-          color:var(--text-primary); direction:ltr; text-align:left; word-break:break-word;
-          caret-color:#9f1239;
+        .samsung-note-content:empty:before {
+          content: attr(data-ph);
+          color: rgba(255,255,255,0.25);
+          pointer-events: none;
         }
-        .ownly-editor:empty::before {
-          content:attr(data-ph); color:var(--text-muted); pointer-events:none; font-style:italic;
+        .samsung-note-content h1 {
+          font-size: 26px;
+          font-weight: 800;
+          margin: 1.2em 0 0.4em;
+          font-family: Manrope, sans-serif;
         }
-        .ownly-editor h1 { font:800 1.75rem/1.2 "Manrope",sans-serif; margin:.55em 0 .22em; color:var(--text-primary); letter-spacing:-.5px; }
-        .ownly-editor h2 { font:700 1.4rem/1.3 "Manrope",sans-serif; margin:.5em 0 .2em; color:var(--text-primary); }
-        .ownly-editor h3 { font:700 1.15rem/1.4 "Manrope",sans-serif; margin:.45em 0 .18em; color:var(--text-primary); }
-        .ownly-editor p  { margin:.35em 0; }
-        .ownly-editor blockquote { border-left:3px solid #9f1239; margin:.6em 0; padding:6px 14px; color:var(--text-secondary); font-style:italic; background:var(--bg-chip); border-radius:0 10px 10px 0; }
-        .ownly-editor pre { background:var(--bg-chip); border:1px solid var(--border-color); border-radius:10px; padding:12px 14px; font:13px/1.5 "Courier New",monospace; overflow:auto; white-space:pre-wrap; color:var(--text-primary); margin:.5em 0; }
-        .ownly-editor ul, .ownly-editor ol { padding-left:24px; margin:.4em 0; color:var(--text-primary); }
-        .ownly-editor li { margin-bottom:4px; }
-        .ownly-editor a { color:#3ddbd9; text-decoration:underline; }
-        .ownly-editor b, .ownly-editor strong { font-weight:700; }
-        .ownly-editor i, .ownly-editor em { font-style:italic; }
-        .ownly-editor u { text-decoration:underline; }
-        .ownly-editor s, .ownly-editor strike, .ownly-editor del { text-decoration:line-through; }
-        .ownly-editor input[type="checkbox"] { width:16px;height:16px;cursor:pointer;accent-color:#9f1239; }
-        html.dark-mode .ownly-editor { color:var(--text-primary); }
+        .samsung-note-content h2 {
+          font-size: 21px;
+          font-weight: 700;
+          margin: 1em 0 0.3em;
+          font-family: Manrope, sans-serif;
+        }
+        .samsung-note-content p {
+          margin: 0.5em 0;
+          min-height: 1.2em;
+        }
+        .samsung-note-content blockquote {
+          border-left: 3px solid #e11d48;
+          padding-left: 14px;
+          margin: 1em 0;
+          color: rgba(255,255,255,0.7);
+          font-style: italic;
+        }
+        .samsung-note-content ul {
+          padding-left: 24px;
+          margin: 0.5em 0;
+        }
+        .samsung-note-content ol {
+          padding-left: 24px;
+          margin: 0.5em 0;
+        }
+        .samsung-note-img:hover {
+          outline: 2px solid #e11d48;
+          outline-offset: 3px;
+        }
+        .note-img-block {
+          user-select: none;
+        }
       `}</style>
     </div>
   );
 }
-
-// ─ STYLE HELPERS ──────────────────────────────────────────────────────────────
-const btnWrap = (color: string): React.CSSProperties => ({
-  display:"flex", flexDirection:"column", alignItems:"center", gap:3,
-  padding:"5px 10px", borderRadius:10, background:"var(--bg-chip)",
-  cursor:"pointer", fontSize:9, fontWeight:700, fontFamily:"Manrope,sans-serif",
-  color, flexShrink:0,
-});
-const btnWrapB = (color: string): React.CSSProperties => ({
-  ...btnWrap(color),
-  border:"none", background: color==="var(--text-secondary)" ? "var(--bg-chip)" : "rgba(159,18,57,0.10)",
-});
