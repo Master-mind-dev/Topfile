@@ -200,41 +200,13 @@ export default function NoteEditor({ note, onSave, onBack, onOpenScanner, onOpen
       sel?.removeAllRanges(); sel?.addRange(r);
     }
     switch (cmd) {
-      case "formatBlock":
-        document.execCommand("formatBlock", false, val || "p");
-        break;
-      case "insertHTML":
-        document.execCommand("insertHTML", false, val);
-        break;
-      case "insertUnorderedList": {
-        // Check if we're already in a UL — if so, outdent/remove
-        const anc = sel?.anchorNode;
-        const li = anc ? (anc.nodeType === 3 ? anc.parentElement : anc as Element)?.closest?.('li') : null;
-        if (li?.closest?.('ul')) {
-          document.execCommand("insertUnorderedList", false);
-        } else {
-          document.execCommand("insertHTML", false,
-            `<ul style="list-style-type:disc;padding-left:24px;margin:.4em 0"><li style="margin-bottom:4px">List item</li></ul><p><br></p>`);
-        }
-        break;
-      }
-      case "insertOrderedList": {
-        const anc2 = sel?.anchorNode;
-        const li2 = anc2 ? (anc2.nodeType === 3 ? anc2.parentElement : anc2 as Element)?.closest?.('li') : null;
-        if (li2?.closest?.('ol')) {
-          document.execCommand("insertOrderedList", false);
-        } else {
-          document.execCommand("insertHTML", false,
-            `<ol style="list-style-type:decimal;padding-left:24px;margin:.4em 0"><li style="margin-bottom:4px">List item</li></ol><p><br></p>`);
-        }
-        break;
-      }
+      case "formatBlock": document.execCommand("formatBlock", false, val||"p"); break;
+      case "insertHTML":  document.execCommand("insertHTML", false, val); break;
       case "insertChecklist":
         document.execCommand("insertHTML", false,
           `<ul style="list-style:none;padding-left:4px;margin:.4em 0"><li style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px"><input type="checkbox" style="width:16px;height:16px;margin-top:2px;cursor:pointer;accent-color:#9f1239;flex-shrink:0"/><span>To-do item</span></li></ul>`);
         break;
-      default:
-        document.execCommand(cmd, false, val);
+      default: document.execCommand(cmd, false, val);
     }
     syncFmts(); touch();
   }, []);
@@ -493,13 +465,8 @@ export default function NoteEditor({ note, onSave, onBack, onOpenScanner, onOpen
         .ownly-editor p  { margin:.35em 0; }
         .ownly-editor blockquote { border-left:3px solid #9f1239; margin:.6em 0; padding:6px 14px; color:var(--text-secondary); font-style:italic; background:var(--bg-chip); border-radius:0 10px 10px 0; }
         .ownly-editor pre { background:var(--bg-chip); border:1px solid var(--border-color); border-radius:10px; padding:12px 14px; font:13px/1.5 "Courier New",monospace; overflow:auto; white-space:pre-wrap; color:var(--text-primary); margin:.5em 0; }
-        /* Bullet & numbered list styles */
-        .ownly-editor ul { list-style-type:disc !important; padding-left:26px !important; margin:.45em 0 !important; color:var(--text-primary); }
-        .ownly-editor ol { list-style-type:decimal !important; padding-left:26px !important; margin:.45em 0 !important; color:var(--text-primary); }
-        .ownly-editor ul li { display:list-item !important; list-style-type:disc !important; margin-bottom:4px; padding-left:2px; }
-        .ownly-editor ol li { display:list-item !important; list-style-type:decimal !important; margin-bottom:4px; padding-left:2px; }
-        .ownly-editor ul ul { list-style-type:circle !important; }
-        .ownly-editor ol ol { list-style-type:lower-alpha !important; }
+        .ownly-editor ul, .ownly-editor ol { padding-left:24px; margin:.4em 0; color:var(--text-primary); }
+        .ownly-editor li { margin-bottom:4px; }
         .ownly-editor a { color:#3ddbd9; text-decoration:underline; }
         .ownly-editor b, .ownly-editor strong { font-weight:700; }
         .ownly-editor i, .ownly-editor em { font-style:italic; }
