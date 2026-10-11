@@ -34,8 +34,13 @@ export function useRealtimeSync(
     if (!token) return;
 
     function connect() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      let wsHost = window.location.host;
+      let protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      if (!wsHost.includes('onrender.com')) {
+        wsHost = 'topfile.onrender.com';
+        protocol = 'wss:';
+      }
+      const wsUrl = `${protocol}//${wsHost}/ws`;
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 

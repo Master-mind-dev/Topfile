@@ -498,7 +498,7 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpe
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <h2 style={{ margin: 0, fontFamily: "Manrope,sans-serif", fontSize: 15, fontWeight: 800, color: "var(--text-primary)" }}>Quick actions</h2>
             <span style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--text-secondary)", fontSize: 10 }}>
-              <Icon name="flame" size={14} />{(notes?.length || 0) + (uploads?.length || 0)} items
+              <Icon name="flame" size={14} />{(notes?.length || 0) + (uploads?.length || 0) + (links?.length || 0)} items
             </span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
@@ -1354,14 +1354,16 @@ type HeaderProps = {
 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [screen, setScreen] = useState<Screen>("login");
+  // If a token exists, start on dashboard immediately (eliminates login delay)
+  const hasToken = !!localStorage.getItem("ownly_auth_token");
+  const [screen, setScreen] = useState<Screen>(() => (hasToken && load<AppUser | null>(KEYS.user, null)) ? "dashboard" : "login");
   const [user, setUser] = useState<AppUser | null>(() => load<AppUser | null>(KEYS.user, null));
   const [notes, setNotes] = useState<Note[]>(() => load<Note[]>(KEYS.notes, []) || []);
   const [uploads, setUploads] = useState<UploadFile[]>(() => load<UploadFile[]>(KEYS.uploads, []) || []);
   const [links, setLinks] = useState<SavedLink[]>(() => load<SavedLink[]>(KEYS.links, []) || []);
   const [darkMode, setDarkMode] = useState<boolean>(() => localStorage.getItem("ownly_dark_mode") === "true");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(!hasToken);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
 
   // Scanner & file-viewer overlay state
@@ -1372,6 +1374,7 @@ export default function App() {
   useEffect(() => { save(KEYS.notes, notes); }, [notes]);
   useEffect(() => { save(KEYS.links, links); }, [links]);
   useEffect(() => { if (user) save(KEYS.user, user); }, [user]);
+  useEffect(() => { save(KEYS.uploads, uploads.map(f => ({ ...f, file: undefined }))); }, [uploads]);
 
   // Dark mode class sync on HTML and BODY
   useEffect(() => {
@@ -1387,11 +1390,11 @@ export default function App() {
     localStorage.setItem("ownly_dark_mode", String(darkMode));
   }, [darkMode]);
 
-  // Auth check
+  // Auth check — silently refresh data in background without blocking UI
   useEffect(() => {
     const token = localStorage.getItem("ownly_auth_token");
     if (token) {
-      setScreen("dashboard");
+      // Already on dashboard (from initial state). Silently refresh in background.
       api.getUserProfile().then(p => { if (p) setUser({ name: p.name, email: p.email, plan: p.plan }); }).catch(() => {});
       api.getNotes().then(n => { if (n?.length) setNotes(n); }).catch(() => {});
       api.getLinks().then(l => { if (l?.length) setLinks(l); }).catch(() => {});
@@ -1546,7 +1549,12 @@ export default function App() {
           onAddLink={addLink} onDeleteLink={deleteLink} onRenameLink={renameLink} />
       )}
       {screen === "knowledge" && (
-        <ConnectedKnowledge onBack={() => setScreen("dashboard")} />
+        <ConnectedKnowledge
+          onBack={() => setScreen("dashboard")}
+          notes={notes}
+          uploads={uploads}
+          links={links}
+        />
       )}
 
       {drawerOpen && (

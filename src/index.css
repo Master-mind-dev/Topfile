@@ -3,12 +3,9 @@
 
 /* ══════════════════════════════════════════════════════
    OWNLY — CSS Custom Properties  (Light / Dark)
-   All colour, spacing and surface tokens live here.
-   Components must ONLY reference var(--…) tokens.
    ══════════════════════════════════════════════════════ */
 
 :root {
-  /* Page surfaces */
   --bg-page:   #f7f6f3;
   --bg-card:   #ffffff;
   --bg-header: rgba(255, 255, 255, 0.96);
@@ -17,29 +14,24 @@
   --bg-chip:   #f3eee8;
   --note-bg:   #fcfbf9;
 
-  /* Text */
   --text-primary:   #19161b;
   --text-secondary: #6e6770;
   --text-muted:     #9c9498;
 
-  /* Borders & shadows */
   --border-color:  #eee8dd;
   --border-subtle: rgba(60, 50, 54, 0.08);
   --shadow-card:   0 3px 12px rgba(40, 30, 34, 0.05);
 
-  /* Accent */
   --accent: #9f1239;
 
-  /* Base font */
   font-family: "DM Sans", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── DARK MODE ────────────────────────────────────────── */
+/* ── DARK MODE ─────────────────────────────────────── */
 html.dark-mode {
-  /* Page surfaces */
   --bg-page:   #0d0d11;
   --bg-card:   #18181f;
   --bg-header: rgba(13, 13, 17, 0.96);
@@ -48,12 +40,10 @@ html.dark-mode {
   --bg-chip:   #22222c;
   --note-bg:   #111116;
 
-  /* Text */
   --text-primary:   #f5f0f8;
   --text-secondary: #a39ca8;
   --text-muted:     #6b6572;
 
-  /* Borders & shadows */
   --border-color:  #2a2736;
   --border-subtle: rgba(255, 255, 255, 0.08);
   --shadow-card:   0 4px 18px rgba(0, 0, 0, 0.45);
@@ -61,7 +51,7 @@ html.dark-mode {
   color-scheme: dark;
 }
 
-/* ── RESET & BASE ─────────────────────────────────────── */
+/* ── RESET & BASE ───────────────────────────────────── */
 *,
 *::before,
 *::after {
@@ -77,28 +67,23 @@ body {
   height: 100%;
   min-height: 100dvh;
   overflow-x: hidden;
-  /* Use tokens — dark mode swaps these automatically */
   background: var(--bg-page) !important;
   color: var(--text-primary) !important;
   transition: background-color 0.25s ease, color 0.25s ease;
-  /* Edge-to-edge: remove any default gutters */
   -webkit-overflow-scrolling: touch;
 }
 
-/* Root fills the full viewport edge-to-edge */
+/* Root fills full viewport edge-to-edge */
 #root {
   min-height: 100dvh;
   min-height: 100vh;
   width: 100%;
   background: var(--bg-page);
-  /* Safe area padding for notch / home indicator on iOS/Android */
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   position: relative;
-}
-
 }
 
 /* All inputs / textareas / selects inherit the dark bg */
@@ -131,7 +116,7 @@ textarea:focus-visible,
   outline-offset: 2px;
 }
 
-/* ── NOTE EDITOR — Samsung-style rich text ────────────── */
+/* ── NOTE EDITOR — Samsung-style rich text ──────────── */
 .note-text-block {
   min-height: 48px;
   outline: none;
@@ -145,7 +130,6 @@ textarea:focus-visible,
   position: relative;
 }
 
-/* Placeholder via data attr */
 .note-text-block:empty::before {
   content: attr(data-placeholder);
   color: var(--text-muted);
@@ -153,7 +137,6 @@ textarea:focus-visible,
   font-style: italic;
 }
 
-/* Rich-text formatting inside editor blocks */
 .note-text-block h1 {
   font-family: "Manrope", sans-serif;
   font-size: 1.75rem;
@@ -202,7 +185,7 @@ textarea:focus-visible,
   text-decoration: underline;
 }
 
-/* ── ICON CHIPS (stat cards) ──────────────────────────── */
+/* ── ICON CHIPS (stat cards) ────────────────────────── */
 .icon-chip {
   width: 29px;
   height: 29px;
@@ -215,7 +198,7 @@ textarea:focus-visible,
 .icon-chip.green  { color: #347b60; background: rgba(52,  123, 96,  0.15); }
 .icon-chip.orange { color: #b45a28; background: rgba(180,  90, 40,  0.15); }
 
-/* ── ACTION ICON CIRCLES (quick actions) ─────────────── */
+/* ── ACTION ICON CIRCLES (quick actions) ────────────── */
 .action-icon {
   width: 39px;
   height: 39px;
@@ -228,17 +211,10 @@ textarea:focus-visible,
 .action-icon.green  { color: #347b60; background: rgba(52,  123, 96,  0.15); }
 .action-icon.orange { color: #b45a28; background: rgba(180,  90, 40,  0.15); }
 
+/* ══════════════════════════════════════════════════════
+   ANIMATIONS
+   ══════════════════════════════════════════════════════ */
 
-/* ── ANIMATIONS ───────────────────────────────────────── */
-@keyframes wave {
-  0%, 100% { transform: rotate(0deg);    }
-  20%       { transform: rotate(-10deg); }
-  60%       { transform: rotate(14deg);  }
-  80%       { transform: rotate(-8deg);  }
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
 @keyframes screenIn {
   from { opacity: 0; transform: translateY(12px) scale(0.98); }
   to   { opacity: 1; transform: translateY(0) scale(1);       }
@@ -247,47 +223,40 @@ textarea:focus-visible,
   animation: screenIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Card entrance */
 @keyframes cardIn {
   from { opacity: 0; transform: translateY(32px) scale(0.96); }
   to   { opacity: 1; transform: translateY(0) scale(1);        }
 }
 
-/* Field stagger */
 @keyframes fieldIn {
   from { opacity: 0; transform: translateX(-12px); }
   to   { opacity: 1; transform: translateX(0);     }
 }
 
-/* Float blobs */
 @keyframes blobFloat {
-  0%, 100% { transform: translate(0, 0) scale(1);        border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  0%, 100% { transform: translate(0, 0) scale(1);           border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
   33%       { transform: translate(20px, -15px) scale(1.05); border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
-  66%       { transform: translate(-10px, 10px) scale(0.97);  border-radius: 40% 60% 30% 70% / 70% 30% 60% 40%; }
+  66%       { transform: translate(-10px, 10px) scale(0.97); border-radius: 40% 60% 30% 70% / 70% 30% 60% 40%; }
 }
 
-/* Shimmer sweep */
 @keyframes shimmer {
   0%   { background-position: -200% center; }
-  100% { background-position: 200% center;  }
+  100% { background-position:  200% center; }
 }
 
-/* Pulse ring */
 @keyframes pulseRing {
   0%   { transform: scale(0.9); opacity: 0.6; }
   70%  { transform: scale(1.4); opacity: 0;   }
   100% { transform: scale(0.9); opacity: 0;   }
 }
 
-/* Particle drift */
 @keyframes drift {
-  0%   { transform: translateY(0px)   rotate(0deg);   opacity: 0; }
+  0%   { transform: translateY(0px) rotate(0deg);    opacity: 0; }
   10%  { opacity: 0.6; }
   90%  { opacity: 0.3; }
   100% { transform: translateY(-120vh) rotate(720deg); opacity: 0; }
 }
 
-/* Nav item pop */
 @keyframes navPop {
   0%   { transform: scale(1);    }
   40%  { transform: scale(0.88); }
@@ -295,29 +264,64 @@ textarea:focus-visible,
   100% { transform: scale(1);    }
 }
 
-/* Slide up for cards */
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0);    }
 }
 
-/* ── LOGIN PAGE ───────────────────────────────────────── */
+@keyframes wave {
+  0%, 100% { transform: rotate(0deg);   }
+  20%       { transform: rotate(-10deg); }
+  60%       { transform: rotate(14deg);  }
+  80%       { transform: rotate(-8deg);  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── GLOBAL ANIMATION UTILITIES ─────────────────────── */
+.slide-up  { animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1) both; }
+.nav-tap   { animation: navPop 0.3s ease both; }
+
+.pulse-ring { position: relative; }
+.pulse-ring::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid var(--accent);
+  animation: pulseRing 2s ease-out infinite;
+  pointer-events: none;
+}
+
+.card-lift { transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s; }
+.card-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+}
+
+/* ══════════════════════════════════════════════════════
+   LOGIN PAGE
+   ══════════════════════════════════════════════════════ */
+
 .login-screen {
   position: relative;
   display: grid;
   place-items: center;
+  min-height: 100dvh;
   min-height: 100vh;
   padding: clamp(40px, 10vh, 100px) 24px 30px;
   overflow: hidden;
   color: white;
   background:
     radial-gradient(ellipse at 20% 0%,  rgba(180, 24, 60, 0.55) 0%, transparent 55%),
-    radial-gradient(ellipse at 80% 10%, rgba(100, 5, 35, 0.4)  0%, transparent 45%),
-    radial-gradient(ellipse at 50% 90%, rgba(60, 0, 20, 0.5)   0%, transparent 60%),
+    radial-gradient(ellipse at 80% 10%, rgba(100, 5,  35, 0.40) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 90%, rgba(60,  0,  20, 0.50) 0%, transparent 60%),
     linear-gradient(160deg, #9f1239 0%, #6e082b 48%, #2d0415 100%);
 }
 
-/* Noise texture overlay */
+/* Noise texture */
 .login-screen::before {
   content: "";
   position: absolute;
@@ -327,7 +331,7 @@ textarea:focus-visible,
   pointer-events: none;
 }
 
-/* ── BLOB ORBS ── */
+/* Blob orbs */
 .login-orb {
   position: absolute;
   border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
@@ -378,26 +382,19 @@ textarea:focus-visible,
   animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Card shimmer line */
+/* Shimmer top edge on card */
 .login-card::after {
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background-size: 200% auto;
   border-radius: 28px 28px 0 0;
   animation: shimmer 3s ease infinite;
-  background-size: 200% auto;
 }
 
-/* ── LOGO / WORDMARK ── */
-.login-logo-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
-}
-
+/* Wordmark */
 .wordmark {
   font: 800 21px/1 "Manrope", sans-serif;
   letter-spacing: -1.3px;
@@ -421,13 +418,6 @@ textarea:focus-visible,
 }
 .wordmark .wordmark-dot { color: #45ded9; }
 .wordmark-light { color: white; }
-
-/* New SVG logo mark */
-.ownly-mark {
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-}
 
 /* Login heading */
 .login-heading {
@@ -453,7 +443,7 @@ textarea:focus-visible,
   margin-top: 16px;
   animation: fieldIn 0.35s both;
 }
-.field-group:nth-child(3) { animation-delay: 0.1s; }
+.field-group:nth-child(3) { animation-delay: 0.10s; }
 .field-group:nth-child(4) { animation-delay: 0.18s; }
 .field-group:nth-child(5) { animation-delay: 0.26s; }
 
@@ -500,7 +490,6 @@ textarea:focus-visible,
 }
 .input-wrap button:hover { color: #9f1239; }
 
-/* Misc login UI */
 .forgot {
   display: block;
   margin: 10px 2px 22px auto;
@@ -545,9 +534,9 @@ textarea:focus-visible,
 }
 .primary-button:hover {
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 20px 40px rgba(20, 0, 10, .55), inset 0 1px 0 rgba(255,255,255,0.12);
+  box-shadow: 0 20px 40px rgba(20, 0, 10, .55);
 }
-.primary-button:active { transform: translateY(0) scale(0.98); }
+.primary-button:active  { transform: translateY(0) scale(0.98); }
 .primary-button:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
 
 .signup-copy {
@@ -568,253 +557,12 @@ textarea:focus-visible,
 }
 .signup-copy button:hover { opacity: 0.8; }
 
-/* ── GLOBAL MICRO-ANIMATIONS ─────────────────────────── */
-
-/* Slide-up for any card entering */
-.slide-up {
-  animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1) both;
-}
-
-/* Bottom nav active tap animation */
-.nav-tap { animation: navPop 0.3s ease both; }
-
-/* Pulse ring indicator */
-.pulse-ring {
-  position: relative;
-}
-.pulse-ring::after {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: inherit;
-  border: 2px solid var(--accent);
-  animation: pulseRing 2s ease-out infinite;
-  pointer-events: none;
-}
-
-/* Smooth card hover lift */
-.card-lift {
-  transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s;
-}
-.card-lift:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 32px rgba(0,0,0,0.18);
-}
-
-/* ── REDUCED MOTION ───────────────────────────────────── */
+/* ── REDUCED MOTION ─────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-@keyframes wave {
-  0%, 100% { transform: rotate(0deg);    }
-  20%       { transform: rotate(-10deg); }
-  60%       { transform: rotate(14deg);  }
-  80%       { transform: rotate(-8deg);  }
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes screenIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0);   }
-}
-.screen-enter {
-  animation: screenIn 0.28s ease both;
-}
-
-/* ── LOGIN PAGE ───────────────────────────────────────── */
-.login-screen {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: 100vh;
-  padding: clamp(60px, 14vh, 120px) 24px 30px;
-  overflow: hidden;
-  color: white;
-  background:
-    linear-gradient(155deg, rgba(76, 2, 23, .18), rgba(80, 0, 25, .45)),
-    radial-gradient(circle at 23% 12%, #d33f5e, transparent 37%),
-    linear-gradient(150deg, #9f1239 0%, #6e082b 52%, #3d061f 100%);
-}
-.login-screen::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: .1;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.4'/%3E%3C/svg%3E");
-}
-
-/* Orbs */
-.login-orb {
-  position: absolute;
-  border: 1px solid rgba(255, 255, 255, .1);
-  border-radius: 50%;
-}
-.orb-one {
-  width: 260px; height: 260px;
-  top: -110px; right: -95px;
-  animation: wallpaperRotate 22s linear infinite;
-}
-.orb-two {
-  width: 170px; height: 170px;
-  bottom: -85px; left: -80px;
-  animation: wallpaperRotate 18s linear infinite reverse;
-}
-@keyframes wallpaperRotate {
-  from { transform: rotate(0deg);   }
-  to   { transform: rotate(360deg); }
-}
-
-/* Login card */
-.login-card {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 420px;
-  padding: 32px 20px 28px;
-  border: 1px solid rgba(255, 255, 255, .18);
-  border-radius: 28px;
-  background: rgba(255, 255, 255, .1);
-  box-shadow: 0 28px 60px rgba(44, 0, 18, .28);
-  backdrop-filter: blur(18px);
-}
-
-/* Wordmark */
-.wordmark {
-  font: 800 21px/1 "Manrope", sans-serif;
-  letter-spacing: -1.3px;
-  color: #19161b;
-}
-.wordmark span:first-child {
-  display: inline-grid;
-  place-items: center;
-  width: 18px; height: 18px;
-  margin-right: 1px;
-  border: 2px solid currentColor;
-  border-radius: 50%;
-  font-size: 0;
-  transform: translateY(2px);
-}
-.wordmark span:first-child::after {
-  content: "";
-  width: 5px; height: 5px;
-  background: #45ded9;
-  border-radius: 50%;
-}
-.wordmark .wordmark-dot { color: #45ded9; }
-.wordmark-light { color: white; }
-
-/* Login heading */
-.login-heading {
-  margin-bottom: 24px;
-  text-align: center;
-}
-.login-heading p {
-  margin: 0 0 4px;
-  font: 800 11px/1.2 "Manrope", sans-serif;
-  letter-spacing: 2.2px;
-  text-transform: uppercase;
-  opacity: .7;
-}
-.login-heading h1 {
-  margin: 0;
-  font: 800 22px/1.1 "Manrope", sans-serif;
-  letter-spacing: -.5px;
-}
-
-/* Field groups */
-.field-group { margin-top: 18px; }
-.field-group label {
-  display: block;
-  margin: 0 0 8px 2px;
-  font: 700 10px/1 "Manrope", sans-serif;
-  letter-spacing: 1.7px;
-  text-transform: uppercase;
-}
-.field-group input {
-  width: 100%;
-  height: 52px;
-  border: 0;
-  border-radius: 14px;
-  padding: 0 16px;
-  color: #241d21;
-  background: rgba(255, 255, 255, .95);
-  font-family: inherit;
-  font-size: 14px;
-  outline: none;
-}
-
-.input-wrap { position: relative; }
-.input-wrap input { padding-right: 65px; }
-.input-wrap button {
-  position: absolute;
-  top: 0; right: 12px;
-  height: 52px;
-  border: 0;
-  color: #817578;
-  background: transparent;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-/* Misc login UI */
-.forgot {
-  display: block;
-  margin: 10px 2px 22px auto;
-  padding: 0;
-  border: 0;
-  color: rgba(255, 255, 255, .8);
-  background: transparent;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.primary-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 160px;
-  height: 52px;
-  border: 0;
-  border-radius: 14px;
-  color: white;
-  background: #171418;
-  box-shadow: 0 13px 25px rgba(28, 4, 12, .28);
-  font: 700 14px "Manrope", sans-serif;
-  cursor: pointer;
-  transition: transform .2s;
-  margin: 0 auto;
-}
-.primary-button:hover { transform: translateY(-1px); }
-
-.signup-copy {
-  margin: 20px 0 0;
-  color: rgba(255, 255, 255, .65);
-  text-align: center;
-  font-size: 12px;
-}
-.signup-copy button {
-  padding: 0;
-  border: 0;
-  color: #54eee7;
-  background: transparent;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-/* ── REDUCED MOTION ───────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
   }
 }

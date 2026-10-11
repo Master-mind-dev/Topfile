@@ -9,6 +9,8 @@ let authToken: string | null = null;
 // Load token from localStorage on startup
 if (typeof window !== 'undefined') {
   authToken = localStorage.getItem('ownly_auth_token');
+  // Pre-warm the backend immediately when app loads to eliminate cold-start delay
+  fetch(`${API_BASE}/test`, { method: 'GET', keepalive: true }).catch(() => {});
 }
 
 // Set auth token
@@ -21,6 +23,10 @@ export function setAuthToken(token: string) {
 export function clearAuthToken() {
   authToken = null;
   localStorage.removeItem('ownly_auth_token');
+}
+
+export function warmUpBackend() {
+  fetch(`${API_BASE}/test`, { method: 'GET', keepalive: true }).catch(() => {});
 }
 
 // Generic API request - safe version that never propagates parse errors

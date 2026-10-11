@@ -339,8 +339,15 @@ function KnowledgeGraph({ items, onSelect }: { items: KnowledgeItem[]; onSelect(
 // ── MAIN SCREEN ───────────────────────────────────────────────────────────────
 const SK = "ownly_knowledge_v1";
 
-export default function ConnectedKnowledge({ onBack }: { onBack(): void }) {
-  const [items, setItems] = useState<KnowledgeItem[]>(() => {
+interface ConnectedKnowledgeProps {
+  onBack(): void;
+  notes?: { id: string; title: string; createdAt?: string; tags?: string[] }[];
+  uploads?: { id: string; name: string; size?: string; type?: string; uri?: string; addedAt?: string }[];
+  links?: { id: string; title: string; url: string; description?: string; addedAt?: string }[];
+}
+
+export default function ConnectedKnowledge({ onBack, notes = [], uploads = [], links = [] }: ConnectedKnowledgeProps) {
+  const [customItems, setCustomItems] = useState<KnowledgeItem[]>(() => {
     try { return JSON.parse(localStorage.getItem(SK) || "[]"); } catch { return []; }
   });
   const [search, setSearch] = useState("");
@@ -351,13 +358,44 @@ export default function ConnectedKnowledge({ onBack }: { onBack(): void }) {
   const [viewer, setViewer] = useState<KnowledgeItem | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { localStorage.setItem(SK, JSON.stringify(items)); }, [items]);
+  useEffect(() => { localStorage.setItem(SK, JSON.stringify(customItems)); }, [customItems]);
 
-  const addItem = (item: KnowledgeItem) => setItems(p => [item, ...p]);
-  const deleteItem = (id: string) => setItems(p => p.filter(i => i.id !== id));
-  const toggleFav = (id: string) => setItems(p => p.map(i => i.id === id ? { ...i, isFavorite: !i.isFavorite } : i));
+  // Combine synced notes, uploads, links, and custom knowledge entries
+  const items: KnowledgeItem[] = [
+    ...customItems,
+    ...links.map(l => ({
+      id: l.id,
+      type: (isYouTube(l.url) ? "youtube" : isPDF(l.url) ? "pdf" : "web") as KnowledgeItem["type"],
+      title: l.title || extractDomain(l.url),
+      url: l.url,
+      domain: extractDomain(l.url),
+      description: l.description,
+      favicon: `https://www.google.com/s2/favicons?domain=${extractDomain(l.url)}&sz=32`,
+      addedAt: l.addedAt || new Date().toISOString()
+    } as KnowledgeItem)),
+    ...uploads.map(u => ({
+      id: u.id,
+      type: (u.type?.startsWith("image/") ? "image" : u.type?.startsWith("video/") ? "video" : (u.type === "application/pdf" || u.name?.endsWith(".pdf")) ? "pdf" : "file") as KnowledgeItem["type"],
+      title: u.name,
+      uri: u.uri,
+      fileSize: u.size,
+      addedAt: u.addedAt || new Date().toISOString()
+    } as KnowledgeItem)),
+    ...notes.map(n => ({
+      id: n.id,
+      type: "note" as KnowledgeItem["type"],
+      title: n.title || "Untitled Note",
+      tags: n.tags,
+      noteId: n.id,
+      addedAt: n.createdAt || new Date().toISOString()
+    } as KnowledgeItem))
+  ];
+
+  const addItem = (item: KnowledgeItem) => setCustomItems(p => [item, ...p]);
+  const deleteItem = (id: string) => setCustomItems(p => p.filter(i => i.id !== id));
+  const toggleFav = (id: string) => setCustomItems(p => p.map(i => i.id === id ? { ...i, isFavorite: !i.isFavorite } : i));
   const openItem = (item: KnowledgeItem) => {
-    setItems(p => p.map(i => i.id === item.id ? { ...i, lastOpenedAt: new Date().toISOString() } : i));
+    setCustomItems(p => p.map(i => i.id === item.id ? { ...i, lastOpenedAt: new Date().toISOString() } : i));
     if (item.url) setViewer(item);
     else if (item.uri) window.open(item.uri, "_blank");
   };
