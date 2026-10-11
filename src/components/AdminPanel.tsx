@@ -26,13 +26,32 @@ interface ResetRequest {
 export function OwnlyAdminLogo({ size = 48 }: { size?: number }) {
   return (
     <div className="relative inline-flex items-center justify-center select-none" style={{ width: size, height: size }}>
-      <img
-        src="/icons/icon-192.svg"
-        alt="OWNLY Admin"
-        className="w-full h-full object-contain rounded-2xl drop-shadow-md"
-      />
+      <svg
+        viewBox="0 0 192 192"
+        width={size}
+        height={size}
+        className="w-full h-full drop-shadow-md"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="adminBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#0f0f14" />
+            <stop offset="100%" stopColor="#1f0810" />
+          </linearGradient>
+          <linearGradient id="adminGemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fb7185" />
+            <stop offset="50%" stopColor="#e11d48" />
+            <stop offset="100%" stopColor="#9f1239" />
+          </linearGradient>
+        </defs>
+        <rect width="192" height="192" rx="42.24" fill="url(#adminBgGrad)" stroke="#d9ad52" strokeWidth="3" />
+        <rect x="30.72" y="30.72" width="130.56" height="130.56" rx="30.72" fill="#ffffff" opacity="0.06" />
+        <path d="M 96 42.24 L 57.6 84.48 L 96 126.72 L 134.4 84.48 Z" fill="url(#adminGemGrad)" />
+        <rect x="88.32" y="126.72" width="15.36" height="30.72" rx="7.68" fill="url(#adminGemGrad)" />
+        <text x="96" y="176.64" fontFamily="system-ui, -apple-system, sans-serif" fontWeight="900" fontSize="17.28" fill="#ffffff" letterSpacing="2.88" textAnchor="middle">OWNLY</text>
+      </svg>
       <div className="absolute -bottom-1 -right-1 bg-[#d9ad52] text-[#111] p-1 rounded-full shadow-lg border-2 border-black flex items-center justify-center">
-        <Shield className="w-3 h-3 fill-current" />
+        <Shield className="w-3.5 h-3.5 fill-current" />
       </div>
     </div>
   );
