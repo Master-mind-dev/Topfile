@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { type UploadFile } from "../App";
 import { type ViewableFile } from "./FileViewer";
+import { ShareModal } from "./ShareModal";
+import { shareFileNative, resolveFileUri } from "../lib/shareHelper";
 
 // ─── ICON COMPONENT ───────────────────────────────────────────────────────────
 function Ic({ d, size = 20, sw = 1.8 }: { d: string; size?: number; sw?: number }) {
@@ -24,6 +26,7 @@ const IC = {
   edit: "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z",
   copy: "M20 9H11a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2zM5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 0 2 2v1",
   down: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3",
+  share: "M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13",
   grid: "M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z",
   list: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
   file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8",
@@ -33,8 +36,8 @@ const IC = {
 
 // ─── FILE STYLING ─────────────────────────────────────────────────────────────
 function getFileStyle(type: string, name: string) {
-  if (type.startsWith("image/")) return { color: "#087f80", bg: "rgba(8,127,128,.15)", d: IC.img };
-  if (type.startsWith("video/")) return { color: "#87568d", bg: "rgba(135,86,141,.15)", d: IC.vid };
+  if (type.startsWith("image/") || /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i.test(name)) return { color: "#087f80", bg: "rgba(8,127,128,.15)", d: IC.img };
+  if (type.startsWith("video/") || /\.(mp4|mov|webm|avi)$/i.test(name)) return { color: "#87568d", bg: "rgba(135,86,141,.15)", d: IC.vid };
   if (type === "application/pdf" || /\.pdf$/i.test(name)) return { color: "#b2213d", bg: "rgba(178,33,61,.15)", d: IC.file };
   if (/\.(doc|docx)$/i.test(name)) return { color: "#2457b3", bg: "rgba(36,87,179,.15)", d: IC.file };
   if (/\.(xls|xlsx|csv)$/i.test(name)) return { color: "#1a7a45", bg: "rgba(26,122,69,.15)", d: IC.file };
@@ -66,20 +69,62 @@ export default function FileManager({
   const [filter, setFilter] = useState<"Recent"|"Favorites"|"All"|"Images"|"Documents"|"Videos"|"PDF">("Recent");
   const [viewMode, setViewMode] = useState<"grid"|"list">("list");
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [shareTarget, setShareTarget] = useState<ExtFile | null>(null);
 
   // File Add
-  function handleAdd(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleAdd(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files?.length) return;
-    const newFiles = Array.from(e.target.files).map(f => ({
-      id: `f-${Date.now()}-${f.name}`,
-      name: f.name,
-      size: f.size > 1048576 ? `${(f.size/1048576).toFixed(1)} MB` : `${Math.round(f.size/1024)} KB`,
-      type: f.type || "application/octet-stream",
-      uri: URL.createObjectURL(f),
-      addedAt: new Date().toISOString()
-    }));
+    const selected = Array.from(e.target.files);
+    const newFiles: UploadFile[] = [];
+
+    for (const f of selected) {
+      // Convert to base64 data URL immediately so it never breaks on reload
+      const dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(URL.createObjectURL(f));
+        reader.readAsDataURL(f);
+      });
+
+      newFiles.push({
+        id: `f-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        name: f.name,
+        size: f.size > 1048576 ? `${(f.size/1048576).toFixed(1)} MB` : `${Math.round(f.size/1024)} KB`,
+        type: f.type || "application/octet-stream",
+        uri: dataUrl,
+        file: f,
+        addedAt: new Date().toISOString()
+      });
+    }
+
     onAddFiles(newFiles);
     e.target.value = "";
+  }
+
+  // Handle Share file to WhatsApp / Apps
+  async function handleShareFile(f: ExtFile) {
+    setActiveMenuId(null);
+    const res = await shareFileNative(f);
+    if (!res.success && !res.cancelled) {
+      // Fallback to share modal
+      setShareTarget(f);
+    }
+  }
+
+  // Handle Download file safely (resolving lazy URI if needed)
+  async function handleDownloadFile(f: ExtFile) {
+    setActiveMenuId(null);
+    try {
+      const uri = await resolveFileUri(f);
+      const a = document.createElement("a");
+      a.href = uri;
+      a.download = f.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch {
+      alert("Could not download file.");
+    }
   }
 
   // Filtering Logic
@@ -97,13 +142,13 @@ export default function FileManager({
         f = f.filter(x => x.isFavorite);
         break;
       case "Images":
-        f = f.filter(x => x.type.startsWith("image/"));
+        f = f.filter(x => x.type.startsWith("image/") || /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i.test(x.name));
         break;
       case "Videos":
-        f = f.filter(x => x.type.startsWith("video/"));
+        f = f.filter(x => x.type.startsWith("video/") || /\.(mp4|mov|webm|avi)$/i.test(x.name));
         break;
       case "PDF":
-        f = f.filter(x => x.type === "application/pdf" || x.name.endsWith(".pdf"));
+        f = f.filter(x => x.type === "application/pdf" || x.name.toLowerCase().endsWith(".pdf"));
         break;
       case "Documents":
         f = f.filter(x => x.name.match(/\.(doc|docx|xls|xlsx|ppt|pptx|txt)$/i));
@@ -122,7 +167,7 @@ export default function FileManager({
       <header style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", background:"var(--bg-header)", borderBottom:"1px solid var(--border-color)", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", position:"sticky", top:0, zIndex:10 }}>
         <button onClick={onBack} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-primary)", padding:4 }}><Ic d={IC.back} size={22} /></button>
         <h1 style={{ flex:1, margin:0, fontSize:18, fontWeight:800, fontFamily:"Manrope,sans-serif" }}>Files</h1>
-        <button onClick={()=>setViewMode(v => v==="grid"?"list":"grid")} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)", padding:4 }}>
+        <button onClick={()=>setViewMode(v => v==="grid"?"list":"grid")} style={{ background:"none", border:"none", cursor:"pointer", color:"var(--text-secondary)", padding:4 }} title={viewMode==="grid"?"List view":"Grid view"}>
           <Ic d={viewMode==="grid"?IC.list:IC.grid} size={20} />
         </button>
       </header>
@@ -194,7 +239,10 @@ export default function FileManager({
                   </button>
                   {/* Dropdown Menu */}
                   {activeMenuId === f.id && (
-                    <div style={{ position:"absolute", right:12, top:46, zIndex:20, width:180, background:"var(--bg-card)", borderRadius:12, padding:6, boxShadow:"0 8px 30px rgba(0,0,0,.15)", border:"1px solid var(--border-color)" }}>
+                    <div style={{ position:"absolute", right:12, top:46, zIndex:20, width:190, background:"var(--bg-card)", borderRadius:12, padding:6, boxShadow:"0 8px 30px rgba(0,0,0,.25)", border:"1px solid var(--border-color)" }}>
+                      <MenuBtn icon={IC.share} label="Share (WhatsApp)" color="#25d366" onClick={()=>handleShareFile(f)} />
+                      <MenuBtn icon={IC.down} label="Download" onClick={()=>handleDownloadFile(f)} />
+                      <div style={{ height:1, background:"var(--border-color)", margin:"4px 0" }}/>
                       <MenuBtn icon={IC.star} label={f.isFavorite?"Unfavorite":"Favorite"} onClick={()=>{onToggleFavorite(f.id); setActiveMenuId(null);}} />
                       <MenuBtn icon={IC.edit} label="Rename" onClick={()=>{
                         const n = prompt("New name:", f.name);
@@ -202,9 +250,6 @@ export default function FileManager({
                         setActiveMenuId(null);
                       }} />
                       <MenuBtn icon={IC.copy} label="Duplicate" onClick={()=>{ onDuplicateFile(f); setActiveMenuId(null); }} />
-                      <MenuBtn icon={IC.down} label="Download" onClick={()=>{
-                        const a = document.createElement("a"); a.href=f.uri; a.download=f.name; a.click(); setActiveMenuId(null);
-                      }} />
                       <div style={{ height:1, background:"var(--border-color)", margin:"4px 0" }}/>
                       <MenuBtn icon={IC.trash} label="Delete" color="#dc2626" onClick={()=>{onDeleteFile(f.id); setActiveMenuId(null);}} />
                     </div>
@@ -214,22 +259,26 @@ export default function FileManager({
             })}
           </div>
         ) : (
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(100px, 1fr))", gap:12 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(110px, 1fr))", gap:12 }}>
             {filtered.map(f => {
               const style = getFileStyle(f.type, f.name);
-              const isImg = f.type.startsWith("image/");
+              const isImg = f.type.startsWith("image/") || /\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i.test(f.name);
+              const hasValidImgUri = isImg && f.uri && !f.uri.startsWith('__lazy__');
+
               return (
                 <div key={f.id} style={{ position:"relative", display:"flex", flexDirection:"column", background:"var(--bg-card)", borderRadius:14, border:"1px solid var(--border-subtle)", boxShadow:"var(--shadow-card)", overflow:"hidden" }}>
-                  <div onClick={()=>{ onUpdateOpenedAt(f.id); onOpenViewer(f); }} style={{ height:90, background:"var(--bg-chip)", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", position:"relative" }}>
-                    {isImg ? (
+                  <div onClick={()=>{ onUpdateOpenedAt(f.id); onOpenViewer(f); }} style={{ height:95, background:"var(--bg-chip)", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", position:"relative" }}>
+                    {hasValidImgUri ? (
                       <img src={f.uri} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
                     ) : (
-                      <div style={{ color:style.color, background:style.bg, padding:12, borderRadius:12 }}><Ic d={style.d} size={32} /></div>
+                      <div style={{ color:style.color, background:style.bg, padding:12, borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                        <Ic d={style.d} size={32} />
+                      </div>
                     )}
-                    {f.isFavorite && <div style={{ position:"absolute", top:6, left:6, color:"#eab308", background:"rgba(0,0,0,.5)", borderRadius:20, padding:"2px 4px", fontSize:10 }}>★</div>}
+                    {f.isFavorite && <div style={{ position:"absolute", top:6, left:6, color:"#eab308", background:"rgba(0,0,0,.6)", borderRadius:20, padding:"2px 6px", fontSize:10 }}>★</div>}
                   </div>
                   <div style={{ padding:"8px 10px", display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:4 }}>
-                    <div style={{ flex:1, minWidth:0 }}>
+                    <div onClick={()=>{ onUpdateOpenedAt(f.id); onOpenViewer(f); }} style={{ flex:1, minWidth:0, cursor:"pointer" }}>
                       <div style={{ fontSize:11, fontWeight:700, fontFamily:"Manrope,sans-serif", color:"var(--text-primary)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{f.name}</div>
                       <div style={{ fontSize:9, color:"var(--text-secondary)" }}>{f.size}</div>
                     </div>
@@ -239,8 +288,11 @@ export default function FileManager({
                   </div>
                   {/* Dropdown Menu (Grid) */}
                   {activeMenuId === f.id && (
-                    <div style={{ position:"absolute", right:4, top:90, zIndex:20, width:140, background:"var(--bg-card)", borderRadius:12, padding:6, boxShadow:"0 8px 30px rgba(0,0,0,.25)", border:"1px solid var(--border-color)" }}>
-                      <MenuBtn icon={IC.star} label={f.isFavorite?"Unfavorite":"Fav"} onClick={()=>{onToggleFavorite(f.id); setActiveMenuId(null);}} />
+                    <div style={{ position:"absolute", right:4, top:95, zIndex:20, width:160, background:"var(--bg-card)", borderRadius:12, padding:6, boxShadow:"0 8px 30px rgba(0,0,0,.3)", border:"1px solid var(--border-color)" }}>
+                      <MenuBtn icon={IC.share} label="Share" color="#25d366" onClick={()=>handleShareFile(f)} />
+                      <MenuBtn icon={IC.down} label="Download" onClick={()=>handleDownloadFile(f)} />
+                      <MenuBtn icon={IC.star} label={f.isFavorite?"Unfavorite":"Favorite"} onClick={()=>{onToggleFavorite(f.id); setActiveMenuId(null);}} />
+                      <div style={{ height:1, background:"var(--border-color)", margin:"4px 0" }}/>
                       <MenuBtn icon={IC.trash} label="Delete" color="#dc2626" onClick={()=>{onDeleteFile(f.id); setActiveMenuId(null);}} />
                     </div>
                   )}
@@ -251,13 +303,22 @@ export default function FileManager({
         )}
 
       </div>
+
+      {/* Share Modal */}
+      {shareTarget && (
+        <ShareModal
+          isOpen={!!shareTarget}
+          onClose={() => setShareTarget(null)}
+          file={shareTarget}
+        />
+      )}
     </div>
   );
 }
 
 function MenuBtn({ icon, label, onClick, color="var(--text-primary)" }: { icon: string; label: string; onClick: ()=>void; color?: string; }) {
   return (
-    <button onClick={onClick} style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"10px 12px", background:"none", border:"none", cursor:"pointer", color, fontSize:13, fontWeight:600, fontFamily:"Manrope,sans-serif", borderRadius:8 }}>
+    <button onClick={onClick} style={{ display:"flex", alignItems:"center", gap:10, width:"100%", padding:"9px 12px", background:"none", border:"none", cursor:"pointer", color, fontSize:12, fontWeight:700, fontFamily:"Manrope,sans-serif", borderRadius:8, textAlign:"left" }}>
       <Ic d={icon} size={16} /> {label}
     </button>
   );

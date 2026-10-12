@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback, ChangeEvent } from "react";
 import jsPDF from "jspdf";
-import { Camera, RefreshCw, X, Image as ImageIcon, Check, Sliders, FileText, Download, Trash2, Plus } from "lucide-react";
+import { Camera, RefreshCw, X, Image as ImageIcon, Check, Sliders, FileText, Download, Trash2, Plus, Share2 } from "lucide-react";
+import { type UploadFile } from "../App";
+import { ShareModal } from "./ShareModal";
+import { shareFileNative, type ShareableItem } from "../lib/shareHelper";
 
 export interface ScannedPage {
   id: string;
@@ -75,17 +78,21 @@ async function runOCR(uri: string): Promise<string> {
 export default function Scanner({
   onBack,
   onInsertToNote,
+  onSaveFiles,
 }: {
   onBack(): void;
   onInsertToNote(pages: ScannedPage[], pdfUri?: string): void;
+  onSaveFiles?: (files: UploadFile[]) => void;
 }) {
   const [phase, setPhase] = useState<Phase>("camera");
   const [pages, setPages] = useState<ScannedPage[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mode, setMode] = useState<EnhanceMode>("auto");
-  const [pdfName, setPdfName] = useState("Scanned_Document");
+  const [pdfName, setPdfName] = useState("Scan_" + new Date().toISOString().slice(0, 10));
   const [ocrText, setOcrText] = useState("");
   const [ocrLoading, setOcrLoading] = useState(false);
+  const [shareTarget, setShareTarget] = useState<ShareableItem | null>(null);
+  const [savingAction, setSavingAction] = useState(false);
 
   // Live Camera states
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -278,6 +285,118 @@ export default function Scanner({
     }
     const blob = doc.output("blob");
     return URL.createObjectURL(blob);
+  }
+
+  // Build PDF as base64 dataUrl with true size
+  async function buildPDFDataUrl(): Promise<{ dataUrl: string; size: string; blob: Blob }> {
+    const doc = new jsPDF({ unit: "px", compress: true });
+    let first = true;
+    for (const page of pages) {
+      const src = page.enhanced || page.uri;
+      if (!first) doc.addPage();
+      first = false;
+      const img = new Image();
+      img.src = src;
+      await new Promise<void>((res) => {
+        img.onload = () => res();
+        img.onerror = () => res();
+      });
+      const W = doc.internal.pageSize.getWidth();
+      const H = doc.internal.pageSize.getHeight();
+      const ratio = Math.min(W / img.naturalWidth, H / img.naturalHeight);
+      const w = img.naturalWidth * ratio,
+        h = img.naturalHeight * ratio;
+      const x = (W - w) / 2,
+        y = (H - h) / 2;
+      doc.addImage(src, "JPEG", x, y, w, h, undefined, "FAST");
+    }
+    const blob = doc.output("blob");
+    const dataUrl = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+    const size = blob.size > 1048576
+      ? `${(blob.size / 1048576).toFixed(1)} MB`
+      : `${Math.round(blob.size / 1024)} KB`;
+    return { dataUrl, size, blob };
+  }
+
+  // Save scanned pages as Photo / Image (.jpg) files
+  async function handleSaveAsImages() {
+    if (pages.length === 0) return;
+    setSavingAction(true);
+    const cleanName = pdfName.replace(/\.pdf$/i, '').replace(/\.jpe?g$/i, '').trim() || 'Scan';
+    const newFiles: UploadFile[] = pages.map((p, idx) => {
+      const src = p.enhanced || p.uri;
+      const sizeKB = Math.round((src.length * 0.75) / 1024);
+      const formattedSize = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
+      const fileName = pages.length > 1 ? `${cleanName}_p${idx + 1}.jpg` : `${cleanName}.jpg`;
+      return {
+        id: `img-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+        name: fileName,
+        size: formattedSize,
+        type: "image/jpeg",
+        uri: src,
+        addedAt: new Date().toISOString(),
+      };
+    });
+
+    if (onSaveFiles) {
+      onSaveFiles(newFiles);
+    } else {
+      onInsertToNote(pages);
+    }
+    setSavingAction(false);
+  }
+
+  // Save as PDF Document (.pdf)
+  async function handleSaveAsPDF() {
+    if (pages.length === 0) return;
+    setSavingAction(true);
+    const { dataUrl, size } = await buildPDFDataUrl();
+    const cleanName = pdfName.replace(/\.pdf$/i, '').trim() || 'Scan_Document';
+    const newFile: UploadFile = {
+      id: `pdf-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: `${cleanName}.pdf`,
+      size,
+      type: "application/pdf",
+      uri: dataUrl,
+      addedAt: new Date().toISOString(),
+    };
+
+    if (onSaveFiles) {
+      onSaveFiles([newFile]);
+    } else {
+      onInsertToNote(pages, dataUrl);
+    }
+    setSavingAction(false);
+  }
+
+  // Direct share to WhatsApp / other apps from Scanner
+  async function handleShareScan() {
+    if (pages.length === 0) return;
+    const cleanName = pdfName.replace(/\.pdf$/i, '').trim() || 'Scan';
+    if (pages.length === 1) {
+      const pageSrc = pages[0].enhanced || pages[0].uri;
+      const item: ShareableItem = {
+        name: `${cleanName}.jpg`,
+        uri: pageSrc,
+        type: "image/jpeg",
+      };
+      const res = await shareFileNative(item);
+      if (!res.success && !res.cancelled) setShareTarget(item);
+    } else {
+      const { dataUrl, size } = await buildPDFDataUrl();
+      const item: ShareableItem = {
+        name: `${cleanName}.pdf`,
+        uri: dataUrl,
+        type: "application/pdf",
+        size,
+      };
+      const res = await shareFileNative(item);
+      if (!res.success && !res.cancelled) setShareTarget(item);
+    }
   }
 
   // OCR on all pages
@@ -797,35 +916,36 @@ export default function Scanner({
 
         {/* Actions bar */}
         <div style={{ padding: "14px 18px", background: "var(--bg-header, #ffffff)", borderTop: "1px solid var(--border-color, rgba(0,0,0,0.1))", display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* Primary Save Buttons */}
           <div style={{ display: "flex", gap: 10 }}>
             <button
-              onClick={doOCR}
+              onClick={handleSaveAsImages}
+              disabled={savingAction}
               style={{
                 flex: 1,
-                padding: 12,
+                padding: "12px 8px",
                 borderRadius: 14,
-                border: "1px solid var(--border-color, rgba(0,0,0,0.12))",
-                background: "var(--bg-card, transparent)",
-                color: "var(--text-primary, inherit)",
-                fontWeight: 700,
+                border: "none",
+                background: "#059669",
+                color: "#fff",
+                fontWeight: 800,
                 fontSize: 13,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 8,
+                gap: 6,
+                boxShadow: "0 2px 10px rgba(5,150,105,0.3)",
               }}
             >
-              <FileText size={16} /> {ocrLoading ? "Running OCR…" : "Extract Text (OCR)"}
+              <ImageIcon size={16} /> Save as Photo{pages.length > 1 ? "s" : ""}
             </button>
             <button
-              onClick={async () => {
-                const uri = await buildPDF();
-                onInsertToNote(pages, uri);
-              }}
+              onClick={handleSaveAsPDF}
+              disabled={savingAction}
               style={{
                 flex: 1,
-                padding: 12,
+                padding: "12px 8px",
                 borderRadius: 14,
                 border: "none",
                 background: "#e11d48",
@@ -836,39 +956,95 @@ export default function Scanner({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 8,
+                gap: 6,
+                boxShadow: "0 2px 10px rgba(225,29,72,0.3)",
               }}
             >
-              <Check size={16} /> Save to OWNLY
+              <FileText size={16} /> Save as PDF
             </button>
           </div>
+
+          {/* Secondary Actions: Share & Download */}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={handleShareScan}
+              style={{
+                flex: 1,
+                padding: 12,
+                borderRadius: 14,
+                border: "1px solid rgba(37,211,102,0.3)",
+                background: "rgba(37,211,102,0.12)",
+                color: "#16a34a",
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+              }}
+            >
+              <Share2 size={16} /> Share (WhatsApp)
+            </button>
+            <button
+              onClick={async () => {
+                const uri = await buildPDF();
+                const a = document.createElement("a");
+                a.href = uri;
+                a.download = `${pdfName.replace(/\.pdf$/i, '')}.pdf`;
+                a.click();
+              }}
+              style={{
+                flex: 1,
+                padding: 12,
+                borderRadius: 14,
+                border: "1px solid var(--border-color, rgba(0,0,0,0.12))",
+                background: "var(--bg-chip, #f1f3f5)",
+                color: "var(--text-primary, inherit)",
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+              }}
+            >
+              <Download size={16} /> Download
+            </button>
+          </div>
+
+          {/* OCR button */}
           <button
-            onClick={async () => {
-              const uri = await buildPDF();
-              const a = document.createElement("a");
-              a.href = uri;
-              a.download = `${pdfName}.pdf`;
-              a.click();
-            }}
+            onClick={doOCR}
             style={{
               width: "100%",
-              padding: 12,
-              borderRadius: 14,
-              border: "none",
-              background: "var(--bg-chip, #f1f3f5)",
-              color: "var(--text-primary, inherit)",
-              fontWeight: 700,
-              fontSize: 13,
+              padding: 10,
+              borderRadius: 12,
+              border: "1px solid var(--border-color, rgba(0,0,0,0.1))",
+              background: "transparent",
+              color: "var(--text-secondary, #64748b)",
+              fontWeight: 600,
+              fontSize: 12,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: 8,
+              gap: 6,
             }}
           >
-            <Download size={16} /> Download as PDF
+            <FileText size={14} /> {ocrLoading ? "Extracting Text…" : "Extract Text (OCR)"}
           </button>
         </div>
+
+        {/* Share Modal */}
+        {shareTarget && (
+          <ShareModal
+            isOpen={!!shareTarget}
+            onClose={() => setShareTarget(null)}
+            file={shareTarget}
+          />
+        )}
       </div>
     );
   }

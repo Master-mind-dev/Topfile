@@ -1,4 +1,8 @@
 import { useState, useEffect, useRef, ChangeEvent } from "react";
+import { ShareModal } from "./ShareModal";
+import { shareFileNative, resolveFileUri, type ShareableItem } from "../lib/shareHelper";
+import { type UploadFile } from "../App";
+import { type ExtFile } from "./FileManager";
 
 // ── TYPES ──────────────────────────────────────────────────────────────────────
 export interface KnowledgeItem {
@@ -66,6 +70,8 @@ const IC = {
   list:    "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
   more:    "M5 12h.01M12 12h.01M19 12h.01",
   chevR:   "M9 18l6-6-6-6",
+  down:    "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3",
+  share:   "M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13",
 };
 
 // ── WEB VIEWER ────────────────────────────────────────────────────────────────
@@ -185,7 +191,7 @@ function AddLinkDialog({ onAdd, onClose }: { onAdd(item: KnowledgeItem): void; o
         {[
           { label: "URL *", val: url, set: setUrl, ph: "https://example.com or youtube.com/watch?v=..." },
           { label: "Title (optional)", val: title, set: setTitle, ph: "Auto-detected from URL" },
-          { label: "Tags (comma-separated)", val: tags, set: setTags, ph: "research, emtl, physics…" },
+          { label: "Tags (comma-separated)", val: tags, set: setTags, ph: "research, notes, physics…" },
         ].map(f => (
           <div key={f.label} style={{ marginBottom: 12 }}>
             <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 4, fontFamily: "Manrope,sans-serif" }}>{f.label}</label>
@@ -206,23 +212,27 @@ function AddLinkDialog({ onAdd, onClose }: { onAdd(item: KnowledgeItem): void; o
 }
 
 // ── KNOWLEDGE CARD ────────────────────────────────────────────────────────────
-function KnowledgeCard({ item, onOpen, onDelete, onToggleFav }: {
+function KnowledgeCard({ item, onOpen, onDelete, onToggleFav, onShare, onDownload }: {
   item: KnowledgeItem;
   onOpen(i: KnowledgeItem): void;
   onDelete(id: string): void;
   onToggleFav(id: string): void;
+  onShare(i: KnowledgeItem): void;
+  onDownload(i: KnowledgeItem): void;
 }) {
   const [menu, setMenu] = useState(false);
   const color = getTypeColor(item.type);
   const emoji = getTypeIcon(item.type);
   const ytThumb = item.type === "youtube" && item.url ? `https://img.youtube.com/vi/${getYouTubeId(item.url)}/hqdefault.jpg` : null;
+  const isImg = item.type === "image";
+  const displayThumb = item.previewImage || ytThumb || (isImg && item.uri && !item.uri.startsWith("__lazy__") ? item.uri : null);
 
   return (
     <div style={{ background: "var(--bg-card)", borderRadius: 18, border: "1px solid var(--border-subtle)", boxShadow: "var(--shadow-card)", overflow: "hidden", position: "relative" }}>
       {/* Preview */}
-      {(item.previewImage || ytThumb) && (
-        <div style={{ height: 110, overflow: "hidden", position: "relative", background: "#111" }}>
-          <img src={item.previewImage || ytThumb!} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      {displayThumb ? (
+        <div onClick={() => onOpen(item)} style={{ height: 110, overflow: "hidden", position: "relative", background: "#111", cursor: "pointer" }}>
+          <img src={displayThumb} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           {item.type === "youtube" && (
             <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.3)" }}>
               <div style={{ width: 38, height: 38, borderRadius: "50%", background: "#ef4444", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -231,7 +241,11 @@ function KnowledgeCard({ item, onOpen, onDelete, onToggleFav }: {
             </div>
           )}
         </div>
-      )}
+      ) : isImg ? (
+        <div onClick={() => onOpen(item)} style={{ height: 80, background: "rgba(13,148,136,0.12)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#0d9488", fontSize: 28 }}>
+          🖼️
+        </div>
+      ) : null}
 
       <div style={{ padding: "11px 13px" }}>
         {/* Badge row */}
@@ -272,24 +286,40 @@ function KnowledgeCard({ item, onOpen, onDelete, onToggleFav }: {
           </div>
         )}
 
-        <div style={{ marginTop: 7, fontSize: 9, color: "var(--text-muted)" }}>{fmtDate(item.addedAt)}</div>
+        <div style={{ marginTop: 7, fontSize: 9, color: "var(--text-muted)", display: "flex", justifyContent: "space-between" }}>
+          <span>{fmtDate(item.addedAt)}</span>
+          {item.fileSize && <span>{item.fileSize}</span>}
+        </div>
       </div>
 
       {/* Context menu */}
       {menu && (
-        <div style={{ position: "absolute", top: 36, right: 12, zIndex: 50, background: "var(--bg-card)", borderRadius: 12, boxShadow: "0 8px 30px rgba(0,0,0,0.3)", border: "1px solid var(--border-color)", minWidth: 148, overflow: "hidden" }}>
-          {[
-            { l: "Open", fn: () => { onOpen(item); setMenu(false); } },
-            item.url ? { l: "Open in browser", fn: () => { window.open(item.url, "_blank"); setMenu(false); } } : null,
-            item.url ? { l: "Copy link", fn: () => { navigator.clipboard?.writeText(item.url!); setMenu(false); } } : null,
-            { l: item.isFavorite ? "Unfavorite" : "Favorite ⭐", fn: () => { onToggleFav(item.id); setMenu(false); } },
-            { l: "Delete", fn: () => { onDelete(item.id); setMenu(false); } },
-          ].filter(Boolean).map((x: { l: string; fn: () => void } | null) => x && (
-            <button key={x.l} onClick={x.fn}
-              style={{ display: "block", width: "100%", padding: "10px 13px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontSize: 13, color: x.l === "Delete" ? "#ef4444" : "var(--text-primary)", fontFamily: "inherit" }}>
-              {x.l}
+        <div style={{ position: "absolute", top: 36, right: 12, zIndex: 50, background: "var(--bg-card)", borderRadius: 14, boxShadow: "0 8px 30px rgba(0,0,0,0.35)", border: "1px solid var(--border-color)", minWidth: 160, overflow: "hidden", padding: 4 }}>
+          <button onClick={() => { onOpen(item); setMenu(false); }}
+            style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Open
+          </button>
+          {(item.uri || item.url) && (
+            <button onClick={() => { onShare(item); setMenu(false); }}
+              style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#25d366" }}>
+              <Ic d={IC.share} size={15} /> Share (WhatsApp)
             </button>
-          ))}
+          )}
+          {item.uri && (
+            <button onClick={() => { onDownload(item); setMenu(false); }}
+              style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              <Ic d={IC.down} size={15} /> Download
+            </button>
+          )}
+          <button onClick={() => { onToggleFav(item.id); setMenu(false); }}
+            style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            {item.isFavorite ? "Unfavorite" : "Favorite ⭐"}
+          </button>
+          <div style={{ height: 1, background: "var(--border-color)", margin: "4px 0" }} />
+          <button onClick={() => { onDelete(item.id); setMenu(false); }}
+            style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "9px 12px", background: "none", border: "none", cursor: "pointer", textAlign: "left", fontSize: 13, fontWeight: 700, color: "#ef4444" }}>
+            Delete
+          </button>
         </div>
       )}
     </div>
@@ -342,11 +372,20 @@ const SK = "ownly_knowledge_v1";
 interface ConnectedKnowledgeProps {
   onBack(): void;
   notes?: { id: string; title: string; createdAt?: string; tags?: string[] }[];
-  uploads?: { id: string; name: string; size?: string; type?: string; uri?: string; addedAt?: string }[];
+  uploads?: ExtFile[];
   links?: { id: string; title: string; url: string; description?: string; addedAt?: string }[];
+  onOpenViewer?: (file: ExtFile) => void;
+  onAddFiles?: (files: UploadFile[]) => void;
 }
 
-export default function ConnectedKnowledge({ onBack, notes = [], uploads = [], links = [] }: ConnectedKnowledgeProps) {
+export default function ConnectedKnowledge({
+  onBack,
+  notes = [],
+  uploads = [],
+  links = [],
+  onOpenViewer,
+  onAddFiles
+}: ConnectedKnowledgeProps) {
   const [customItems, setCustomItems] = useState<KnowledgeItem[]>(() => {
     try { return JSON.parse(localStorage.getItem(SK) || "[]"); } catch { return []; }
   });
@@ -356,6 +395,7 @@ export default function ConnectedKnowledge({ onBack, notes = [], uploads = [], l
   const [showGraph, setShowGraph] = useState(false);
   const [showAddLink, setShowAddLink] = useState(false);
   const [viewer, setViewer] = useState<KnowledgeItem | null>(null);
+  const [shareTarget, setShareTarget] = useState<ShareableItem | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { localStorage.setItem(SK, JSON.stringify(customItems)); }, [customItems]);
@@ -394,30 +434,112 @@ export default function ConnectedKnowledge({ onBack, notes = [], uploads = [], l
   const addItem = (item: KnowledgeItem) => setCustomItems(p => [item, ...p]);
   const deleteItem = (id: string) => setCustomItems(p => p.filter(i => i.id !== id));
   const toggleFav = (id: string) => setCustomItems(p => p.map(i => i.id === id ? { ...i, isFavorite: !i.isFavorite } : i));
+
   const openItem = (item: KnowledgeItem) => {
     setCustomItems(p => p.map(i => i.id === item.id ? { ...i, lastOpenedAt: new Date().toISOString() } : i));
-    if (item.url) setViewer(item);
-    else if (item.uri) window.open(item.uri, "_blank");
+    if (item.url) {
+      setViewer(item);
+    } else if (item.uri) {
+      if (onOpenViewer) {
+        onOpenViewer({
+          id: item.id,
+          name: item.title,
+          size: item.fileSize || "—",
+          type: item.type === "image" ? "image/jpeg" : item.type === "video" ? "video/mp4" : item.type === "pdf" ? "application/pdf" : "application/octet-stream",
+          uri: item.uri,
+          addedAt: item.addedAt,
+        });
+      } else {
+        window.open(item.uri, "_blank");
+      }
+    }
   };
 
-  function handleFileAdd(e: ChangeEvent<HTMLInputElement>) {
-    Array.from(e.target.files || []).forEach(f => {
+  async function handleShareItem(item: KnowledgeItem) {
+    const shareObj: ShareableItem = {
+      id: item.id,
+      name: item.title || item.domain || "Knowledge Item",
+      uri: item.uri || item.url || "",
+      type: item.type === "image" ? "image/jpeg" : item.type === "pdf" ? "application/pdf" : undefined,
+      size: item.fileSize,
+    };
+    const res = await shareFileNative(shareObj);
+    if (!res.success && !res.cancelled) {
+      setShareTarget(shareObj);
+    }
+  }
+
+  async function handleDownloadItem(item: KnowledgeItem) {
+    try {
+      const uri = await resolveFileUri({ id: item.id, name: item.title, uri: item.uri || "" });
+      const a = document.createElement("a");
+      a.href = uri;
+      a.download = item.title;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch {
+      alert("Could not download file.");
+    }
+  }
+
+  async function handleFileAdd(e: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const newUploads: UploadFile[] = [];
+
+    for (const f of files) {
       const ext = f.name.split(".").pop()?.toLowerCase() || "";
-      const type: KnowledgeItem["type"] =
+      const typeStr =
+        f.type.startsWith("image/") ? "image/jpeg" :
+        f.type.startsWith("video/") ? "video/mp4" :
+        f.type === "application/pdf" || ext === "pdf" ? "application/pdf" :
+        f.type || "application/octet-stream";
+
+      // Convert to base64 immediately so data survives reloads
+      const dataUrl = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(URL.createObjectURL(f));
+        reader.readAsDataURL(f);
+      });
+
+      const sizeFormatted = `${(f.size / 1024 / 1024).toFixed(2)} MB`;
+      const fileId = uid();
+
+      newUploads.push({
+        id: fileId,
+        name: f.name,
+        size: sizeFormatted,
+        type: typeStr,
+        uri: dataUrl,
+        file: f,
+        addedAt: new Date().toISOString(),
+      });
+
+      const kType: KnowledgeItem["type"] =
         f.type.startsWith("image/") ? "image" :
         f.type.startsWith("video/") ? "video" :
         f.type === "application/pdf" || ext === "pdf" ? "pdf" : "file";
+
       addItem({
-        id: uid(), type,
-        title: f.name.replace(/\.[^.]+$/, ""),
-        uri: URL.createObjectURL(f),
+        id: fileId,
+        type: kType,
+        title: f.name,
+        uri: dataUrl,
+        previewImage: kType === "image" ? dataUrl : undefined,
         domain: f.name,
-        description: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
-        fileSize: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
+        description: sizeFormatted,
+        fileSize: sizeFormatted,
         tags: [],
         addedAt: new Date().toISOString(),
       });
-    });
+    }
+
+    if (onAddFiles && newUploads.length > 0) {
+      onAddFiles(newUploads);
+    }
     e.target.value = "";
   }
 
@@ -444,7 +566,7 @@ export default function ConnectedKnowledge({ onBack, notes = [], uploads = [], l
     { label: "Total", count: items.length, color: "#9f1239" },
     { label: "Web", count: items.filter(i => i.type === "web").length, color: "#0ea5e9" },
     { label: "Videos", count: items.filter(i => i.type === "youtube" || i.type === "video").length, color: "#ef4444" },
-    { label: "Files", count: items.filter(i => i.type === "pdf" || i.type === "file").length, color: "#a16207" },
+    { label: "Files", count: items.filter(i => i.type === "pdf" || i.type === "file" || i.type === "image").length, color: "#a16207" },
   ];
 
   return (
@@ -537,28 +659,42 @@ export default function ConnectedKnowledge({ onBack, notes = [], uploads = [], l
           viewMode === "grid" ? (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12 }}>
               {filtered.map(item => (
-                <KnowledgeCard key={item.id} item={item} onOpen={openItem} onDelete={deleteItem} onToggleFav={toggleFav} />
+                <KnowledgeCard
+                  key={item.id}
+                  item={item}
+                  onOpen={openItem}
+                  onDelete={deleteItem}
+                  onToggleFav={toggleFav}
+                  onShare={handleShareItem}
+                  onDownload={handleDownloadItem}
+                />
               ))}
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {filtered.map(item => (
-                <button key={item.id} onClick={() => openItem(item)}
-                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", boxShadow: "var(--shadow-card)", textAlign: "left", cursor: "pointer", width: "100%" }}>
-                  <span style={{ width: 42, height: 42, borderRadius: 10, background: `${getTypeColor(item.type)}1a`, color: getTypeColor(item.type), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
-                    {getTypeIcon(item.type)}
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: "Manrope,sans-serif", fontSize: 13, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {item.title || item.domain}
+                <div key={item.id}
+                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", background: "var(--bg-card)", borderRadius: 16, border: "1px solid var(--border-subtle)", boxShadow: "var(--shadow-card)", width: "100%" }}>
+                  <button onClick={() => openItem(item)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 0, textAlign: "left", padding: 0 }}>
+                    <span style={{ width: 42, height: 42, borderRadius: 10, background: `${getTypeColor(item.type)}1a`, color: getTypeColor(item.type), display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+                      {getTypeIcon(item.type)}
+                    </span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: "Manrope,sans-serif", fontSize: 13, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {item.title || item.domain}
+                      </div>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {item.domain || item.description}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {item.domain || item.description}
-                    </div>
-                  </div>
+                  </button>
+                  {(item.uri || item.url) && (
+                    <button onClick={() => handleShareItem(item)} style={{ background: "rgba(37,211,102,0.12)", border: "none", color: "#25d366", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }} title="Share">
+                      <Ic d={IC.share} size={15} />
+                    </button>
+                  )}
                   {item.isFavorite && <span style={{ color: "#f59e0b", fontSize: 14 }}>⭐</span>}
-                  <Ic d={IC.chevR} size={16} />
-                </button>
+                </div>
               ))}
             </div>
           )
@@ -570,7 +706,7 @@ export default function ConnectedKnowledge({ onBack, notes = [], uploads = [], l
 
       {/* FABs */}
       <div style={{ position: "fixed", bottom: 84, right: 18, display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-end", zIndex: 100 }}>
-        <button onClick={() => fileRef.current?.click()} title="Add File"
+        <button onClick={() => fileRef.current?.click()} title="Add File / Photos"
           style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--bg-card)", border: "1px solid var(--border-color)", boxShadow: "var(--shadow-card)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-primary)" }}>
           <Ic d={IC.clip} size={20} />
         </button>
@@ -579,6 +715,15 @@ export default function ConnectedKnowledge({ onBack, notes = [], uploads = [], l
           <Ic d={IC.plus} size={26} />
         </button>
       </div>
+
+      {/* Share Modal */}
+      {shareTarget && (
+        <ShareModal
+          isOpen={!!shareTarget}
+          onClose={() => setShareTarget(null)}
+          file={shareTarget}
+        />
+      )}
     </div>
   );
 }

@@ -1687,13 +1687,25 @@ export default function App() {
     for (const f of files) {
       try {
         let dataUrl: string | undefined = f.uri;
-        // If it's a blob URL (from file input), convert to base64 for persistence
-        if (f.uri && f.uri.startsWith('blob:') && (f as any).file) {
-          dataUrl = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.readAsDataURL((f as any).file);
-          });
+        // If it's a blob URL, convert to permanent base64 dataUrl so it never expires on Android / reload
+        if (f.uri && f.uri.startsWith('blob:')) {
+          try {
+            const res = await fetch(f.uri);
+            const blob = await res.blob();
+            dataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            if (!f.size || f.size === "—") {
+              f.size = blob.size > 1048576
+                ? `${(blob.size / 1048576).toFixed(1)} MB`
+                : `${Math.round(blob.size / 1024)} KB`;
+            }
+          } catch (e) {
+            console.warn('Failed to convert blob URI to dataUrl:', e);
+          }
         }
         const created = await api.createImage({
           id: f.id,
@@ -1704,11 +1716,33 @@ export default function App() {
         });
         // Replace temp URI with the persisted one so it survives reload
         if (created?.id) {
-          setUploads(p => p.map(x => x.id === f.id ? { ...x, uri: dataUrl || x.uri } : x));
+          setUploads(p => p.map(x => x.id === f.id ? { ...x, uri: dataUrl || x.uri, size: f.size } : x));
         }
       } catch (err) {
         console.error('Failed to persist file to DB:', err);
       }
+    }
+  }
+
+  // Handle opening file in universal viewer (with lazy loading resolution)
+  async function handleOpenViewer(f: ExtFile) {
+    if (f.uri && !f.uri.startsWith('__lazy__')) {
+      setViewerFile({ id: f.id, name: f.name, type: f.type, uri: f.uri, size: f.size });
+      return;
+    }
+    // Lazy-load full dataUrl from API
+    try {
+      const data = await api.getImage(f.id);
+      const fullUri = (data as any)?.dataUrl || (data as any)?.data_url || '';
+      if (fullUri) {
+        setUploads(prev => prev.map(x => x.id === f.id ? { ...x, uri: fullUri } : x));
+        setViewerFile({ id: f.id, name: f.name, type: f.type, uri: fullUri, size: f.size });
+      } else {
+        setViewerFile({ id: f.id, name: f.name, type: f.type, uri: f.uri, size: f.size });
+      }
+    } catch (err) {
+      console.error('Failed to load file for preview:', err);
+      setViewerFile({ id: f.id, name: f.name, type: f.type, uri: f.uri, size: f.size });
     }
   }
   function deleteUpload(id: string) {
@@ -1813,18 +1847,25 @@ export default function App() {
           onDuplicateFile={duplicateUpload}
           onToggleFavorite={toggleFavoriteUpload}
           onUpdateOpenedAt={updateOpenedAt}
-          onOpenViewer={(f: ExtFile) => setViewerFile({ name: f.name, type: f.type, uri: f.uri, size: f.size })}
+          onOpenViewer={handleOpenViewer}
         />
       )}
       {screen === "capture" && (
         <div style={{ position: "fixed", inset: 0, zIndex: 400 }}>
-          <Scanner onBack={() => setScreen("dashboard")} onInsertToNote={(pages, pdfUri) => {
-            if (pdfUri) {
-              const newFile: UploadFile = { id: `f-${Date.now()}`, name: "Scanned_Document.pdf", size: "—", type: "application/pdf", uri: pdfUri, addedAt: new Date().toISOString() };
-              addUploadFiles([newFile]);
-            }
-            setScreen("uploads");
-          }} />
+          <Scanner
+            onBack={() => setScreen("dashboard")}
+            onSaveFiles={(savedFiles) => {
+              addUploadFiles(savedFiles);
+              setScreen("uploads");
+            }}
+            onInsertToNote={(pages, pdfUri) => {
+              if (pdfUri) {
+                const newFile: UploadFile = { id: `f-${Date.now()}`, name: "Scanned_Document.pdf", size: "—", type: "application/pdf", uri: pdfUri, addedAt: new Date().toISOString() };
+                addUploadFiles([newFile]);
+              }
+              setScreen("uploads");
+            }}
+          />
         </div>
       )}
       {screen === "converter" && (
@@ -1865,6 +1906,8 @@ export default function App() {
           notes={notes}
           uploads={uploads}
           links={links}
+          onOpenViewer={handleOpenViewer}
+          onAddFiles={addUploadFiles}
         />
       )}
 
