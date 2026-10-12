@@ -216,7 +216,17 @@ export default function Scanner({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (facingMode === "user") {
+      // Front camera: un-mirror the canvas so the saved photo is NOT flipped
+      // (preview is mirrored for UX, but the saved image should be natural)
+      ctx.save();
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    } else {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
     const dataUrl = canvas.toDataURL("image/jpeg", 0.94);
 
     setFlash(true);
@@ -533,6 +543,9 @@ export default function Scanner({
               width: "100%",
               height: "100%",
               objectFit: "cover",
+              // Mirror preview when using front (selfie) camera — just like a real selfie camera
+              transform: facingMode === "user" ? "scaleX(-1)" : "none",
+              transition: "transform 0.2s ease",
             }}
           />
 
