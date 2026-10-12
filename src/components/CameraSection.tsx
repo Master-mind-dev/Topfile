@@ -74,7 +74,16 @@ export const CameraSection: React.FC<CameraSectionProps> = ({ images, setImages 
     canvas.height = video.videoHeight || 720;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (facingMode === 'user') {
+      // Mirror the canvas capture so the photo matches the selfie camera preview
+      ctx.save();
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    } else {
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    }
     const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
     setFlashOverlay(true);
@@ -119,7 +128,12 @@ export const CameraSection: React.FC<CameraSectionProps> = ({ images, setImages 
           playsInline
           muted
           className="w-full h-full object-cover"
-          style={{ minHeight: '75vh' }}
+          style={{
+            minHeight: '75vh',
+            transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
+            WebkitTransform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
+            transition: 'transform 0.2s ease',
+          }}
         />
 
         {/* Flash white overlay */}
