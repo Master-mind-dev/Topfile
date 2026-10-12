@@ -97,6 +97,13 @@ export async function initializeDatabase() {
       )
     `);
 
+    // Clean up any stale or invalid blob: URLs from previous sessions
+    try {
+      await client.query(`DELETE FROM images WHERE data_url LIKE 'blob:%'`);
+    } catch (e) {
+      console.warn('Could not clean blob URLs:', e);
+    }
+
     // Links table
     await client.query(`
       CREATE TABLE IF NOT EXISTS links (

@@ -477,13 +477,31 @@ export default function ConnectedKnowledge({
   async function handleDownloadItem(item: KnowledgeItem) {
     try {
       const uri = await resolveFileUri({ id: item.id, name: item.title, uri: item.uri || "" });
-      const a = document.createElement("a");
-      a.href = uri;
-      a.download = item.title;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch {
+      if (!uri || uri.startsWith('__lazy__')) {
+        alert("File data could not be retrieved.");
+        return;
+      }
+      if (uri.startsWith('data:')) {
+        const res = await fetch(uri);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = item.title;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+      } else {
+        const a = document.createElement("a");
+        a.href = uri;
+        a.download = item.title;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (e) {
+      console.error('Download error:', e);
       alert("Could not download file.");
     }
   }
@@ -506,9 +524,13 @@ export default function ConnectedKnowledge({
       const dataUrl = await new Promise<string>((resolve) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
-        reader.onerror = () => resolve(URL.createObjectURL(f));
+        reader.onerror = () => {
+          console.error("FileReader failed for file:", f.name);
+          resolve("");
+        };
         reader.readAsDataURL(f);
       });
+      if (!dataUrl) continue;
 
       const sizeFormatted = `${(f.size / 1024 / 1024).toFixed(2)} MB`;
       const fileId = uid();

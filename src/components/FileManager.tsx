@@ -116,13 +116,31 @@ export default function FileManager({
     setActiveMenuId(null);
     try {
       const uri = await resolveFileUri(f);
-      const a = document.createElement("a");
-      a.href = uri;
-      a.download = f.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } catch {
+      if (!uri || uri.startsWith('__lazy__')) {
+        alert("File data could not be retrieved.");
+        return;
+      }
+      if (uri.startsWith('data:')) {
+        const res = await fetch(uri);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = f.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+      } else {
+        const a = document.createElement("a");
+        a.href = uri;
+        a.download = f.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch (e) {
+      console.error('Download error:', e);
       alert("Could not download file.");
     }
   }

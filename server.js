@@ -362,10 +362,10 @@ async function startServer() {
         }
     });
     // ============ IMAGES ENDPOINTS ============
-    // Get all images for user (includes data_url so files open instantly without delay)
+    // Get all images for user (includes data_url so files open instantly without delay, filters out dead blob URLs)
     app.get('/api/images', verifyToken, async (req, res) => {
         try {
-            const result = await query('SELECT id, user_id, name, data_url, file_size, dimensions, source, notes, created_at FROM images WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
+            const result = await query("SELECT id, user_id, name, data_url, file_size, dimensions, source, notes, created_at FROM images WHERE user_id = $1 AND data_url NOT LIKE 'blob:%' ORDER BY created_at DESC", [req.user.id]);
             res.json({ success: true, images: result.rows });
         }
         catch (err) {
@@ -377,6 +377,9 @@ async function startServer() {
     app.post('/api/images', verifyToken, async (req, res) => {
         try {
             const { id, name, dataUrl, fileSize, dimensions, source, notes: imgNotes } = req.body;
+            if (dataUrl && dataUrl.startsWith('blob:')) {
+                return res.status(400).json({ success: false, error: 'Cannot save temporary blob URL. Must be base64 data URL.' });
+            }
             const result = await query('INSERT INTO images (id, user_id, name, data_url, file_size, dimensions, source, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *', [id, req.user.id, name, dataUrl, fileSize, dimensions, source, imgNotes]);
             const image = result.rows[0];
             res.json({ success: true, image });

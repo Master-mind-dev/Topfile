@@ -3,7 +3,6 @@ import {
   useState, useEffect
 } from "react";
 import * as api from './lib/api';
-import DocViewer, { DocViewerRenderers } from '@cyntler/react-doc-viewer';
 import NoteEditor, { type Note as EditorNote, type NoteAttachment } from './components/NoteEditor';
 import Scanner, { type ScannedPage } from './components/Scanner';
 import FileViewer, { type ViewableFile } from './components/FileViewer';
@@ -1037,13 +1036,13 @@ function UploadsScreen({ onNavigate, headerProps, files, onAddFiles, onDeleteFil
           ) : isPDF(viewing) ? (
             <iframe src={viewing.uri} title={viewing.name} style={{ width: "100%", height: "calc(100vh - 60px)", border: "none", background: "#fff" }} />
           ) : (
-            <div style={{ width: "100%", height: "calc(100vh - 60px)", background: "#fff" }}>
-              <DocViewer
-                documents={[{ uri: viewing.uri, fileName: viewing.name }]}
-                pluginRenderers={DocViewerRenderers}
-                style={{ width: "100%", height: "100%" }}
-                config={{ header: { disableHeader: true }, pdfVerticalScrollByDefault: true }}
-              />
+            <div style={{ textAlign: "center", color: "var(--text-primary)", padding: 24 }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>📄</div>
+              <p style={{ fontSize: 14, marginBottom: 16 }}>{viewing.name}</p>
+              <a href={viewing.uri} download={viewing.name}
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 24px", borderRadius: 20, background: "#9f1239", color: "#fff", textDecoration: "none", fontSize: 13, fontWeight: 700 }}>
+                ⬇ Download File
+              </a>
             </div>
           )}
         </div>
@@ -1629,16 +1628,16 @@ export default function App() {
     api.getImages().then((imgs) => {
       setUploads(prev => {
         const localMap = new Map(prev.map(p => [p.id, p]));
-        return (imgs || []).map((im: any) => {
+        return (imgs || []).filter((im: any) => !im.dataUrl?.startsWith('blob:')).map((im: any) => {
           const existing = localMap.get(im.id);
-          const validLocalUri = existing?.uri && !existing.uri.startsWith('__lazy__') ? existing.uri : null;
+          const validLocalUri = existing?.uri && !existing.uri.startsWith('__lazy__') && !existing.uri.startsWith('blob:') ? existing.uri : null;
           return {
             id: im.id,
             name: im.name,
             size: im.fileSize || existing?.size || '1.2 MB',
             type: im.name?.match(/\.(mp4|mov|webm|avi)$/i) ? 'video/mp4'
                  : im.name?.match(/\.pdf$/i) ? 'application/pdf' : 'image/jpeg',
-            uri: im.dataUrl || validLocalUri || `__lazy__${im.id}`,
+            uri: (im.dataUrl && !im.dataUrl.startsWith('blob:')) ? im.dataUrl : (validLocalUri || `__lazy__${im.id}`),
             addedAt: im.createdAt || existing?.addedAt || new Date().toISOString(),
             isFavorite: existing?.isFavorite,
           };
@@ -1717,6 +1716,10 @@ export default function App() {
             console.warn('Failed to convert blob URI to dataUrl:', e);
           }
         }
+        if (!dataUrl || dataUrl.startsWith('blob:')) {
+          console.warn('Skipping upload of non-converted blob URL to server');
+          continue;
+        }
         const created = await api.createImage({
           id: f.id,
           name: f.name,
@@ -1736,7 +1739,7 @@ export default function App() {
 
   // Handle opening file in universal viewer (with lazy loading resolution)
   async function handleOpenViewer(f: ExtFile) {
-    if (f.uri && !f.uri.startsWith('__lazy__')) {
+    if (f.uri && !f.uri.startsWith('__lazy__') && !f.uri.startsWith('blob:')) {
       setViewerFile({ id: f.id, name: f.name, type: f.type, uri: f.uri, size: f.size });
       return;
     }
@@ -1744,7 +1747,7 @@ export default function App() {
     try {
       const data = await api.getImage(f.id);
       const fullUri = (data as any)?.dataUrl || (data as any)?.data_url || '';
-      if (fullUri) {
+      if (fullUri && !fullUri.startsWith('blob:')) {
         setUploads(prev => prev.map(x => x.id === f.id ? { ...x, uri: fullUri } : x));
         setViewerFile({ id: f.id, name: f.name, type: f.type, uri: fullUri, size: f.size });
       } else {
@@ -1818,7 +1821,16 @@ export default function App() {
   return (
     <>
       {/* Universal File Viewer overlay (highest z) */}
-      {viewerFile && <FileViewer file={viewerFile} onBack={() => setViewerFile(null)} />}
+      {viewerFile && (
+        <FileViewer
+          file={viewerFile}
+          onBack={() => setViewerFile(null)}
+          onDelete={(id) => {
+            deleteUpload(id);
+            setViewerFile(null);
+          }}
+        />
+      )}
 
       {/* Scanner overlay */}
       {scannerOpen && (
