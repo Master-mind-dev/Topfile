@@ -86,6 +86,11 @@ function WebViewer({ url, title, onBack, onSave }: {
   const iRef = useRef<HTMLIFrameElement>(null);
   const ytId = isYouTube(cur) ? getYouTubeId(cur) : null;
 
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 3500);
+    return () => clearTimeout(timer);
+  }, [cur]);
+
   function go(u: string) {
     let n = u.trim();
     if (!/^https?:\/\//i.test(n)) n = "https://" + n;

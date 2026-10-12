@@ -49,7 +49,12 @@ function ImageViewer({ file, onBack, onOpenShare }: { file: ViewableFile; onBack
       setLoading(true);
       resolveFileUri(file).then(resolved => {
         if (isMounted) {
-          setActiveUri(resolved);
+          if (resolved && !resolved.startsWith('__lazy__')) {
+            setActiveUri(resolved);
+            setLoadError(false);
+          } else {
+            setLoadError(true);
+          }
           setLoading(false);
         }
       }).catch(() => {
@@ -60,6 +65,8 @@ function ImageViewer({ file, onBack, onOpenShare }: { file: ViewableFile; onBack
       });
     } else {
       setActiveUri(file.uri);
+      setLoading(false);
+      setLoadError(false);
     }
     return () => { isMounted = false; };
   }, [file]);
@@ -153,7 +160,9 @@ function PDFViewer({ file, onBack, onOpenShare }: { file: ViewableFile; onBack()
       setLoading(true);
       resolveFileUri(file).then(resolved => {
         if (isMounted) {
-          setActiveUri(resolved);
+          if (resolved && !resolved.startsWith('__lazy__')) {
+            setActiveUri(resolved);
+          }
           setLoading(false);
         }
       }).catch(() => {
@@ -161,9 +170,12 @@ function PDFViewer({ file, onBack, onOpenShare }: { file: ViewableFile; onBack()
       });
     } else {
       setActiveUri(file.uri);
+      setLoading(false);
     }
     return () => { isMounted = false; };
   }, [file]);
+
+  const isInvalidUri = activeUri.startsWith('__lazy__');
 
   return (
     <div style={{ position:"fixed", inset:0, zIndex:500, display:"flex", flexDirection:"column", background:"#111827" }}>
@@ -178,9 +190,11 @@ function PDFViewer({ file, onBack, onOpenShare }: { file: ViewableFile; onBack()
           </div>
           <div style={{ color:"rgba(255,255,255,0.5)", fontSize:11 }}>PDF Document</div>
         </div>
-        <a href={activeUri} download={file.name} title="Download PDF" style={{ color:"rgba(255,255,255,.85)",display:"flex",padding:6,textDecoration:"none" }}>
-          <Ic d={IC.down} size={20} />
-        </a>
+        {!isInvalidUri && (
+          <a href={activeUri} download={file.name} title="Download PDF" style={{ color:"rgba(255,255,255,.85)",display:"flex",padding:6,textDecoration:"none" }}>
+            <Ic d={IC.down} size={20} />
+          </a>
+        )}
         <button onClick={onOpenShare} title="Share PDF" style={{ background:"#25d366",border:"none",cursor:"pointer",color:"#fff",padding:"6px 12px",borderRadius:16,display:"flex",alignItems:"center",gap:6,fontSize:12,fontWeight:700 }}>
           <Ic d={IC.share} size={15} /> Share
         </button>
@@ -189,8 +203,16 @@ function PDFViewer({ file, onBack, onOpenShare }: { file: ViewableFile; onBack()
       {/* PDF Content via DocViewer (supports Android WebView & Desktop) */}
       <div style={{ flex:1, overflow:"hidden", background:"#ffffff", position:"relative" }}>
         {loading ? (
-          <div style={{ position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", background:"#111827", color:"#fff" }}>
+          <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"#111827", color:"#fff", gap:10 }}>
             <div style={{ width:32, height:32, border:"3px solid rgba(255,255,255,.2)", borderTopColor:"#e11d48", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
+            <span style={{ fontSize:12, opacity:0.7 }}>Loading document…</span>
+          </div>
+        ) : isInvalidUri ? (
+          <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", background:"#111827", color:"#fff", padding:20, textAlign:"center" }}>
+            <div style={{ color:"#fb7185", marginBottom:12 }}><Ic d={IC.alert} size={40} /></div>
+            <strong style={{ fontSize:16, marginBottom:6 }}>Could not load PDF data</strong>
+            <p style={{ fontSize:13, opacity:0.6, maxWidth:320, margin:"0 0 20px" }}>The document could not be retrieved from the server.</p>
+            <button onClick={onBack} style={{ padding:"10px 24px", borderRadius:20, background:"#e11d48", border:"none", color:"#fff", fontWeight:700, cursor:"pointer" }}>Close</button>
           </div>
         ) : (
           <DocViewer

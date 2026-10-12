@@ -19,19 +19,31 @@ export async function urlToFile(uri: string, filename: string, mimeType?: string
   return new File([blob], filename, { type: mime });
 }
 
-/**
- * Resolves a lazy URI (__lazy__id) to a real dataUrl via api.getImage
- */
 export async function resolveFileUri(item: ShareableItem): Promise<string> {
   if (item.uri && !item.uri.startsWith('__lazy__')) {
     return item.uri;
   }
+  // Check localStorage uploads cache first for instant resolution
+  try {
+    const raw = localStorage.getItem('ownly_uploads_v2');
+    if (raw) {
+      const list = JSON.parse(raw);
+      const match = list.find((x: any) => x.id === item.id || x.name === item.name);
+      if (match?.uri && !match.uri.startsWith('__lazy__')) {
+        return match.uri;
+      }
+    }
+  } catch {}
+
   if (item.id) {
     try {
-      const full = await api.getImage(item.id);
+      // 5-second timeout on network fetch so it never hangs indefinitely
+      const timeoutPromise = new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000));
+      const fetchPromise = api.getImage(item.id);
+      const full = await Promise.race([fetchPromise, timeoutPromise]) as any;
       if (full?.dataUrl) return full.dataUrl;
     } catch (e) {
-      console.warn('Failed to resolve lazy image URI:', e);
+      console.warn('Failed or timed out resolving lazy image URI:', e);
     }
   }
   return item.uri;

@@ -362,10 +362,10 @@ async function startServer() {
         }
     });
     // ============ IMAGES ENDPOINTS ============
-    // Get all images for user (metadata only, no data_url to save bandwidth)
+    // Get all images for user (includes data_url so files open instantly without delay)
     app.get('/api/images', verifyToken, async (req, res) => {
         try {
-            const result = await query('SELECT id, user_id, name, file_size, dimensions, source, notes, created_at FROM images WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
+            const result = await query('SELECT id, user_id, name, data_url, file_size, dimensions, source, notes, created_at FROM images WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
             res.json({ success: true, images: result.rows });
         }
         catch (err) {

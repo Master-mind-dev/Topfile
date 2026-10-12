@@ -1488,16 +1488,23 @@ export default function App() {
         }
       }).catch(() => {});
       api.getImages().then(imgs => {
-        // Always replace (even empty = user deleted everything on another device)
-        setUploads((imgs || []).map((im: any) => ({
-          id: im.id,
-          name: im.name,
-          size: im.fileSize || '1.2 MB',
-          type: im.name?.match(/\.(mp4|mov|webm|avi)$/i) ? 'video/mp4'
-               : im.name?.match(/\.pdf$/i) ? 'application/pdf' : 'image/jpeg',
-          uri: im.dataUrl || `__lazy__${im.id}`,
-          addedAt: im.createdAt || new Date().toISOString(),
-        })));
+        setUploads(prev => {
+          const localMap = new Map(prev.map(p => [p.id, p]));
+          return (imgs || []).map((im: any) => {
+            const existing = localMap.get(im.id);
+            const validLocalUri = existing?.uri && !existing.uri.startsWith('__lazy__') ? existing.uri : null;
+            return {
+              id: im.id,
+              name: im.name,
+              size: im.fileSize || existing?.size || '1.2 MB',
+              type: im.name?.match(/\.(mp4|mov|webm|avi)$/i) ? 'video/mp4'
+                   : im.name?.match(/\.pdf$/i) ? 'application/pdf' : 'image/jpeg',
+              uri: im.dataUrl || validLocalUri || `__lazy__${im.id}`,
+              addedAt: im.createdAt || existing?.addedAt || new Date().toISOString(),
+              isFavorite: existing?.isFavorite,
+            };
+          });
+        });
       }).catch(() => {});
     }
     setCheckingAuth(false);
@@ -1620,20 +1627,23 @@ export default function App() {
       }
     }).catch(() => {});
     api.getImages().then((imgs) => {
-      // Always replace uploads from DB (even empty = user deleted everything)
-      setUploads(
-        (imgs || []).map((im: any) => ({
-          id: im.id,
-          name: im.name,
-          size: im.fileSize || "1.2 MB",
-          type: im.name?.match(/\.(mp4|mov|webm|avi)$/i) ? "video/mp4"
-               : im.name?.match(/\.pdf$/i) ? "application/pdf"
-               : "image/jpeg",
-          // URI is lazy-loaded when user opens the file; store a placeholder for now
-          uri: im.dataUrl || `__lazy__${im.id}`,
-          addedAt: im.createdAt || new Date().toISOString(),
-        }))
-      );
+      setUploads(prev => {
+        const localMap = new Map(prev.map(p => [p.id, p]));
+        return (imgs || []).map((im: any) => {
+          const existing = localMap.get(im.id);
+          const validLocalUri = existing?.uri && !existing.uri.startsWith('__lazy__') ? existing.uri : null;
+          return {
+            id: im.id,
+            name: im.name,
+            size: im.fileSize || existing?.size || '1.2 MB',
+            type: im.name?.match(/\.(mp4|mov|webm|avi)$/i) ? 'video/mp4'
+                 : im.name?.match(/\.pdf$/i) ? 'application/pdf' : 'image/jpeg',
+            uri: im.dataUrl || validLocalUri || `__lazy__${im.id}`,
+            addedAt: im.createdAt || existing?.addedAt || new Date().toISOString(),
+            isFavorite: existing?.isFavorite,
+          };
+        });
+      });
     }).catch(() => {});
   }
   function handleLogout() {
