@@ -74,7 +74,7 @@ const IC = {
   share:   "M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13",
 };
 
-// ── WEB VIEWER ────────────────────────────────────────────────────────────────
+// ── WEB & VIDEO EMBED VIEWER (IN-APP PLAYER WITH AUTO-ROTATE & ADJUSTABLE SCREEN) ──
 function WebViewer({ url, title, onBack, onSave }: {
   url: string; title: string;
   onBack(): void;
@@ -83,13 +83,50 @@ function WebViewer({ url, title, onBack, onSave }: {
   const [cur, setCur] = useState(url);
   const [inp, setInp] = useState(url);
   const [loading, setLoading] = useState(true);
+  const [useProxy, setUseProxy] = useState(false);
+  const [isRotated, setIsRotated] = useState(false);
+  const [screenMode, setScreenMode] = useState<"standard" | "cinema" | "fit">("standard");
   const iRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const ytId = isYouTube(cur) ? getYouTubeId(cur) : null;
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 3500);
+    const timer = setTimeout(() => setLoading(false), 2500);
     return () => clearTimeout(timer);
-  }, [cur]);
+  }, [cur, useProxy]);
+
+  // Mobile Screen Orientation handler: try native screen.orientation lock if available, with CSS fallback
+  async function toggleAutoRotate() {
+    try {
+      if (typeof window !== "undefined" && window.screen && (window.screen as any).orientation) {
+        const orientation = (window.screen as any).orientation;
+        if (!isRotated) {
+          if (orientation.lock) {
+            await orientation.lock("landscape").catch(() => {});
+          }
+          setIsRotated(true);
+        } else {
+          if (orientation.unlock) {
+            orientation.unlock();
+          }
+          setIsRotated(false);
+        }
+      } else {
+        setIsRotated(!isRotated);
+      }
+    } catch {
+      setIsRotated(!isRotated);
+    }
+  }
+
+  function toggleFullscreen() {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen?.().catch(() => {});
+    } else {
+      document.exitFullscreen?.().catch(() => {});
+    }
+  }
 
   function go(u: string) {
     let n = u.trim();
@@ -97,33 +134,92 @@ function WebViewer({ url, title, onBack, onSave }: {
     setCur(n); setInp(n); setLoading(true);
   }
 
+  // Choose content source: Direct embed, YouTube embed URL, or fast multi-proxy bypass endpoint
+  const embedSource = ytId
+    ? `https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&playsinline=1&rel=0&modestbranding=1`
+    : useProxy
+    ? `/api/proxy-link?url=${encodeURIComponent(cur)}`
+    : cur;
+
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 500, display: "flex", flexDirection: "column", background: "var(--bg-page)" }}>
+    <div ref={containerRef} style={{
+      position: "fixed", inset: 0, zIndex: 500, display: "flex", flexDirection: "column",
+      background: "#09090b",
+      transform: isRotated ? "rotate(90deg)" : "none",
+      transformOrigin: isRotated ? "center center" : "initial",
+      width: isRotated ? "100vh" : "100%",
+      height: isRotated ? "100vw" : "100%",
+      left: isRotated ? "calc((100vw - 100vh) / 2)" : 0,
+      top: isRotated ? "calc((100vh - 100vw) / 2)" : 0,
+      transition: "transform 0.25s ease"
+    }}>
       {/* Nav bar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", background: "var(--bg-header)", borderBottom: "1px solid var(--border-color)", flexShrink: 0 }}>
-        <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-primary)", display: "flex", padding: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 10px", background: "#18181b", borderBottom: "1px solid rgba(255,255,255,0.1)", flexShrink: 0 }}>
+        <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", color: "#fff", display: "flex", padding: 6 }} title="Back">
           <Ic d={IC.back} size={20} />
         </button>
-        <div style={{ flex: 1, display: "flex", alignItems: "center", background: "var(--bg-input)", borderRadius: 10, padding: "0 10px", border: "1px solid var(--border-color)", height: 36 }}>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", background: "#27272a", borderRadius: 10, padding: "0 10px", border: "1px solid rgba(255,255,255,0.1)", height: 36 }}>
           <Ic d={IC.globe} size={14} />
           <input value={inp} onChange={e => setInp(e.target.value)} onKeyDown={e => e.key === "Enter" && go(inp)}
-            style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 13, color: "var(--text-primary)", marginLeft: 6 }} />
+            style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 13, color: "#fff", marginLeft: 6 }} />
         </div>
-        <button onClick={() => { setLoading(true); if (iRef.current) iRef.current.src = cur; }}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", display: "flex", padding: 6 }}>
+
+        {/* Rotate button for phone auto rotate simulation */}
+        <button onClick={toggleAutoRotate}
+          title="Auto Rotate Phone (Landscape / Portrait)"
+          style={{
+            background: isRotated ? "#9f1239" : "rgba(255,255,255,0.1)",
+            border: "none", cursor: "pointer", color: "#fff", display: "flex", alignItems: "center", gap: 4, padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700
+          }}>
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+          </svg>
+          {isRotated ? "90°" : "Rotate"}
+        </button>
+
+        {/* Adjustable Screen Size Selector like YouTube */}
+        <button onClick={() => setScreenMode(m => m === "standard" ? "cinema" : m === "cinema" ? "fit" : "standard")}
+          title={`Screen Size: ${screenMode}`}
+          style={{ background: "rgba(255,255,255,0.1)", border: "none", cursor: "pointer", color: "#fff", padding: "6px 8px", borderRadius: 8, fontSize: 11, fontWeight: 700 }}>
+          {screenMode === "standard" ? "16:9" : screenMode === "cinema" ? "Theater" : "Full"}
+        </button>
+
+        {/* Fullscreen Button */}
+        <button onClick={toggleFullscreen} title="Fullscreen" style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.8)", display: "flex", padding: 6 }}>
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+          </svg>
+        </button>
+
+        {!ytId && (
+          <button onClick={() => { setUseProxy(p => !p); setLoading(true); }}
+            title={useProxy ? "Using Fast Multi-Proxy Bypass" : "Enable Multi-Proxy to bypass frame blocks"}
+            style={{
+              background: useProxy ? "#059669" : "rgba(255,255,255,0.1)",
+              border: "none", cursor: "pointer", color: "#fff", display: "flex", alignItems: "center", gap: 3, padding: "5px 8px", borderRadius: 8, fontSize: 10, fontWeight: 800
+            }}>
+            ⚡ {useProxy ? "Proxy ON" : "Proxy"}
+          </button>
+        )}
+
+        <button onClick={() => { setLoading(true); if (iRef.current) iRef.current.src = embedSource; }}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.8)", display: "flex", padding: 6 }}>
           <Ic d={IC.refresh} size={18} />
         </button>
         <button onClick={() => window.open(cur, "_blank")}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", display: "flex", padding: 6 }}>
+          style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.8)", display: "flex", padding: 6 }}>
           <Ic d={IC.ext} size={18} />
         </button>
       </div>
 
       {/* Save bar */}
-      <div style={{ background: "rgba(159,18,57,0.08)", borderBottom: "1px solid rgba(159,18,57,0.15)", padding: "6px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-        <span style={{ fontSize: 11, color: "#9f1239", fontWeight: 700, fontFamily: "Manrope,sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "60%" }}>
-          {extractDomain(cur)}
-        </span>
+      <div style={{ background: "rgba(159,18,57,0.15)", borderBottom: "1px solid rgba(159,18,57,0.2)", padding: "6px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
+          {ytId && <span style={{ background: "#ef4444", color: "#fff", fontSize: 9, fontWeight: 800, padding: "2px 6px", borderRadius: 4 }}>YOUTUBE</span>}
+          <span style={{ fontSize: 11, color: "#fff", fontWeight: 700, fontFamily: "Manrope,sans-serif", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {title || extractDomain(cur)}
+          </span>
+        </div>
         <button
           onClick={() => onSave(cur, title || extractDomain(cur), extractDomain(cur))}
           style={{ background: "#9f1239", color: "#fff", border: "none", borderRadius: 8, padding: "4px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "Manrope,sans-serif", whiteSpace: "nowrap" }}>
@@ -131,25 +227,37 @@ function WebViewer({ url, title, onBack, onSave }: {
         </button>
       </div>
 
-      {/* Content */}
-      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+      {/* Content Player Area with adjustable screen aspect ratio */}
+      <div style={{
+        flex: 1, position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
+        background: "#000"
+      }}>
         {loading && (
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-page)", zIndex: 1 }}>
+          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#09090b", zIndex: 1 }}>
             <div style={{ textAlign: "center" }}>
               <div style={{ width: 36, height: 36, border: "3px solid rgba(159,18,57,0.2)", borderTopColor: "#9f1239", borderRadius: "50%", animation: "ck-spin 0.8s linear infinite", margin: "0 auto 12px" }} />
-              <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>Loading…</p>
+              <p style={{ color: "#fff", fontSize: 13 }}>Loading player…</p>
             </div>
           </div>
         )}
-        {ytId ? (
-          <iframe src={`https://www.youtube.com/embed/${ytId}`} style={{ width: "100%", height: "100%", border: "none" }}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowFullScreen
-            onLoad={() => setLoading(false)} />
-        ) : (
-          <iframe ref={iRef} src={cur} style={{ width: "100%", height: "100%", border: "none" }}
-            onLoad={() => setLoading(false)} title={title}
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups" />
-        )}
+        <div style={{
+          width: screenMode === "standard" ? "100%" : screenMode === "cinema" ? "92%" : "100%",
+          height: screenMode === "standard" ? "100%" : screenMode === "cinema" ? "85%" : "100%",
+          maxHeight: screenMode === "cinema" ? "70vh" : "100%",
+          aspectRatio: screenMode === "cinema" ? "16/9" : undefined,
+          transition: "all 0.25s ease",
+          position: "relative"
+        }}>
+          <iframe
+            ref={iRef}
+            src={embedSource}
+            style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+            allowFullScreen
+            onLoad={() => setLoading(false)}
+            title={title}
+          />
+        </div>
       </div>
       <style>{`@keyframes ck-spin{to{transform:rotate(360deg)}}`}</style>
     </div>

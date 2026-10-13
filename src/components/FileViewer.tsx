@@ -89,6 +89,7 @@ function ImageViewer({
 }) {
   const [scale, setScale] = useState(1);
   const [rotate, setRotate] = useState(0);
+  const [fitMode, setFitMode] = useState<"contain" | "width" | "original">("contain");
   const [activeUri, setActiveUri] = useState<string>(file.uri);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -127,7 +128,6 @@ function ImageViewer({
         }
       });
     } else if (file.uri && file.uri.startsWith('blob:')) {
-      // Test if local blob is still valid
       fetch(file.uri)
         .then(r => {
           if (isMounted) {
@@ -162,7 +162,7 @@ function ImageViewer({
     <div style={{ position:"fixed", inset:0, zIndex:500, background:"#09090b", display:"flex", flexDirection:"column" }}>
       {/* Header */}
       <div style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 14px", background:"rgba(0,0,0,.85)", backdropFilter:"blur(12px)", borderBottom:"1px solid rgba(255,255,255,.1)" }}>
-        <button onClick={onBack} style={{ background:"none",border:"none",cursor:"pointer",color:"#fff",display:"flex",padding:4 }}>
+        <button onClick={onBack} style={{ background:"none",border:"none",cursor:"pointer",color:"#fff",display:"flex",padding:4 }} title="Back">
           <Ic d={IC.back} size={22} />
         </button>
         <div style={{ flex:1, minWidth:0 }}>
@@ -171,13 +171,18 @@ function ImageViewer({
           </div>
           {file.size && <div style={{ color:"rgba(255,255,255,0.5)", fontSize:11 }}>{file.size}</div>}
         </div>
-        <button onClick={()=>setRotate(r=>r+90)} title="Rotate" style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.85)",padding:6 }}>
+        <button onClick={()=>setRotate(r=> (r+90) % 360)} title="Rotate (90°)" style={{ background:"rgba(255,255,255,0.1)",borderRadius:8,border:"none",cursor:"pointer",color:"#fff",padding:6 }}>
           <Ic d={IC.rotate} size={18} />
         </button>
-        <button onClick={()=>setScale(s=>Math.min(s+0.25,4))} title="Zoom In" style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.85)",padding:6 }}>
+        <button onClick={()=>setFitMode(m => m === 'contain' ? 'width' : m === 'width' ? 'original' : 'contain')}
+          title={`Fit: ${fitMode}`}
+          style={{ background:"rgba(255,255,255,0.1)", borderRadius:8, border:"none", cursor:"pointer", color:"#fff", padding:"4px 8px", fontSize:11, fontWeight:700 }}>
+          {fitMode === 'contain' ? 'Fit Screen' : fitMode === 'width' ? 'Fit Width' : '100% Original'}
+        </button>
+        <button onClick={()=>setScale(s=>Math.min(s+0.25,5))} title="Zoom In" style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.85)",padding:6 }}>
           <Ic d={IC.zoom_in} size={18} />
         </button>
-        <button onClick={()=>setScale(s=>Math.max(s-0.25,0.5))} title="Zoom Out" style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.85)",padding:6 }}>
+        <button onClick={()=>setScale(s=>Math.max(s-0.25,0.25))} title="Zoom Out" style={{ background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.85)",padding:6 }}>
           <Ic d={IC.zoom_out} size={18} />
         </button>
         <button onClick={onOpenShare} title="Share" style={{ background:"#25d366",border:"none",cursor:"pointer",color:"#fff",padding:"6px 12px",borderRadius:16,display:"flex",alignItems:"center",gap:6,fontSize:12,fontWeight:700 }}>
@@ -185,8 +190,8 @@ function ImageViewer({
         </button>
       </div>
 
-      {/* Main Image Area */}
-      <div style={{ flex:1, overflow:"auto", display:"flex", alignItems:"center", justifyContent:"center", padding:16, position:"relative" }}>
+      {/* Main Image Area with high-quality rendering, uncompressed natural aspect ratio */}
+      <div style={{ flex:1, overflow:"auto", display:"flex", alignItems:"center", justifyContent:"center", padding:12, position:"relative", WebkitOverflowScrolling:"touch" }}>
         {loading ? (
           <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:12, color:"#fff" }}>
             <div style={{ width:36, height:36, border:"3px solid rgba(255,255,255,.2)", borderTopColor:"#e11d48", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
@@ -199,12 +204,15 @@ function ImageViewer({
             alt={file.name}
             onError={() => setLoadError(true)}
             style={{
-              maxWidth:"100%",
-              maxHeight:"100%",
+              width: fitMode === "width" ? "100%" : fitMode === "original" ? "auto" : undefined,
+              height: fitMode === "original" ? "auto" : undefined,
+              maxWidth: fitMode === "contain" ? "100%" : "none",
+              maxHeight: fitMode === "contain" ? "100%" : "none",
               transform:`scale(${scale}) rotate(${rotate}deg)`,
               transformOrigin:"center",
               transition:"transform .2s ease",
-              objectFit:"contain",
+              objectFit: fitMode === "contain" ? "contain" : "initial",
+              imageRendering: "auto",
               userSelect:"none"
             }}
           />
@@ -213,7 +221,7 @@ function ImageViewer({
 
       {/* Bottom Action Bar */}
       <div style={{ padding:"12px 16px", background:"rgba(0,0,0,.85)", display:"flex", gap:10, justifyContent:"center", alignItems:"center", borderTop:"1px solid rgba(255,255,255,.1)" }}>
-        <button onClick={()=>{ setScale(1); setRotate(0); }} style={{ padding:"8px 16px",borderRadius:20,background:"rgba(255,255,255,.12)",border:"none",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>
+        <button onClick={()=>{ setScale(1); setRotate(0); setFitMode("contain"); }} style={{ padding:"8px 16px",borderRadius:20,background:"rgba(255,255,255,.12)",border:"none",color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>
           Reset
         </button>
         <a href={activeUri} download={file.name} style={{ padding:"8px 18px",borderRadius:20,background:"rgba(255,255,255,.15)",color:"#fff",fontSize:12,fontWeight:700,textDecoration:"none",display:"flex",alignItems:"center",gap:6 }}>

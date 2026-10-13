@@ -783,9 +783,129 @@ async function startServer() {
                 isPlayable: fallbackMeta.provider !== 'generic',
                 url: url
             };
-            res.json(fallbackResult);
         }
     });
+
+    // ============ HIGH-LEVEL MULTI-PROXY LINK & MEDIA BYPASS ============
+    // Bypasses X-Frame-Options, CSP, and embed restrictions using multi-tier proxy fallbacks
+    app.all('/api/proxy-link', async (req, res) => {
+        const targetUrl = req.query.url;
+        if (!targetUrl || typeof targetUrl !== 'string') {
+            return res.status(400).send('Missing target url query parameter');
+        }
+
+        let cleanUrl = targetUrl.trim();
+        if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+            cleanUrl = 'https://' + cleanUrl;
+        }
+
+        // Multi-tier proxies list: direct fetch with bypass headers first, then fast public proxy endpoints
+        const proxyFetchers = [
+            // 1. High performance direct bypass with mobile/desktop user agents
+            async () => {
+                return await axios.get(cleanUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                    },
+                    timeout: 7000,
+                    maxRedirects: 5,
+                    responseType: 'text'
+                });
+            },
+            // 2. High-speed AllOrigins proxy bypass
+            async () => {
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`;
+                return await axios.get(proxyUrl, { timeout: 8000, responseType: 'text' });
+            },
+            // 3. Fast CORSProxy bypass
+            async () => {
+                const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`;
+                return await axios.get(proxyUrl, { timeout: 8000, responseType: 'text' });
+            },
+            // 4. CodeTabs bypass
+            async () => {
+                const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(cleanUrl)}`;
+                return await axios.get(proxyUrl, { timeout: 8000, responseType: 'text' });
+            }
+        ];
+
+        let content = null;
+        let lastError = null;
+
+        for (const fetcher of proxyFetchers) {
+            try {
+                const resp = await fetcher();
+                if (resp && resp.data) {
+                    content = resp.data;
+                    break;
+                }
+            } catch (err) {
+                lastError = err;
+            }
+        }
+
+        if (!content) {
+            console.warn('All proxies failed for URL:', cleanUrl, lastError?.message);
+            return res.status(502).send(`<html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#111;color:#fff;text-align:center;"><div><h2>Unable to bypass preview directly</h2><p style="opacity:0.7">This website restricts embedding.</p><a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" style="color:#e11d48;font-weight:bold;text-decoration:none;padding:10px 20px;background:rgba(225,29,72,0.15);border-radius:20px;display:inline-block;margin-top:10px;">Open in New Tab &rarr;</a></div></body></html>`);
+        }
+
+        // Rewrite headers to allow embedding inside OWNLY app iframe
+        res.removeHeader('X-Frame-Options');
+        res.removeHeader('Content-Security-Policy');
+        res.removeHeader('content-security-policy');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+
+        // Inject <base href="..."> so relative paths, images, and CSS resolve accurately
+        try {
+            const urlObj = new URL(cleanUrl);
+            const baseTag = `<base href="${urlObj.origin}${urlObj.pathname.substring(0, urlObj.pathname.lastIndexOf('/') + 1)}">`;
+            if (typeof content === 'string') {
+                if (content.includes('<head>')) {
+                    content = content.replace('<head>', `<head>${baseTag}`);
+                } else if (content.includes('<HEAD>')) {
+                    content = content.replace('<HEAD>', `<HEAD>${baseTag}`);
+                } else {
+                    content = baseTag + content;
+                }
+            }
+        } catch (e) {
+            // keep content as is
+        }
+
+        return res.send(content);
+    });
+
+    // Proxy stream endpoint for videos/audio/assets
+    app.get('/api/proxy-stream', async (req, res) => {
+        const streamUrl = req.query.url;
+        if (!streamUrl || typeof streamUrl !== 'string') {
+            return res.status(400).send('Missing url query parameter');
+        }
+
+        try {
+            const response = await axios({
+                method: 'get',
+                url: streamUrl,
+                responseType: 'stream',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
+                },
+                timeout: 10000
+            });
+
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            if (response.headers['content-type']) {
+                res.setHeader('Content-Type', response.headers['content-type']);
+            }
+            response.data.pipe(res);
+        } catch (err) {
+            res.status(502).send('Streaming error');
+        }
+    });
+
     // Vite integration
     if (process.env.NODE_ENV !== 'production') {
         const vite = await createViteServer({

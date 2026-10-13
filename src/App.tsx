@@ -599,6 +599,44 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpe
             </div>
           )}
         </div>
+
+        {/* Recent links / videos */}
+        {links && links.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <h2 style={{ margin: 0, fontFamily: "Manrope,sans-serif", fontSize: 15, fontWeight: 800, color: "var(--text-primary)" }}>Recent links & videos</h2>
+              <button onClick={() => onNavigate("links")} style={{ border: "none", background: "none", cursor: "pointer", color: "#9f1239", fontWeight: 700, fontSize: 12, fontFamily: "Manrope,sans-serif" }}>
+                View all ({links.length})
+              </button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {links.slice(0, 3).map(link => {
+                const isYT = /(?:v=|youtu\.be\/|embed\/)([^&?/\s]{11})/.test(link.url);
+                return (
+                  <div key={link.id} style={{
+                    display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 12,
+                    padding: 12, border: "1px solid var(--border-subtle)", borderRadius: 16,
+                    background: "var(--bg-card)", boxShadow: "var(--shadow-card)"
+                  }}>
+                    <button onClick={() => onNavigate("links")} style={{ border: "none", background: "none", padding: 0, cursor: "pointer" }}>
+                      <span style={{ width: 46, height: 46, borderRadius: 11, background: isYT ? "rgba(239,68,68,0.15)" : "rgba(159,18,57,0.12)", color: isYT ? "#ef4444" : "#9f1239", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <svg viewBox="0 0 24 24" fill="currentColor" width={20} height={20}><polygon points="5,3 19,12 5,21" /></svg>
+                      </span>
+                    </button>
+                    <div onClick={() => onNavigate("links")} style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0, cursor: "pointer" }}>
+                      <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--text-primary)" }}>{link.title}</strong>
+                      <span style={{ fontSize: 10, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{link.url.replace(/^https?:\/\//, "").split("/")[0]}</span>
+                    </div>
+                    <button onClick={() => onNavigate("links")}
+                      style={{ background: "#9f1239", color: "#fff", border: "none", borderRadius: 12, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                      ▶ Play
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <BottomNav active="dashboard" onNavigate={onNavigate} />
@@ -1243,7 +1281,6 @@ function CaptureScreen({ onNavigate, headerProps }: { onNavigate: (s: Screen) =>
   );
 }
 
-// ─── LINKS SCREEN ─────────────────────────────────────────────────────────────
 function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, onRenameLink }: {
   onNavigate: (s: Screen) => void; headerProps: HeaderProps;
   links: SavedLink[]; onAddLink: (l: SavedLink) => void;
@@ -1254,6 +1291,10 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
   const [query, setQuery] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+  const [playingLink, setPlayingLink] = useState<SavedLink | null>(null);
+  const [useProxy, setUseProxy] = useState(false);
+  const [isRotated, setIsRotated] = useState(false);
+  const [screenMode, setScreenMode] = useState<"standard" | "cinema" | "fit">("standard");
 
   function addLink(e: FormEvent) {
     e.preventDefault();
@@ -1266,8 +1307,8 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
       id: `l-${Date.now()}`,
       title: customTitle.trim() || domain,
       url: fullUrl,
-      description: "Saved just now",
-      thumb: ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : undefined,
+      description: "Saved link",
+      thumb: ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : undefined,
       addedAt: new Date().toISOString(),
     });
     setUrl(""); setCustomTitle("");
@@ -1278,6 +1319,26 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
     return m?.[1] || null;
   }
 
+  // Toggle phone auto-rotate landscape simulation
+  async function toggleAutoRotate() {
+    try {
+      if (typeof window !== "undefined" && window.screen && (window.screen as any).orientation) {
+        const orientation = (window.screen as any).orientation;
+        if (!isRotated) {
+          if (orientation.lock) await orientation.lock("landscape").catch(() => {});
+          setIsRotated(true);
+        } else {
+          if (orientation.unlock) orientation.unlock();
+          setIsRotated(false);
+        }
+      } else {
+        setIsRotated(!isRotated);
+      }
+    } catch {
+      setIsRotated(!isRotated);
+    }
+  }
+
   const filtered = links.filter(l =>
     l.title.toLowerCase().includes(query.toLowerCase()) ||
     l.url.toLowerCase().includes(query.toLowerCase())
@@ -1285,7 +1346,7 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
 
   return (
     <main style={{ minHeight: "100vh", background: "var(--bg-page)", color: "var(--text-primary)", paddingBottom: 80, transition: "background 0.2s" }}>
-      <AppHeader title="Links" screen="links" {...headerProps} />
+      <AppHeader title="Links" screen="links" onBack={() => onNavigate("dashboard")} {...headerProps} />
 
       <div style={{ padding: "16px 18px" }}>
         {/* Add link card */}
@@ -1299,7 +1360,7 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
             </div>
             <div>
               <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>Save a link</strong>
-              <p style={{ margin: 0, fontSize: 11, color: "var(--text-secondary)" }}>YouTube, articles, any URL</p>
+              <p style={{ margin: 0, fontSize: 11, color: "var(--text-secondary)" }}>YouTube, web links, articles</p>
             </div>
           </div>
           <input value={customTitle} onChange={e => setCustomTitle(e.target.value)} placeholder="Custom title (optional)"
@@ -1335,29 +1396,30 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
             {filtered.map(link => {
               const ytId = getYouTubeId(link.url);
               const isYT = !!ytId;
-              const thumb = link.thumb || (ytId ? `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg` : null);
+              const thumb = link.thumb || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null);
 
               return (
                 <article key={link.id} style={{ background: "var(--bg-card)", borderRadius: 18, overflow: "hidden", border: "1px solid var(--border-subtle)", boxShadow: "var(--shadow-card)", transition: "background 0.2s" }}>
-                  {/* Thumbnail / Embed */}
-                  <div style={{ width: "100%", height: 200, background: "var(--bg-chip)", position: "relative", cursor: "pointer" }}
-                    onClick={() => window.open(link.url, "_blank")}>
+                  {/* Thumbnail / Play Button */}
+                  <div style={{ width: "100%", height: 200, background: "#111", position: "relative", cursor: "pointer" }}
+                    onClick={() => { setPlayingLink(link); setUseProxy(false); }}>
                     {thumb ? (
                       <img src={thumb} alt={link.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                         onError={e => (e.currentTarget.parentElement!.style.background = "var(--bg-chip)")} />
                     ) : (
                       <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, color: "var(--text-secondary)" }}>
-                        <Icon name="external" size={36} />
+                        <Icon name="link" size={36} />
                         <small style={{ fontSize: 12, color: "var(--text-secondary)" }}>{link.url.replace(/^https?:\/\//, "").split("/")[0]}</small>
                       </div>
                     )}
-                    {isYT && (
-                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <div style={{ borderLeft: "20px solid #fff", borderTop: "12px solid transparent", borderBottom: "12px solid transparent", marginLeft: 5 }} />
-                        </div>
+                    {/* Play button overlay */}
+                    <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.3)" }}>
+                      <div style={{ width: 56, height: 56, borderRadius: "50%", background: isYT ? "#ef4444" : "#9f1239", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(0,0,0,0.4)" }}>
+                        <svg viewBox="0 0 24 24" fill="white" width={24} height={24} style={{ marginLeft: 3 }}>
+                          <polygon points="5,3 19,12 5,21" />
+                        </svg>
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   {/* Info */}
@@ -1374,16 +1436,18 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
                       <strong style={{ fontFamily: "Manrope,sans-serif", fontSize: 14, fontWeight: 700, display: "block", lineHeight: 1.4, marginBottom: 4, color: "var(--text-primary)" }}>{link.title}</strong>
                     )}
                     <div style={{ fontSize: 11, color: "var(--text-secondary)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", maxWidth: "55%", whiteSpace: "nowrap" }}>
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", maxWidth: "45%", whiteSpace: "nowrap" }}>
                         {link.url.replace(/^https?:\/\//, "").split("/")[0]}
                       </span>
-                      <div style={{ display: "flex", gap: 12 }}>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                        <button onClick={() => { setPlayingLink(link); setUseProxy(false); }}
+                          style={{ background: "#9f1239", color: "#fff", border: "none", borderRadius: 12, padding: "4px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+                          ▶ Play Inside
+                        </button>
                         <button onClick={() => { setEditingId(link.id); setEditTitle(link.title); }}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#9f1239", fontSize: 11, fontWeight: 700 }}>Rename</button>
-                        <button onClick={() => window.open(link.url, "_blank")}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 11 }}>Open ↗</button>
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-secondary)", fontSize: 11, fontWeight: 700 }}>Rename</button>
                         <button onClick={() => onDeleteLink(link.id)}
-                          style={{ background: "none", border: "none", cursor: "pointer", color: "#e05" }} title="Delete">
+                          style={{ background: "none", border: "none", cursor: "pointer", color: "#e05", padding: 2 }} title="Delete">
                           <Icon name="trash" size={14} />
                         </button>
                       </div>
@@ -1395,6 +1459,96 @@ function LinksScreen({ onNavigate, headerProps, links, onAddLink, onDeleteLink, 
           </div>
         )}
       </div>
+
+      {/* In-app link and video player modal */}
+      {playingLink && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 600, background: "#09090b", display: "flex", flexDirection: "column",
+          transform: isRotated ? "rotate(90deg)" : "none",
+          transformOrigin: isRotated ? "center center" : "initial",
+          width: isRotated ? "100vh" : "100%",
+          height: isRotated ? "100vw" : "100%",
+          left: isRotated ? "calc((100vw - 100vh) / 2)" : 0,
+          top: isRotated ? "calc((100vh - 100vw) / 2)" : 0,
+          transition: "transform 0.25s ease"
+        }}>
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "#18181b", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+            <button onClick={() => { setPlayingLink(null); setIsRotated(false); }}
+              style={{ background: "none", border: "none", color: "#fff", cursor: "pointer", display: "flex", padding: 4 }} title="Exit Player">
+              <Icon name="arrow-left" size={22} />
+            </button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: "#fff", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {playingLink.title}
+              </div>
+              <div style={{ color: "rgba(255,255,255,0.5)", fontSize: 10 }}>Playing inside OWNLY</div>
+            </div>
+
+            {/* Auto-Rotate Button */}
+            <button onClick={toggleAutoRotate}
+              title="Auto Rotate Phone Screen"
+              style={{ background: isRotated ? "#9f1239" : "rgba(255,255,255,0.12)", border: "none", color: "#fff", cursor: "pointer", padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+              <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+              </svg>
+              {isRotated ? "90°" : "Rotate"}
+            </button>
+
+            {/* Adjustable Screen Size Selector */}
+            <button onClick={() => setScreenMode(m => m === "standard" ? "cinema" : m === "cinema" ? "fit" : "standard")}
+              title={`Screen size: ${screenMode}`}
+              style={{ background: "rgba(255,255,255,0.12)", border: "none", color: "#fff", cursor: "pointer", padding: "6px 9px", borderRadius: 8, fontSize: 11, fontWeight: 700 }}>
+              {screenMode === "standard" ? "16:9" : screenMode === "cinema" ? "Theater" : "Full"}
+            </button>
+
+            {/* Multi-Proxy Bypass Toggle */}
+            {!getYouTubeId(playingLink.url) && (
+              <button onClick={() => setUseProxy(p => !p)}
+                title="Bypass frame restrictions via High-Speed Proxy"
+                style={{ background: useProxy ? "#059669" : "rgba(255,255,255,0.12)", border: "none", color: "#fff", cursor: "pointer", padding: "6px 8px", borderRadius: 8, fontSize: 10, fontWeight: 800 }}>
+                ⚡ {useProxy ? "Proxy ON" : "Proxy"}
+              </button>
+            )}
+
+            <button onClick={() => window.open(playingLink.url, "_blank")}
+              title="Open externally" style={{ background: "none", border: "none", color: "rgba(255,255,255,0.7)", cursor: "pointer", padding: 6 }}>
+              <Icon name="external" size={18} />
+            </button>
+          </div>
+
+          {/* Player screen */}
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "#000", position: "relative" }}>
+            {(() => {
+              const yId = getYouTubeId(playingLink.url);
+              const playerSrc = yId
+                ? `https://www.youtube-nocookie.com/embed/${yId}?autoplay=1&playsinline=1&rel=0&modestbranding=1`
+                : useProxy
+                ? `/api/proxy-link?url=${encodeURIComponent(playingLink.url)}`
+                : playingLink.url;
+
+              return (
+                <div style={{
+                  width: screenMode === "standard" ? "100%" : screenMode === "cinema" ? "92%" : "100%",
+                  height: screenMode === "standard" ? "100%" : screenMode === "cinema" ? "85%" : "100%",
+                  maxHeight: screenMode === "cinema" ? "70vh" : "100%",
+                  aspectRatio: screenMode === "cinema" ? "16/9" : undefined,
+                  transition: "all 0.25s ease",
+                  position: "relative"
+                }}>
+                  <iframe
+                    src={playerSrc}
+                    style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                    allowFullScreen
+                    title={playingLink.title}
+                  />
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       <BottomNav active="links" onNavigate={onNavigate} />
     </main>
@@ -1408,6 +1562,7 @@ type HeaderProps = {
   onToggleDark: () => void;
   darkMode: boolean;
   onOpenInstall?: () => void;
+  onBack?: () => void;
 };
 
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
@@ -1847,7 +2002,7 @@ export default function App() {
         <DashboardScreen onNavigate={setScreen} headerProps={headerProps} notes={notes} uploads={uploads} links={links} onOpenNote={openNote} />
       )}
       {screen === "notes" && (
-        <NotesListScreen onNavigate={setScreen} headerProps={headerProps} notes={notes}
+        <NotesListScreen onNavigate={setScreen} headerProps={{ ...headerProps, onBack: () => setScreen("dashboard") }} notes={notes}
           onNewNote={createNote} onOpenNote={openNote} onDeleteNote={deleteNote} />
       )}
       {screen === "note-editor" && activeNote && (
