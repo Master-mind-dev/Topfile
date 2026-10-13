@@ -435,7 +435,14 @@ function DashboardScreen({ onNavigate, headerProps, notes, uploads, links, onOpe
 }) {
   const [search, setSearch] = useState("");
   const [viewAll, setViewAll] = useState(false);
-  const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening";
+  const currentHour = new Date().getHours();
+  const greeting = currentHour >= 5 && currentHour < 12 
+    ? "Good morning" 
+    : currentHour >= 12 && currentHour < 17 
+      ? "Good afternoon" 
+      : currentHour >= 17 && currentHour < 21 
+        ? "Good evening" 
+        : "Good night";
   const firstName = headerProps.user?.name?.split(" ")[0] || "there";
 
   const recentNotes = (notes || []).filter(n =>

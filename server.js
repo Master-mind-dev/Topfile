@@ -140,18 +140,18 @@ async function startServer() {
     // Admin standalone login
     app.post('/api/admin/login', (req, res) => {
         const { email, password } = req.body;
-        // Trim just in case there are accidental spaces in Render env vars
-        const expectedEmail = (process.env.ADMIN_EMAIL || 'rmohammeddastagir1@gmail.com').trim();
+        // Admin credentials must be configured securely in server environment variables (Render Dashboard)
+        const expectedEmail = (process.env.ADMIN_EMAIL || '').trim();
         const expectedPassword = (process.env.ADMIN_PASSWORD || '').trim();
 
-        if (!expectedPassword) {
-            console.error("ADMIN_PASSWORD is not set in environment variables!");
-            return res.status(500).json({ success: false, error: 'Admin credentials not configured on the server. Please set ADMIN_PASSWORD in Render.' });
+        if (!expectedEmail || !expectedPassword) {
+            console.error("ADMIN_EMAIL or ADMIN_PASSWORD is not set in environment variables!");
+            return res.status(500).json({ success: false, error: 'Admin credentials not configured on the server. Please set ADMIN_EMAIL and ADMIN_PASSWORD in your server environment variables.' });
         }
 
-        if (email.trim() === expectedEmail && password === expectedPassword) {
+        if (email.trim().toLowerCase() === expectedEmail.toLowerCase() && password === expectedPassword) {
             const secret = process.env.JWT_SECRET || 'ownly-secret-key-change-in-production';
-            const adminToken = jwt.sign({ isSuperAdmin: true, email }, secret, { expiresIn: '24h' });
+            const adminToken = jwt.sign({ isSuperAdmin: true, email: expectedEmail }, secret, { expiresIn: '24h' });
             return res.json({ success: true, token: adminToken });
         } else {
             return res.status(401).json({ success: false, error: 'Invalid admin email or password' });
@@ -167,9 +167,8 @@ async function startServer() {
                 return res.status(400).json({ success: false, error: 'Email and password required' });
             }
             const passwordHash = await hashPassword(password);
-            const countResult = await query('SELECT COUNT(*) FROM users');
-            const isFirstUser = parseInt(countResult.rows[0].count) === 0;
-            const result = await query('INSERT INTO users (email, password_hash, name, is_admin) VALUES ($1, $2, $3, $4) RETURNING id, email, name, is_admin', [email, passwordHash, name || email.split('@')[0], isFirstUser]);
+            // Security: Never grant admin automatically to registering users. Only specific designated accounts have admin.
+            const result = await query('INSERT INTO users (email, password_hash, name, is_admin) VALUES ($1, $2, $3, $4) RETURNING id, email, name, is_admin', [email.trim().toLowerCase(), passwordHash, name || email.split('@')[0], false]);
             const userId = result.rows[0].id;
             const token = generateToken(userId);
             res.json({ success: true, token, user: result.rows[0] });

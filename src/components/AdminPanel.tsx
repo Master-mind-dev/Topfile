@@ -123,7 +123,11 @@ export function AdminPanel() {
 
   const token = localStorage.getItem('ownly_admin_token');
   const authHeaders = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
-  const ADMIN_BASE = 'https://topfile.onrender.com/api/admin';
+  const ADMIN_BASE = typeof window !== 'undefined' && window.location.origin.includes('localhost') 
+    ? '/api/admin'
+    : (typeof window !== 'undefined' && window.location.origin.includes('onrender.com') 
+        ? `${window.location.origin}/api/admin` 
+        : 'https://topfile.onrender.com/api/admin');
 
   const fetchResetRequests = async () => {
     try {
