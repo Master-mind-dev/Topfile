@@ -1,126 +1,79 @@
-# OWNLY — Your Personal Knowledge Space
+# OWNLY - All-in-One Smart Productivity & Study Hub
 
-<div align="center">
-
-<svg width="80" height="80" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect x="2" y="2" width="44" height="44" rx="14" fill="#111111"/>
-  <rect x="9" y="9" width="30" height="30" rx="8" fill="white" opacity="0.95"/>
-  <path d="M24 13 L18 20 L24 27 L30 20 Z" fill="#9f1239"/>
-  <rect x="22" y="27" width="4" height="9" rx="2" fill="#9f1239"/>
-</svg>
-
-**OWNLY** is a premium personal knowledge management app — notes, files, web links, camera scanner, and a connected knowledge graph, all in one place.
-
-[![Live App](https://img.shields.io/badge/🌐_Live_App-Open-9f1239?style=for-the-badge)](https://master-mind-dev.github.io/Topfile/)
-[![Download APK](https://img.shields.io/badge/📲_Download_APK-Latest-111111?style=for-the-badge)](#-download--install)
-
-</div>
+OWNLY is a full-stack, cloud-connected productivity application featuring document scanning with AI OCR, file management, embedded video & resource streaming, interactive notes, real-time collaboration, and administrative user controls.
 
 ---
 
-## ✨ Features
+## 📱 How to Install on Your Phone (Android & iPhone)
 
-| Feature | Description |
-|---|---|
-| 📝 Rich Text Notes | Bold, italic, H1/H2, lists, blockquote, code |
-| 🌐 Connected Knowledge | Save web links, YouTube, PDFs with in-app viewer |
-| 📷 Document Scanner | Capture → Enhance → OCR → PDF export |
-| 📁 File Manager | Upload and organize any file type |
-| 🔗 Links Manager | Bookmark and tag web links |
-| 🌙 Dark Mode | Full system-wide dark/light toggle |
-| 🔐 Auth | Login / Signup / Forgot password |
-| 📱 Mobile-first | Optimized for all screen sizes |
-| 🕸️ Knowledge Graph | Visual mind-map of your saved knowledge |
+OWNLY is built as a Progressive Web App (PWA). You don't need app stores to install it!
 
----
+### Android (Chrome / Brave / Edge)
+1. Open your OWNLY deployment URL in Chrome (e.g. your Render or custom domain URL).
+2. Tap the **three dots menu (⋮)** in the top right corner.
+3. Tap **"Install app"** or **"Add to Home screen"**.
+4. Confirm by tapping **Add**. The OWNLY app icon will appear on your phone's home screen with full-screen support, offline caching, and instant native camera access.
 
-## 📲 Download & Install
-
-### Option 1 — Use the Live Web App (Recommended)
-The app works on **any device with a browser** — no install needed:
-
-👉 **[Open OWNLY Web App](https://master-mind-dev.github.io/Topfile/)**
-
-Sign in with your email and password — your data syncs across all your devices via the server.
+### iPhone / iPad (Safari)
+1. Open your OWNLY deployment URL in **Safari**.
+2. Tap the **Share icon** (the square with an arrow pointing up at the bottom).
+3. Scroll down and tap **"Add to Home Screen"**.
+4. Tap **Add** in the top right corner. OWNLY will now open like a native iOS application.
 
 ---
 
-### Option 2 — Install as PWA (Add to Home Screen)
+## 💻 How to Run Locally
 
-#### On Android (Chrome):
-1. Open the live app link above in **Chrome**
-2. Tap the **⋮ menu** → **"Add to Home screen"**
-3. Tap **Add** → The app icon appears on your home screen
-4. Open it — it works like a native app!
+### Prerequisites
+- [Node.js](https://nodejs.org/) (version 18 or higher)
+- [Git](https://git-scm.com/)
 
-#### On iPhone (Safari):
-1. Open the link in **Safari**
-2. Tap the **Share button** (box with arrow)
-3. Tap **"Add to Home Screen"**
-4. Tap **Add** → Done ✅
-
-#### On Desktop (Chrome/Edge):
-1. Open the link
-2. Click the **install icon** in the address bar (or go to ⋮ → "Install OWNLY")
-3. Click **Install**
-
----
-
-### Option 3 — Run Locally (Developer)
-
+### Step 1: Clone the Repository
 ```bash
-# Clone the repository
-git clone https://github.com/Master-mind-dev/Topfile.git
-cd Topfile
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
+git clone https://github.com/Prajwal-08/New_ownly.git
+cd New_ownly
 ```
 
-Requirements: **Node.js 18+** and **npm 9+**
+### Step 2: Install Dependencies
+```bash
+npm install
+```
+
+### Step 3: Run the Application
+
+**Option A: Full-Stack Mode (Frontend + Backend + Proxy Server)**
+```bash
+npm run build
+npm start
+```
+The app will run at `http://localhost:5000` (or `http://localhost:3000`).
+
+**Option B: Frontend Development Mode (Hot-Reload)**
+```bash
+npm run dev
+```
+Open `http://localhost:5173` in your browser.
 
 ---
 
-## 🔐 Multi-Device Sync
+## 🚀 Deploying to Render (Frontend + Backend)
 
-OWNLY syncs your data across all devices when you:
-1. **Create an account** with email + password
-2. **Log in** on any device (phone, tablet, PC)
-3. Your notes, files, and knowledge base are **available everywhere**
+This repository includes a production-ready `render.yaml` configuration that automatically deploys both the frontend and backend on Render:
 
-> Data is stored server-side — never lost when you clear your browser.
-
----
-
-## 🎨 Tech Stack
-
-- **Frontend**: React + TypeScript + Vite
-- **Styling**: Vanilla CSS with CSS variables (dark/light mode)
-- **Storage**: localStorage + server API sync
-- **PDF**: jsPDF
-- **OCR**: Tesseract.js
-- **Camera**: WebRTC / file input with `capture="environment"`
+1. Push your changes to GitHub.
+2. In [Render Dashboard](https://dashboard.render.com/), choose **New +** -> **Blueprint**.
+3. Select this repository.
+4. Render automatically configures:
+   - **Build Command:** `npm ci && npm run build`
+   - **Start Command:** `node server.js`
+   - **Environment:** Sets up PostgreSQL and file storage.
+5. Once deployed, Render will provide your live HTTPS URL. Both the API and client run seamlessly together.
 
 ---
 
-## 📸 Screenshots
-
-> Open the app to see the full experience with dark mode, animations, and the connected knowledge graph.
-
----
-
-## 🚀 Contributing
-
-Pull requests welcome! For major changes, please open an issue first.
-
----
-
-<div align="center">
-Made with ❤️ · OWNLY © 2026
-</div>
+## 📷 Features & Highlights
+- **Smart Phone Camera & Scanner:** Multi-fallback camera stream with native phone camera shutter fallback for document scanning & OCR.
+- **Embedded Player & Proxy:** Stream YouTube, Google Drive, and educational videos smoothly inside the app without forced redirects.
+- **Auto-Rotation & Fullscreen:** Mobile responsive screen adjustments with landscape/portrait video toggles.
+- **Notes & Uploads:** Quick document viewer with blur-free PDF rendering and responsive navigation.
+- **Admin Management:** Secure role-based user authentication and data administration.

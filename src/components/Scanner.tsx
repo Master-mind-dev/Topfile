@@ -130,63 +130,82 @@ export default function Scanner({
       }
 
       // Check if mediaDevices exists or polyfill legacy
-      const getUM =
-        navigator?.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices) ||
-        (navigator as any)?.getUserMedia?.bind(navigator) ||
-        (navigator as any)?.webkitGetUserMedia?.bind(navigator) ||
-        (navigator as any)?.mozGetUserMedia?.bind(navigator);
+      const hasMediaDevices = !!(navigator && navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+      const getUM = hasMediaDevices
+        ? (c: MediaStreamConstraints) => navigator.mediaDevices.getUserMedia(c)
+        : (navigator as any)?.getUserMedia?.bind(navigator) ||
+          (navigator as any)?.webkitGetUserMedia?.bind(navigator) ||
+          (navigator as any)?.mozGetUserMedia?.bind(navigator);
 
-      // Check secure context
-      const isSecure = window.isSecureContext || window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-
-      if (!getUM || !isSecure) {
-        if (!isSecure) {
-          setCameraError(
-            "Live video stream requires HTTPS. On plain HTTP or local network IP, browsers block getUserMedia. Tap 'Take Photo' to use your device camera directly."
-          );
-        } else {
-          setCameraError(
-            "Live camera stream is not supported in this browser environment. Tap 'Take Photo' to open your camera."
-          );
-        }
+      if (!getUM) {
+        setCameraError(
+          "Live camera stream is not supported in this browser. Tap 'Take Photo' below to use your device camera."
+        );
         return;
       }
 
-      try {
-        let newStream: MediaStream;
-        try {
-          // Attempt ideal resolution
-          newStream = await getUM({
-            video: {
-              facingMode: { ideal: targetFacing },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 },
-            },
-            audio: false,
-          });
-        } catch {
-          // Fallback to basic video constraint if ideal failed
-          newStream = await getUM({
-            video: true,
-            audio: false,
-          });
-        }
+      // Mobile camera progressive fallback constraints
+      const constraintAttempts: MediaStreamConstraints[] = [
+        // 1. Exact or ideal back camera (environment) with modern constraints
+        {
+          video: {
+            facingMode: { ideal: targetFacing },
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
+          },
+          audio: false,
+        },
+        // 2. Simple facingMode string constraint for Android Chrome & mobile WebViews
+        {
+          video: { facingMode: targetFacing },
+          audio: false,
+        },
+        // 3. Simple true video constraint (any camera on device)
+        {
+          video: true,
+          audio: false,
+        },
+      ];
 
+      let newStream: MediaStream | null = null;
+      let lastErr: any = null;
+
+      for (const constraints of constraintAttempts) {
+        try {
+          newStream = await getUM(constraints);
+          if (newStream) break;
+        } catch (err: any) {
+          lastErr = err;
+        }
+      }
+
+      if (newStream) {
         setStream(newStream);
         setFacingMode(targetFacing);
         setIsCameraActive(true);
+        setCameraError("");
 
         if (videoRef.current) {
           videoRef.current.srcObject = newStream;
-          videoRef.current.play().catch(() => {});
+          videoRef.current.setAttribute("playsinline", "true");
+          videoRef.current.setAttribute("webkit-playsinline", "true");
+          videoRef.current.muted = true;
+          videoRef.current.play().catch(() => {
+            // Autoplay might need user interaction on some phones
+          });
         }
-      } catch (err: any) {
-        console.warn("Camera access failed:", err);
+      } else {
+        console.warn("Camera access failed on all attempts:", lastErr);
         setIsCameraActive(false);
+        const isPermissionDenied =
+          lastErr?.name === "NotAllowedError" ||
+          lastErr?.name === "PermissionDeniedError" ||
+          lastErr?.name === "SecurityError";
+
         setCameraError(
-          err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError"
-            ? "Camera permission was denied. Tap 'Take Photo' or allow camera in browser address bar."
-            : "Could not initialize live stream. Tap 'Take Photo' below to snap a picture."
+          isPermissionDenied
+            ? "Camera permission was blocked. Tap 'Take Photo' below to use native camera, or allow camera permissions in your browser settings."
+            : "Live camera stream could not start. Tap 'Take Photo' below to snap a picture directly with your camera app."
         );
       }
     },
