@@ -9,13 +9,13 @@ OWNLY is a full-stack, cloud-connected productivity application featuring docume
 OWNLY is built as a Progressive Web App (PWA). You don't need app stores to install it!
 
 ### Android (Chrome / Brave / Edge)
-1. Open your OWNLY deployment URL in Chrome (e.g. your Render or custom domain URL).
+1. Open your OWNLY deployment https://topfile.onrender.com URL in Chrome (e.g. your Render or custom domain URL).
 2. Tap the **three dots menu (⋮)** in the top right corner.
 3. Tap **"Install app"** or **"Add to Home screen"**.
 4. Confirm by tapping **Add**. The OWNLY app icon will appear on your phone's home screen with full-screen support, offline caching, and instant native camera access.
 
 ### iPhone / iPad (Safari)
-1. Open your OWNLY deployment URL in **Safari**.
+1. Open your OWNLY deployment URL https://topfile.onrender.com in **Safari**.
 2. Tap the **Share icon** (the square with an arrow pointing up at the bottom).
 3. Scroll down and tap **"Add to Home Screen"**.
 4. Tap **Add** in the top right corner. OWNLY will now open like a native iOS application.
